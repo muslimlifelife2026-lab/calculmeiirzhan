@@ -1,0 +1,39 @@
+{
+  "id": "circle_area",
+  "name": "Площадь круга",
+  "category": "GEOMETRY",
+  "subcategory": "2D Фигуры",
+  "description": "Рассчитывает площадь круга по его радиусу.",
+  "canonicalEquation": "S - pi * r^2",
+  "latexTemplate": "S = π · r²",
+  "variables": [
+    {
+      "symbol": "S",
+      "name": "Площадь",
+      "description": "Площадь круга.",
+      "dimensionVector": { "length": 2 },
+      "defaultUnitSymbol": "m^2",
+      "supportedUnits": [
+        { "symbol": "mm^2", "name": "Квадратные миллиметры", "scaleFactor": 1e-6 },
+        { "symbol": "cm^2", "name": "Квадратные сантиметры", "scaleFactor": 1e-4 },
+        { "symbol": "m^2", "name": "Квадратные метры", "scaleFactor": 1.0 }
+      ]
+    },
+    {
+      "symbol": "r",
+      "name": "Радиус",
+      "description": "Радиус круга.",
+      "dimensionVector": { "length": 1 },
+      "defaultUnitSymbol": "m",
+      "supportedUnits": [
+        { "symbol": "mm", "name": "Миллиметры", "scaleFactor": 0.001 },
+        { "symbol": "cm", "name": "Сантиметры", "scaleFactor": 0.01 },
+        { "symbol": "m", "name": "Метры", "scaleFactor": 1.0 }
+      ]
+    }
+  ],
+  "solvedEquations": {
+    "S": "pi * r^2",
+    "r": "sqrt(S / pi)"
+  }
+}

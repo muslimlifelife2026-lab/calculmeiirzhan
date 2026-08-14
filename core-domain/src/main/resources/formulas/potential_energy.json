@@ -1,0 +1,50 @@
+{
+  "id": "potential_energy",
+  "name": "Потенциальная энергия",
+  "category": "Физика",
+  "subcategory": "Механика",
+  "description": "Энергия взаимодействия тела с Землей. Зависит от массы, высоты поднятия и ускорения свободного падения.",
+  "canonicalEquation": "Ep - m * g * h",
+  "latexTemplate": "E_p = m \\cdot g \\cdot h",
+  "variables": [
+    {
+      "symbol": "Ep",
+      "name": "Потенциальная энергия",
+      "description": "Энергия в джоулях.",
+      "defaultUnitSymbol": "J",
+      "supportedUnits": [
+        { "name": "Джоули", "symbol": "J", "factor": "1" },
+        { "name": "Килоджоули", "symbol": "kJ", "factor": "1000" }
+      ]
+    },
+    {
+      "symbol": "m",
+      "name": "Масса тела",
+      "description": "Масса объекта.",
+      "defaultUnitSymbol": "kg",
+      "supportedUnits": [
+        { "name": "Килограммы", "symbol": "kg", "factor": "1" },
+        { "name": "Граммы", "symbol": "g", "factor": "0.001" }
+      ]
+    },
+    {
+      "symbol": "g",
+      "name": "Ускорение g",
+      "description": "Ускорение свободного падения (обычно 9.80665).",
+      "defaultUnitSymbol": "m/s^2",
+      "supportedUnits": [
+        { "name": "Метры в секунду в квадрате", "symbol": "m/s^2", "factor": "1" }
+      ]
+    },
+    {
+      "symbol": "h",
+      "name": "Высота",
+      "description": "Высота над уровнем отсчета.",
+      "defaultUnitSymbol": "m",
+      "supportedUnits": [
+        { "name": "Метры", "symbol": "m", "factor": "1" },
+        { "name": "Километры", "symbol": "km", "factor": "1000" }
+      ]
+    }
+  ]
+}

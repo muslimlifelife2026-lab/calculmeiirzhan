@@ -1,0 +1,34 @@
+{
+  "id": "percent_decrease",
+  "name": "Процентный спад",
+  "category": "Математика",
+  "subcategory": "Проценты",
+  "description": "Рассчитывает процентное уменьшение от начального значения к конечному.",
+  "canonicalEquation": "P - ((v1 - v2) / v1) * 100",
+  "latexTemplate": "P = \\frac{v_1 - v_2}{v_1} \\cdot 100",
+  "variables": [
+    {
+      "symbol": "P",
+      "name": "Процентный спад",
+      "description": "Изменение в процентах.",
+      "defaultUnitSymbol": "%",
+      "supportedUnits": [
+        { "name": "Процент", "symbol": "%", "factor": "1" }
+      ]
+    },
+    {
+      "symbol": "v1",
+      "name": "Начальное значение",
+      "description": "Исходное число до уменьшения.",
+      "defaultUnitSymbol": "",
+      "supportedUnits": []
+    },
+    {
+      "symbol": "v2",
+      "name": "Конечное значение",
+      "description": "Число после уменьшения.",
+      "defaultUnitSymbol": "",
+      "supportedUnits": []
+    }
+  ]
+}

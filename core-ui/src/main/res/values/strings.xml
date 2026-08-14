@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Navigation Tabs -->
+    <string name="tab_calculations">Расчеты</string>
+    <string name="tab_geometry">Геометрия</string>
+    <string name="tab_physics">Физика</string>
+    <string name="tab_history">История</string>
+    <string name="tab_graphing">Графики</string>
+    <string name="tab_chemistry">Химия</string>
+
+    <!-- General / Calculator -->
+    <string name="btn_clear">C</string>
+    <string name="label_result">Результат</string>
+    <string name="label_error">Ошибка</string>
+    <string name="label_select">Выбрать ▾</string>
+    <string name="btn_close">Закрыть</string>
+    <string name="label_find">Найти:</string>
+
+    <!-- Geometry Screen -->
+    <string name="geom_title">Геометрия: %1$s</string>
+    <string name="geom_select_shape">Выберите фигуру</string>
+    <string name="geom_params">Параметры фигуры</string>
+    <string name="geom_btn_calculate">Вычислить площадь / параметры</string>
+    <string name="geom_error">Ошибка расчетов</string>
+
+    <!-- Physics Screen -->
+    <string name="phys_category">Раздел: %1$s</string>
+    <string name="phys_select_formula">Выберите формулу</string>
+    <string name="phys_formula_label">Формула: %1$s</string>
+    <string name="phys_params">Входные параметры</string>
+    <string name="phys_btn_calculate">Вычислить значение</string>
+    <string name="phys_error">Ошибка вычислений</string>
+
+    <!-- Results & Steps -->
+    <string name="result_title">РЕЗУЛЬТАТ РАСЧЕТА</string>
+    <string name="btn_hide_solution">▲ Скрыть решение</string>
+    <string name="btn_show_solution">▼ Показать пошаговое решение</string>
+    <string name="label_step_breakdown">Пошаговый разбор</string>
+    <string name="label_step_num">Шаг %1$d: %2$s</string>
+
+    <!-- Premium / Ads Overlay -->
+    <string name="prem_title">Разблокировать шаги решения</string>
+    <string name="prem_description">Посмотри короткую рекламу (5 сек) для бесплатного доступа ко всем пошаговым решениям на 24 часа.</string>
+    <string name="prem_btn_watch">Смотреть рекламу</string>
+    <string name="prem_badge_unlock">Доступно еще %1$dч %2$dм</string>
+    <string name="ad_dialog_title">Просмотр рекламы</string>
+    <string name="ad_dialog_success_title">Премиум разблокирован!</string>
+    <string name="ad_dialog_success_desc">Вы успешно получили доступ к пошаговым решениям на 24 часа.</string>
+    <string name="ad_dialog_ok">ОК</string>
+
+    <!-- History Screen -->
+    <string name="history_title">История расчетов</string>
+    <string name="history_btn_clear">Очистить историю</string>
+    <string name="history_empty">История пуста</string>
+    <string name="history_item_steps">Шагов: %1$d</string>
+    <string name="history_item_formula">Формула</string>
+    <string name="history_item_target">Искомое</string>
+    <string name="history_item_result">Ответ</string>
+</resources>

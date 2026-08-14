@@ -1,0 +1,49 @@
+{
+  "id": "cylinder_volume",
+  "name": "Объем цилиндра",
+  "category": "GEOMETRY",
+  "subcategory": "3D Фигуры",
+  "description": "Рассчитывает объем цилиндра по его радиусу и высоте.",
+  "canonicalEquation": "V - pi * r^2 * h",
+  "latexTemplate": "V = \\pi \\cdot r^2 \\cdot h",
+  "variables": [
+    {
+      "symbol": "V",
+      "name": "Объем",
+      "description": "Объем цилиндра.",
+      "dimensionVector": { "length": 3 },
+      "defaultUnitSymbol": "m^3",
+      "supportedUnits": [
+        { "symbol": "liter", "name": "Литры", "scaleFactor": 0.001 },
+        { "symbol": "m^3", "name": "Метры кубические", "scaleFactor": 1.0 }
+      ]
+    },
+    {
+      "symbol": "r",
+      "name": "Радиус основания",
+      "description": "Радиус круглого основания цилиндра.",
+      "dimensionVector": { "length": 1 },
+      "defaultUnitSymbol": "m",
+      "supportedUnits": [
+        { "symbol": "cm", "name": "Сантиметры", "scaleFactor": 0.01 },
+        { "symbol": "m", "name": "Метры", "scaleFactor": 1.0 }
+      ]
+    },
+    {
+      "symbol": "h",
+      "name": "Высота",
+      "description": "Высота цилиндра.",
+      "dimensionVector": { "length": 1 },
+      "defaultUnitSymbol": "m",
+      "supportedUnits": [
+        { "symbol": "cm", "name": "Сантиметры", "scaleFactor": 0.01 },
+        { "symbol": "m", "name": "Метры", "scaleFactor": 1.0 }
+      ]
+    }
+  ],
+  "solvedEquations": {
+    "V": "pi * r^2 * h",
+    "r": "sqrt(V / (pi * h))",
+    "h": "V / (pi * r^2)"
+  }
+}

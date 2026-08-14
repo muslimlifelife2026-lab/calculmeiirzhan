@@ -1,0 +1,43 @@
+{
+  "id": "wave_frequency",
+  "name": "Частота волны",
+  "category": "Физика",
+  "subcategory": "Оптика и волны",
+  "description": "Связывает частоту волны, ее скорость распространения и длину волны.",
+  "canonicalEquation": "f - v / lambda",
+  "latexTemplate": "f = \\frac{v}{\\lambda}",
+  "variables": [
+    {
+      "symbol": "f",
+      "name": "Частота",
+      "description": "Количество колебаний в секунду.",
+      "defaultUnitSymbol": "Hz",
+      "supportedUnits": [
+        { "name": "Герц", "symbol": "Hz", "factor": "1" },
+        { "name": "Килогерц", "symbol": "kHz", "factor": "1000" },
+        { "name": "Мегагерц", "symbol": "MHz", "factor": "1000000" }
+      ]
+    },
+    {
+      "symbol": "v",
+      "name": "Скорость волны",
+      "description": "Скорость распространения волны в среде.",
+      "defaultUnitSymbol": "m/s",
+      "supportedUnits": [
+        { "name": "Метры в секунду", "symbol": "m/s", "factor": "1" },
+        { "name": "Километры в час", "symbol": "km/h", "factor": "0.277777778" }
+      ]
+    },
+    {
+      "symbol": "lambda",
+      "name": "Длина волны",
+      "description": "Расстояние между соседними точками волны.",
+      "defaultUnitSymbol": "m",
+      "supportedUnits": [
+        { "name": "Метры", "symbol": "m", "factor": "1" },
+        { "name": "Миллиметры", "symbol": "mm", "factor": "0.001" },
+        { "name": "Нанометры", "symbol": "nm", "factor": "0.000000001" }
+      ]
+    }
+  ]
+}

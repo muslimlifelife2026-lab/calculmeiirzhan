@@ -1,0 +1,48 @@
+{
+  "id": "work_force",
+  "name": "Механическая работа",
+  "category": "PHYSICS",
+  "subcategory": "Механика",
+  "description": "Физическая величина, характеризующая действие силы на тело при его перемещении.",
+  "canonicalEquation": "A - F * s",
+  "latexTemplate": "A = F \\cdot s",
+  "variables": [
+    {
+      "symbol": "A",
+      "name": "Работа",
+      "description": "Измеряется в Джоулях.",
+      "dimensionVector": { "length": 2, "mass": 1, "time": -2 },
+      "defaultUnitSymbol": "J",
+      "supportedUnits": [
+        { "symbol": "J", "name": "Джоули", "scaleFactor": 1.0 },
+        { "symbol": "kJ", "name": "Килоджоули", "scaleFactor": 1000.0 }
+      ]
+    },
+    {
+      "symbol": "F",
+      "name": "Сила",
+      "description": "Действующая на тело сила.",
+      "dimensionVector": { "length": 1, "mass": 1, "time": -2 },
+      "defaultUnitSymbol": "N",
+      "supportedUnits": [
+        { "symbol": "N", "name": "Ньютоны", "scaleFactor": 1.0 }
+      ]
+    },
+    {
+      "symbol": "s",
+      "name": "Путь",
+      "description": "Перемещение тела под действием силы.",
+      "dimensionVector": { "length": 1 },
+      "defaultUnitSymbol": "m",
+      "supportedUnits": [
+        { "symbol": "m", "name": "Метры", "scaleFactor": 1.0 },
+        { "symbol": "km", "name": "Километры", "scaleFactor": 1000.0 }
+      ]
+    }
+  ],
+  "solvedEquations": {
+    "A": "F * s",
+    "F": "A / s",
+    "s": "A / F"
+  }
+}

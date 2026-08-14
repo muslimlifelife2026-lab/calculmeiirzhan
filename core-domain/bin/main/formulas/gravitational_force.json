@@ -1,0 +1,58 @@
+{
+  "id": "gravitational_force",
+  "name": "Закон всемирного тяготения",
+  "category": "PHYSICS",
+  "subcategory": "Гравитация",
+  "description": "Определяет силу гравитационного притяжения между двумя материальными точками.",
+  "canonicalEquation": "F - 0.000000000066743 * m_1 * m_2 / r^2",
+  "latexTemplate": "F = G \\frac{m_1 \\cdot m_2}{r^2}",
+  "variables": [
+    {
+      "symbol": "F",
+      "name": "Сила притяжения",
+      "description": "Сила взаимного притяжения.",
+      "dimensionVector": { "length": 1, "mass": 1, "time": -2 },
+      "defaultUnitSymbol": "N",
+      "supportedUnits": [
+        { "symbol": "N", "name": "Ньютоны", "scaleFactor": 1.0 }
+      ]
+    },
+    {
+      "symbol": "m_1",
+      "name": "Масса первого тела",
+      "description": "Масса первого притягивающегося тела.",
+      "dimensionVector": { "mass": 1 },
+      "defaultUnitSymbol": "kg",
+      "supportedUnits": [
+        { "symbol": "kg", "name": "Килограммы", "scaleFactor": 1.0 }
+      ]
+    },
+    {
+      "symbol": "m_2",
+      "name": "Масса второго тела",
+      "description": "Масса второго притягивающегося тела.",
+      "dimensionVector": { "mass": 1 },
+      "defaultUnitSymbol": "kg",
+      "supportedUnits": [
+        { "symbol": "kg", "name": "Килограммы", "scaleFactor": 1.0 }
+      ]
+    },
+    {
+      "symbol": "r",
+      "name": "Расстояние",
+      "description": "Расстояние между центрами масс тел.",
+      "dimensionVector": { "length": 1 },
+      "defaultUnitSymbol": "m",
+      "supportedUnits": [
+        { "symbol": "m", "name": "Метры", "scaleFactor": 1.0 },
+        { "symbol": "km", "name": "Километры", "scaleFactor": 1000.0 }
+      ]
+    }
+  ],
+  "solvedEquations": {
+    "F": "0.000000000066743 * m_1 * m_2 / (r * r)",
+    "m_1": "F * r * r / (0.000000000066743 * m_2)",
+    "m_2": "F * r * r / (0.000000000066743 * m_1)",
+    "r": "sqrt(0.000000000066743 * m_1 * m_2 / F)"
+  }
+}

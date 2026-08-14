@@ -1,0 +1,34 @@
+{
+  "id": "percent_increase",
+  "name": "Процентный рост",
+  "category": "Математика",
+  "subcategory": "Проценты",
+  "description": "Рассчитывает процентный прирост от начального значения к конечному.",
+  "canonicalEquation": "P - ((v2 - v1) / v1) * 100",
+  "latexTemplate": "P = \\frac{v_2 - v_1}{v_1} \\cdot 100",
+  "variables": [
+    {
+      "symbol": "P",
+      "name": "Процентный прирост",
+      "description": "Изменение в процентах.",
+      "defaultUnitSymbol": "%",
+      "supportedUnits": [
+        { "name": "Процент", "symbol": "%", "factor": "1" }
+      ]
+    },
+    {
+      "symbol": "v1",
+      "name": "Начальное значение",
+      "description": "Исходное число до изменения.",
+      "defaultUnitSymbol": "",
+      "supportedUnits": []
+    },
+    {
+      "symbol": "v2",
+      "name": "Конечное значение",
+      "description": "Число после изменения.",
+      "defaultUnitSymbol": "",
+      "supportedUnits": []
+    }
+  ]
+}

@@ -1,0 +1,18 @@
+[
+  "velocity_kinematics",
+  "force_newton",
+  "kinetic_energy",
+  "circle_area",
+  "ohm_law",
+  "density",
+  "pressure",
+  "gravitational_force",
+  "ideal_gas_law",
+  "work_force",
+  "triangle_area",
+  "rectangle_area",
+  "sphere_volume",
+  "cylinder_volume",
+  "pythagorean_theorem",
+  "percentage_part"
+]

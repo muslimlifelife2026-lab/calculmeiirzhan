@@ -1,0 +1,41 @@
+{
+  "id": "parallelogram_area",
+  "name": "Площадь параллелограмма",
+  "category": "Геометрия",
+  "subcategory": "2D Фигуры",
+  "description": "Рассчитывает площадь параллелограмма по длине его стороны основания и высоте к ней.",
+  "canonicalEquation": "S - b * h",
+  "latexTemplate": "S = b \\cdot h",
+  "variables": [
+    {
+      "symbol": "S",
+      "name": "Площадь",
+      "description": "Общая площадь параллелограмма.",
+      "defaultUnitSymbol": "m^2",
+      "supportedUnits": [
+        { "name": "Квадратные метры", "symbol": "m^2", "factor": "1" },
+        { "name": "Квадратные сантиметры", "symbol": "cm^2", "factor": "0.0001" }
+      ]
+    },
+    {
+      "symbol": "b",
+      "name": "Основание b",
+      "description": "Сторона основания.",
+      "defaultUnitSymbol": "m",
+      "supportedUnits": [
+        { "name": "Метры", "symbol": "m", "factor": "1" },
+        { "name": "Сантиметры", "symbol": "cm", "factor": "0.01" }
+      ]
+    },
+    {
+      "symbol": "h",
+      "name": "Высота",
+      "description": "Высота, опущенная на основание.",
+      "defaultUnitSymbol": "m",
+      "supportedUnits": [
+        { "name": "Метры", "symbol": "m", "factor": "1" },
+        { "name": "Сантиметры", "symbol": "cm", "factor": "0.01" }
+      ]
+    }
+  ]
+}

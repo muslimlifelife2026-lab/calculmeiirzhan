@@ -1,0 +1,49 @@
+{
+  "id": "triangle_area",
+  "name": "Площадь треугольника",
+  "category": "GEOMETRY",
+  "subcategory": "2D Фигуры",
+  "description": "Рассчитывает площадь треугольника по основанию и высоте.",
+  "canonicalEquation": "S - 0.5 * b * h",
+  "latexTemplate": "S = \\frac{1}{2} b \\cdot h",
+  "variables": [
+    {
+      "symbol": "S",
+      "name": "Площадь",
+      "description": "Площадь треугольника.",
+      "dimensionVector": { "length": 2 },
+      "defaultUnitSymbol": "m^2",
+      "supportedUnits": [
+        { "symbol": "cm^2", "name": "Квадратные сантиметры", "scaleFactor": 1e-4 },
+        { "symbol": "m^2", "name": "Квадратные метры", "scaleFactor": 1.0 }
+      ]
+    },
+    {
+      "symbol": "b",
+      "name": "Основание",
+      "description": "Длина основания треугольника.",
+      "dimensionVector": { "length": 1 },
+      "defaultUnitSymbol": "m",
+      "supportedUnits": [
+        { "symbol": "cm", "name": "Сантиметры", "scaleFactor": 0.01 },
+        { "symbol": "m", "name": "Метры", "scaleFactor": 1.0 }
+      ]
+    },
+    {
+      "symbol": "h",
+      "name": "Высота",
+      "description": "Высота, опущенная на основание.",
+      "dimensionVector": { "length": 1 },
+      "defaultUnitSymbol": "m",
+      "supportedUnits": [
+        { "symbol": "cm", "name": "Сантиметры", "scaleFactor": 0.01 },
+        { "symbol": "m", "name": "Метры", "scaleFactor": 1.0 }
+      ]
+    }
+  ],
+  "solvedEquations": {
+    "S": "0.5 * b * h",
+    "b": "2 * S / h",
+    "h": "2 * S / b"
+  }
+}

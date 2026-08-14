@@ -1,0 +1,51 @@
+{
+  "id": "trapezoid_area",
+  "name": "Площадь трапеции",
+  "category": "Геометрия",
+  "subcategory": "2D Фигуры",
+  "description": "Рассчитывает площадь трапеции по длине двух ее параллельных оснований и высоте.",
+  "canonicalEquation": "S - ((a + b) / 2) * h",
+  "latexTemplate": "S = \\frac{a + b}{2} \\cdot h",
+  "variables": [
+    {
+      "symbol": "S",
+      "name": "Площадь",
+      "description": "Общая площадь фигуры.",
+      "defaultUnitSymbol": "m^2",
+      "supportedUnits": [
+        { "name": "Квадратные метры", "symbol": "m^2", "factor": "1" },
+        { "name": "Квадратные сантиметры", "symbol": "cm^2", "factor": "0.0001" }
+      ]
+    },
+    {
+      "symbol": "a",
+      "name": "Основание a",
+      "description": "Длина первого основания.",
+      "defaultUnitSymbol": "m",
+      "supportedUnits": [
+        { "name": "Метры", "symbol": "m", "factor": "1" },
+        { "name": "Сантиметры", "symbol": "cm", "factor": "0.01" }
+      ]
+    },
+    {
+      "symbol": "b",
+      "name": "Основание b",
+      "description": "Длина второго основания.",
+      "defaultUnitSymbol": "m",
+      "supportedUnits": [
+        { "name": "Метры", "symbol": "m", "factor": "1" },
+        { "name": "Сантиметры", "symbol": "cm", "factor": "0.01" }
+      ]
+    },
+    {
+      "symbol": "h",
+      "name": "Высота",
+      "description": "Перпендикуляр между основаниями.",
+      "defaultUnitSymbol": "m",
+      "supportedUnits": [
+        { "name": "Метры", "symbol": "m", "factor": "1" },
+        { "name": "Сантиметры", "symbol": "cm", "factor": "0.01" }
+      ]
+    }
+  ]
+}

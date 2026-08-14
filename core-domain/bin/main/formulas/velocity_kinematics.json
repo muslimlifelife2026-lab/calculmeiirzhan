@@ -1,0 +1,61 @@
+{
+  "id": "velocity_kinematics",
+  "name": "Конечная скорость при постоянном ускорении",
+  "category": "PHYSICS",
+  "subcategory": "Кинематика",
+  "description": "Определяет скорость объекта после заданного времени при постоянном ускорении.",
+  "canonicalEquation": "v_f - v_i - a * t",
+  "latexTemplate": "v_f = v_i + a · t",
+  "variables": [
+    {
+      "symbol": "v_f",
+      "name": "Конечная скорость",
+      "description": "Скорость объекта в конце временного интервала.",
+      "dimensionVector": { "length": 1, "time": -1 },
+      "defaultUnitSymbol": "m/s",
+      "supportedUnits": [
+        { "symbol": "m/s", "name": "Метры в секунду", "scaleFactor": 1.0 },
+        { "symbol": "km/h", "name": "Километры в час", "scaleFactor": 0.2777777777777778 }
+      ]
+    },
+    {
+      "symbol": "v_i",
+      "name": "Начальная скорость",
+      "description": "Скорость объекта в начале временного интервала.",
+      "dimensionVector": { "length": 1, "time": -1 },
+      "defaultUnitSymbol": "m/s",
+      "supportedUnits": [
+        { "symbol": "m/s", "name": "Метры в секунду", "scaleFactor": 1.0 },
+        { "symbol": "km/h", "name": "Километры в час", "scaleFactor": 0.2777777777777778 }
+      ]
+    },
+    {
+      "symbol": "a",
+      "name": "Ускорение",
+      "description": "Темп изменения скорости.",
+      "dimensionVector": { "length": 1, "time": -2 },
+      "defaultUnitSymbol": "m/s^2",
+      "supportedUnits": [
+        { "symbol": "m/s^2", "name": "Метры на секунду в квадрате", "scaleFactor": 1.0 }
+      ]
+    },
+    {
+      "symbol": "t",
+      "name": "Время",
+      "description": "Продолжительность движения.",
+      "dimensionVector": { "time": 1 },
+      "defaultUnitSymbol": "s",
+      "supportedUnits": [
+        { "symbol": "s", "name": "Секунды", "scaleFactor": 1.0 },
+        { "symbol": "min", "name": "Минуты", "scaleFactor": 60.0 },
+        { "symbol": "h", "name": "Часы", "scaleFactor": 3600.0 }
+      ]
+    }
+  ],
+  "solvedEquations": {
+    "v_f": "v_i + a * t",
+    "v_i": "v_f - a * t",
+    "a": "(v_f - v_i) / t",
+    "t": "(v_f - v_i) / a"
+  }
+}

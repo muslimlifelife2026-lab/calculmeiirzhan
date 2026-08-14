@@ -1,0 +1,50 @@
+{
+  "id": "density",
+  "name": "Плотность вещества",
+  "category": "PHYSICS",
+  "subcategory": "Механика",
+  "description": "Физическая величина, определяемая отношением массы тела к занимаемому им объему.",
+  "canonicalEquation": "d - m / V",
+  "latexTemplate": "\\rho = \\frac{m}{V}",
+  "variables": [
+    {
+      "symbol": "d",
+      "name": "Плотность",
+      "description": "Плотность вещества.",
+      "dimensionVector": { "mass": 1, "length": -3 },
+      "defaultUnitSymbol": "kg/m^3",
+      "supportedUnits": [
+        { "symbol": "kg/m^3", "name": "Килограммы на метр кубический", "scaleFactor": 1.0 },
+        { "symbol": "g/cm^3", "name": "Граммы на сантиметр кубический", "scaleFactor": 1000.0 }
+      ]
+    },
+    {
+      "symbol": "m",
+      "name": "Масса",
+      "description": "Масса вещества.",
+      "dimensionVector": { "mass": 1 },
+      "defaultUnitSymbol": "kg",
+      "supportedUnits": [
+        { "symbol": "g", "name": "Граммы", "scaleFactor": 0.001 },
+        { "symbol": "kg", "name": "Килограммы", "scaleFactor": 1.0 }
+      ]
+    },
+    {
+      "symbol": "V",
+      "name": "Объем",
+      "description": "Занимаемое веществом пространство.",
+      "dimensionVector": { "length": 3 },
+      "defaultUnitSymbol": "m^3",
+      "supportedUnits": [
+        { "symbol": "cm^3", "name": "Сантиметры кубические", "scaleFactor": 1e-6 },
+        { "symbol": "liter", "name": "Литры", "scaleFactor": 0.001 },
+        { "symbol": "m^3", "name": "Метры кубические", "scaleFactor": 1.0 }
+      ]
+    }
+  ],
+  "solvedEquations": {
+    "d": "m / V",
+    "m": "d * V",
+    "V": "m / d"
+  }
+}

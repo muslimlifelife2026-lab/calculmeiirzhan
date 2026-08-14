@@ -1,0 +1,49 @@
+{
+  "id": "pythagorean_theorem",
+  "name": "Теорема Пифагора",
+  "category": "GEOMETRY",
+  "subcategory": "2D Фигуры",
+  "description": "Связывает гипотенузу прямоугольного треугольника с его катетами.",
+  "canonicalEquation": "c - sqrt(a^2 + b^2)",
+  "latexTemplate": "c^2 = a^2 + b^2",
+  "variables": [
+    {
+      "symbol": "c",
+      "name": "Гипотенузу",
+      "description": "Сторона, противоположная прямому углу.",
+      "dimensionVector": { "length": 1 },
+      "defaultUnitSymbol": "m",
+      "supportedUnits": [
+        { "symbol": "cm", "name": "Сантиметры", "scaleFactor": 0.01 },
+        { "symbol": "m", "name": "Метры", "scaleFactor": 1.0 }
+      ]
+    },
+    {
+      "symbol": "a",
+      "name": "Катет A",
+      "description": "Прилежащий или противолежащий катет.",
+      "dimensionVector": { "length": 1 },
+      "defaultUnitSymbol": "m",
+      "supportedUnits": [
+        { "symbol": "cm", "name": "Сантиметры", "scaleFactor": 0.01 },
+        { "symbol": "m", "name": "Метры", "scaleFactor": 1.0 }
+      ]
+    },
+    {
+      "symbol": "b",
+      "name": "Катет B",
+      "description": "Второй катет.",
+      "dimensionVector": { "length": 1 },
+      "defaultUnitSymbol": "m",
+      "supportedUnits": [
+        { "symbol": "cm", "name": "Сантиметры", "scaleFactor": 0.01 },
+        { "symbol": "m", "name": "Метры", "scaleFactor": 1.0 }
+      ]
+    }
+  ],
+  "solvedEquations": {
+    "c": "sqrt(a^2 + b^2)",
+    "a": "sqrt(c^2 - b^2)",
+    "b": "sqrt(c^2 - a^2)"
+  }
+}

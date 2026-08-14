@@ -1,0 +1,49 @@
+{
+  "id": "rectangle_area",
+  "name": "Площадь прямоугольника",
+  "category": "GEOMETRY",
+  "subcategory": "2D Фигуры",
+  "description": "Рассчитывает площадь прямоугольника по двум смежным сторонам.",
+  "canonicalEquation": "S - a * b",
+  "latexTemplate": "S = a \\cdot b",
+  "variables": [
+    {
+      "symbol": "S",
+      "name": "Площадь",
+      "description": "Площадь прямоугольника.",
+      "dimensionVector": { "length": 2 },
+      "defaultUnitSymbol": "m^2",
+      "supportedUnits": [
+        { "symbol": "cm^2", "name": "Квадратные сантиметры", "scaleFactor": 1e-4 },
+        { "symbol": "m^2", "name": "Квадратные метры", "scaleFactor": 1.0 }
+      ]
+    },
+    {
+      "symbol": "a",
+      "name": "Сторона A",
+      "description": "Ширина прямоугольника.",
+      "dimensionVector": { "length": 1 },
+      "defaultUnitSymbol": "m",
+      "supportedUnits": [
+        { "symbol": "cm", "name": "Сантиметры", "scaleFactor": 0.01 },
+        { "symbol": "m", "name": "Метры", "scaleFactor": 1.0 }
+      ]
+    },
+    {
+      "symbol": "b",
+      "name": "Сторона B",
+      "description": "Высота прямоугольника.",
+      "dimensionVector": { "length": 1 },
+      "defaultUnitSymbol": "m",
+      "supportedUnits": [
+        { "symbol": "cm", "name": "Сантиметры", "scaleFactor": 0.01 },
+        { "symbol": "m", "name": "Метры", "scaleFactor": 1.0 }
+      ]
+    }
+  ],
+  "solvedEquations": {
+    "S": "a * b",
+    "a": "S / b",
+    "b": "S / a"
+  }
+}

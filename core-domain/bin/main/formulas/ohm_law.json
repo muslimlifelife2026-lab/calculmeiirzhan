@@ -1,0 +1,49 @@
+{
+  "id": "ohm_law",
+  "name": "Закон Ома для участка цепи",
+  "category": "PHYSICS",
+  "subcategory": "Электричество",
+  "description": "Связывает силу тока в проводнике с напряжением на его концах и его сопротивлением.",
+  "canonicalEquation": "I - U / R",
+  "latexTemplate": "I = \\frac{U}{R}",
+  "variables": [
+    {
+      "symbol": "I",
+      "name": "Сила тока",
+      "description": "Направленное движение электрических зарядов.",
+      "dimensionVector": { "current": 1 },
+      "defaultUnitSymbol": "A",
+      "supportedUnits": [
+        { "symbol": "A", "name": "Амперы", "scaleFactor": 1.0 },
+        { "symbol": "mA", "name": "Миллиамперы", "scaleFactor": 0.001 }
+      ]
+    },
+    {
+      "symbol": "U",
+      "name": "Напряжение",
+      "description": "Разность потенциалов между двумя точками.",
+      "dimensionVector": { "length": 2, "mass": 1, "time": -3, "current": -1 },
+      "defaultUnitSymbol": "V",
+      "supportedUnits": [
+        { "symbol": "V", "name": "Вольты", "scaleFactor": 1.0 },
+        { "symbol": "kV", "name": "Киловольты", "scaleFactor": 1000.0 }
+      ]
+    },
+    {
+      "symbol": "R",
+      "name": "Сопротивление",
+      "description": "Свойство проводника препятствовать прохождению тока.",
+      "dimensionVector": { "length": 2, "mass": 1, "time": -3, "current": -2 },
+      "defaultUnitSymbol": "Ohm",
+      "supportedUnits": [
+        { "symbol": "Ohm", "name": "Омы", "scaleFactor": 1.0 },
+        { "symbol": "kOhm", "name": "Килоомы", "scaleFactor": 1000.0 }
+      ]
+    }
+  ],
+  "solvedEquations": {
+    "I": "U / R",
+    "U": "I * R",
+    "R": "U / I"
+  }
+}

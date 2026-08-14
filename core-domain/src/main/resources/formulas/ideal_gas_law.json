@@ -1,0 +1,59 @@
+{
+  "id": "ideal_gas_law",
+  "name": "Уравнение Менделеева-Клапейрона",
+  "category": "PHYSICS",
+  "subcategory": "Термодинамика",
+  "description": "Связывает давление, объем, температуру и количество вещества идеального газа.",
+  "canonicalEquation": "P * V - n * 8.3144 * T",
+  "latexTemplate": "P \\cdot V = n \\cdot R \\cdot T",
+  "variables": [
+    {
+      "symbol": "P",
+      "name": "Давление",
+      "description": "Давление газа в сосуде.",
+      "dimensionVector": { "mass": 1, "length": -1, "time": -2 },
+      "defaultUnitSymbol": "Pa",
+      "supportedUnits": [
+        { "symbol": "Pa", "name": "Паскали", "scaleFactor": 1.0 },
+        { "symbol": "kPa", "name": "Килопаскали", "scaleFactor": 1000.0 }
+      ]
+    },
+    {
+      "symbol": "V",
+      "name": "Объем",
+      "description": "Объем сосуда с газом.",
+      "dimensionVector": { "length": 3 },
+      "defaultUnitSymbol": "m^3",
+      "supportedUnits": [
+        { "symbol": "m^3", "name": "Метры кубические", "scaleFactor": 1.0 },
+        { "symbol": "liter", "name": "Литры", "scaleFactor": 0.001 }
+      ]
+    },
+    {
+      "symbol": "n",
+      "name": "Количество вещества",
+      "description": "Измеряется в молях.",
+      "dimensionVector": { "amount": 1 },
+      "defaultUnitSymbol": "mol",
+      "supportedUnits": [
+        { "symbol": "mol", "name": "Моли", "scaleFactor": 1.0 }
+      ]
+    },
+    {
+      "symbol": "T",
+      "name": "Температура",
+      "description": "Абсолютная температура газа в Кельвинах.",
+      "dimensionVector": { "temperature": 1 },
+      "defaultUnitSymbol": "K",
+      "supportedUnits": [
+        { "symbol": "K", "name": "Кельвины", "scaleFactor": 1.0 }
+      ]
+    }
+  ],
+  "solvedEquations": {
+    "P": "n * 8.3144 * T / V",
+    "V": "n * 8.3144 * T / P",
+    "n": "P * V / (8.3144 * T)",
+    "T": "P * V / (n * 8.3144)"
+  }
+}

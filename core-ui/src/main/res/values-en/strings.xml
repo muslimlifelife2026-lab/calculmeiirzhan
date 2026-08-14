@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Navigation Tabs -->
+    <string name="tab_calculations">Calculations</string>
+    <string name="tab_geometry">Geometry</string>
+    <string name="tab_physics">Physics</string>
+    <string name="tab_history">History</string>
+
+    <!-- General / Calculator -->
+    <string name="btn_clear">C</string>
+    <string name="label_result">Result</string>
+    <string name="label_error">Error</string>
+    <string name="label_select">Select ▾</string>
+    <string name="btn_close">Close</string>
+    <string name="label_find">Find:</string>
+
+    <!-- Geometry Screen -->
+    <string name="geom_title">Geometry: %1$s</string>
+    <string name="geom_select_shape">Select shape</string>
+    <string name="geom_params">Shape parameters</string>
+    <string name="geom_btn_calculate">Calculate Area / Parameters</string>
+    <string name="geom_error">Calculation error</string>
+
+    <!-- Physics Screen -->
+    <string name="phys_category">Category: %1$s</string>
+    <string name="phys_select_formula">Select formula</string>
+    <string name="phys_formula_label">Formula: %1$s</string>
+    <string name="phys_params">Input parameters</string>
+    <string name="phys_btn_calculate">Calculate value</string>
+    <string name="phys_error">Calculation error</string>
+
+    <!-- Results & Steps -->
+    <string name="result_title">CALCULATION RESULT</string>
+    <string name="btn_hide_solution">▲ Hide solution</string>
+    <string name="btn_show_solution">▼ Show step-by-step solution</string>
+    <string name="label_step_breakdown">Step-by-step solution</string>
+    <string name="label_step_num">Step %1$d: %2$s</string>
+
+    <!-- Premium / Ads Overlay -->
+    <string name="prem_title">Unlock step-by-step solutions</string>
+    <string name="prem_description">Watch a short ad (5 sec) to get free 24-hour access to all step-by-step solutions.</string>
+    <string name="prem_btn_watch">Watch Ad</string>
+    <string name="prem_badge_unlock">Expires in %1$dh %2$dm</string>
+    <string name="ad_dialog_title">Watching advertisement</string>
+    <string name="ad_dialog_success_title">Premium unlocked!</string>
+    <string name="ad_dialog_success_desc">You have successfully unlocked step-by-step solutions for 24 hours.</string>
+    <string name="ad_dialog_ok">OK</string>
+
+    <!-- History Screen -->
+    <string name="history_title">Calculation History</string>
+    <string name="history_btn_clear">Clear history</string>
+    <string name="history_empty">History is empty</string>
+    <string name="history_item_steps">Steps: %1$d</string>
+    <string name="history_item_formula">Formula</string>
+    <string name="history_item_target">Target</string>
+    <string name="history_item_result">Result</string>
+</resources>

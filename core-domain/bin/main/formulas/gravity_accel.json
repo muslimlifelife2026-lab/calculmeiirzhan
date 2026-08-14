@@ -1,0 +1,39 @@
+{
+  "id": "gravity_accel",
+  "name": "Гравитация планет",
+  "category": "Физика",
+  "subcategory": "Астрофизика",
+  "description": "Рассчитывает ускорение свободного падения на поверхности космического тела по его массе и радиусу.",
+  "canonicalEquation": "g - (0.000000000066743 * M) / (R * R)",
+  "latexTemplate": "g = G \\cdot \\frac{M}{R^2}",
+  "variables": [
+    {
+      "symbol": "g",
+      "name": "Ускорение g",
+      "description": "Сила тяжести на поверхности.",
+      "defaultUnitSymbol": "m/s^2",
+      "supportedUnits": [
+        { "name": "Метры в секунду в квадрате", "symbol": "m/s^2", "factor": "1" }
+      ]
+    },
+    {
+      "symbol": "M",
+      "name": "Масса планеты",
+      "description": "Масса космического объекта в кг.",
+      "defaultUnitSymbol": "kg",
+      "supportedUnits": [
+        { "name": "Килограммы", "symbol": "kg", "factor": "1" }
+      ]
+    },
+    {
+      "symbol": "R",
+      "name": "Радиус планеты",
+      "description": "Радиус космического объекта в метрах.",
+      "defaultUnitSymbol": "m",
+      "supportedUnits": [
+        { "name": "Метры", "symbol": "m", "factor": "1" },
+        { "name": "Километры", "symbol": "km", "factor": "1000" }
+      ]
+    }
+  ]
+}

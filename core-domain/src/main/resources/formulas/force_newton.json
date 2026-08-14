@@ -1,0 +1,49 @@
+{
+  "id": "force_newton",
+  "name": "Второй закон Ньютона",
+  "category": "PHYSICS",
+  "subcategory": "Динамика",
+  "description": "Связывает силу, действующую на тело, с его массой и ускорением.",
+  "canonicalEquation": "F - m * a",
+  "latexTemplate": "F = m \\cdot a",
+  "variables": [
+    {
+      "symbol": "F",
+      "name": "Сила",
+      "description": "Векторная физическая величина, мера интенсивности воздействия.",
+      "dimensionVector": { "length": 1, "mass": 1, "time": -2 },
+      "defaultUnitSymbol": "N",
+      "supportedUnits": [
+        { "symbol": "N", "name": "Ньютоны", "scaleFactor": 1.0 },
+        { "symbol": "kN", "name": "Килоньютоны", "scaleFactor": 1000.0 }
+      ]
+    },
+    {
+      "symbol": "m",
+      "name": "Масса",
+      "description": "Мера инертности тела.",
+      "dimensionVector": { "mass": 1 },
+      "defaultUnitSymbol": "kg",
+      "supportedUnits": [
+        { "symbol": "g", "name": "Граммы", "scaleFactor": 0.001 },
+        { "symbol": "kg", "name": "Килограммы", "scaleFactor": 1.0 },
+        { "symbol": "t", "name": "Тонны", "scaleFactor": 1000.0 }
+      ]
+    },
+    {
+      "symbol": "a",
+      "name": "Ускорение",
+      "description": "Ускорение движения тела.",
+      "dimensionVector": { "length": 1, "time": -2 },
+      "defaultUnitSymbol": "m/s^2",
+      "supportedUnits": [
+        { "symbol": "m/s^2", "name": "Метры на секунду в квадрате", "scaleFactor": 1.0 }
+      ]
+    }
+  ],
+  "solvedEquations": {
+    "F": "m * a",
+    "m": "F / a",
+    "a": "F / m"
+  }
+}

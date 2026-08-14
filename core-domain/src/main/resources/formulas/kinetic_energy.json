@@ -1,0 +1,49 @@
+{
+  "id": "kinetic_energy",
+  "name": "Кинетическая энергия",
+  "category": "PHYSICS",
+  "subcategory": "Динамика",
+  "description": "Энергия, которой обладает тело вследствие своего движения.",
+  "canonicalEquation": "E_k - 0.5 * m * v^2",
+  "latexTemplate": "E_k = \\frac{1}{2} m \\cdot v^2",
+  "variables": [
+    {
+      "symbol": "E_k",
+      "name": "Кинетическая энергия",
+      "description": "Энергия движения.",
+      "dimensionVector": { "length": 2, "mass": 1, "time": -2 },
+      "defaultUnitSymbol": "J",
+      "supportedUnits": [
+        { "symbol": "J", "name": "Джоули", "scaleFactor": 1.0 },
+        { "symbol": "kJ", "name": "Килоджоули", "scaleFactor": 1000.0 }
+      ]
+    },
+    {
+      "symbol": "m",
+      "name": "Масса",
+      "description": "Масса движущегося тела.",
+      "dimensionVector": { "mass": 1 },
+      "defaultUnitSymbol": "kg",
+      "supportedUnits": [
+        { "symbol": "kg", "name": "Килограммы", "scaleFactor": 1.0 },
+        { "symbol": "g", "name": "Граммы", "scaleFactor": 0.001 }
+      ]
+    },
+    {
+      "symbol": "v",
+      "name": "Скорость",
+      "description": "Модуль скорости тела.",
+      "dimensionVector": { "length": 1, "time": -1 },
+      "defaultUnitSymbol": "m/s",
+      "supportedUnits": [
+        { "symbol": "m/s", "name": "Метры в секунду", "scaleFactor": 1.0 },
+        { "symbol": "km/h", "name": "Километры в час", "scaleFactor": 0.2777777777777778 }
+      ]
+    }
+  ],
+  "solvedEquations": {
+    "E_k": "0.5 * m * v^2",
+    "m": "E_k / (0.5 * v^2)",
+    "v": "sqrt(E_k / (0.5 * m))"
+  }
+}

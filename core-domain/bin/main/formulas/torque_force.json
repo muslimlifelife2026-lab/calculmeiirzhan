@@ -1,0 +1,39 @@
+{
+  "id": "torque_force",
+  "name": "Момент силы",
+  "category": "Физика",
+  "subcategory": "Механика",
+  "description": "Вращательное действие силы на тело. Рассчитывается как произведение силы на плечо рычага.",
+  "canonicalEquation": "tau - F * r",
+  "latexTemplate": "\\tau = F \\cdot r",
+  "variables": [
+    {
+      "symbol": "tau",
+      "name": "Момент силы",
+      "description": "Вращающий момент.",
+      "defaultUnitSymbol": "N*m",
+      "supportedUnits": [
+        { "name": "Ньютон-метр", "symbol": "N*m", "factor": "1" }
+      ]
+    },
+    {
+      "symbol": "F",
+      "name": "Сила",
+      "description": "Приложенная перпендикулярно сила.",
+      "defaultUnitSymbol": "N",
+      "supportedUnits": [
+        { "name": "Ньютоны", "symbol": "N", "factor": "1" }
+      ]
+    },
+    {
+      "symbol": "r",
+      "name": "Плечо силы",
+      "description": "Расстояние от оси вращения до точки приложения.",
+      "defaultUnitSymbol": "m",
+      "supportedUnits": [
+        { "name": "Метры", "symbol": "m", "factor": "1" },
+        { "name": "Сантиметры", "symbol": "cm", "factor": "0.01" }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,41 @@
+{
+  "id": "electric_power",
+  "name": "Электрическая мощность",
+  "category": "Физика",
+  "subcategory": "Электричество",
+  "description": "Рассчитывает мощность электрического тока по силе тока и электрическому сопротивлению проводника.",
+  "canonicalEquation": "P - I * I * R",
+  "latexTemplate": "P = I^2 \\cdot R",
+  "variables": [
+    {
+      "symbol": "P",
+      "name": "Мощность",
+      "description": "Электрическая мощность в ваттах.",
+      "defaultUnitSymbol": "W",
+      "supportedUnits": [
+        { "name": "Ватты", "symbol": "W", "factor": "1" },
+        { "name": "Киловатты", "symbol": "kW", "factor": "1000" }
+      ]
+    },
+    {
+      "symbol": "I",
+      "name": "Сила тока",
+      "description": "Ток, текущий через проводник.",
+      "defaultUnitSymbol": "A",
+      "supportedUnits": [
+        { "name": "Амперы", "symbol": "A", "factor": "1" },
+        { "name": "Миллиамперы", "symbol": "mA", "factor": "0.001" }
+      ]
+    },
+    {
+      "symbol": "R",
+      "name": "Сопротивление",
+      "description": "Электрическое сопротивление цепи.",
+      "defaultUnitSymbol": "Ohm",
+      "supportedUnits": [
+        { "name": "Омы", "symbol": "Ohm", "factor": "1" },
+        { "name": "Килоомы", "symbol": "kOhm", "factor": "1000" }
+      ]
+    }
+  ]
+}

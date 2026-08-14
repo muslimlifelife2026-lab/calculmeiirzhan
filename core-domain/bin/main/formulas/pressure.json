@@ -1,0 +1,48 @@
+{
+  "id": "pressure",
+  "name": "Давление твердых тел",
+  "category": "PHYSICS",
+  "subcategory": "Механика",
+  "description": "Связывает силу давления, действующую перпендикулярно поверхности, с площадью этой поверхности.",
+  "canonicalEquation": "P - F / S",
+  "latexTemplate": "P = \\frac{F}{S}",
+  "variables": [
+    {
+      "symbol": "P",
+      "name": "Давление",
+      "description": "Давление на поверхность.",
+      "dimensionVector": { "mass": 1, "length": -1, "time": -2 },
+      "defaultUnitSymbol": "Pa",
+      "supportedUnits": [
+        { "symbol": "Pa", "name": "Паскали", "scaleFactor": 1.0 },
+        { "symbol": "kPa", "name": "Килопаскали", "scaleFactor": 1000.0 }
+      ]
+    },
+    {
+      "symbol": "F",
+      "name": "Сила",
+      "description": "Сила, приложенная перпендикулярно поверхности.",
+      "dimensionVector": { "length": 1, "mass": 1, "time": -2 },
+      "defaultUnitSymbol": "N",
+      "supportedUnits": [
+        { "symbol": "N", "name": "Ньютоны", "scaleFactor": 1.0 }
+      ]
+    },
+    {
+      "symbol": "S",
+      "name": "Площадь",
+      "description": "Площадь соприкасаемой поверхности.",
+      "dimensionVector": { "length": 2 },
+      "defaultUnitSymbol": "m^2",
+      "supportedUnits": [
+        { "symbol": "cm^2", "name": "Квадратные сантиметры", "scaleFactor": 1e-4 },
+        { "symbol": "m^2", "name": "Квадратные метры", "scaleFactor": 1.0 }
+      ]
+    }
+  ],
+  "solvedEquations": {
+    "P": "F / S",
+    "F": "P * S",
+    "S": "F / P"
+  }
+}

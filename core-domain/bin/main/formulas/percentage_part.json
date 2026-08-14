@@ -1,0 +1,40 @@
+{
+  "id": "percentage_part",
+  "name": "Нахождение процента от числа",
+  "category": "PHYSICS",
+  "subcategory": "Математические расчеты",
+  "description": "Рассчитывает процентную часть P от общего значения V по ставке R %.",
+  "canonicalEquation": "P - V * (R / 100)",
+  "latexTemplate": "P = V \\cdot \\frac{R}{100}",
+  "variables": [
+    {
+      "symbol": "P",
+      "name": "Процентная часть",
+      "description": "Искомая доля числа.",
+      "dimensionVector": { },
+      "defaultUnitSymbol": "",
+      "supportedUnits": [ ]
+    },
+    {
+      "symbol": "V",
+      "name": "Общее число",
+      "description": "Исходное значение (100%).",
+      "dimensionVector": { },
+      "defaultUnitSymbol": "",
+      "supportedUnits": [ ]
+    },
+    {
+      "symbol": "R",
+      "name": "Ставка (%)",
+      "description": "Процентная ставка.",
+      "dimensionVector": { },
+      "defaultUnitSymbol": "%",
+      "supportedUnits": [ ]
+    }
+  ],
+  "solvedEquations": {
+    "P": "V * R / 100",
+    "V": "P * 100 / R",
+    "R": "P * 100 / V"
+  }
+}
