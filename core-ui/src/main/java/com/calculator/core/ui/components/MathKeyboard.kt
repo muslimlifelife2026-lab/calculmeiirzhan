@@ -12,12 +12,7 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.GridItemSpan
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -37,19 +32,19 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.calculator.core.ui.theme.*
 
-fun Modifier.kineticBounceClick(
+fun Modifier.adaptiveKineticClick(
     onClick: () -> Unit,
     onHapticAndSound: () -> Unit
 ): Modifier = composed {
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
     val scale by animateFloatAsState(
-        targetValue = if (isPressed) 0.88f else 1f,
+        targetValue = if (isPressed) 0.90f else 1f,
         animationSpec = spring(
             dampingRatio = Spring.DampingRatioMediumBouncy,
             stiffness = Spring.StiffnessMedium
         ),
-        label = "kinetic_bounce"
+        label = "adaptive_bounce"
     )
 
     this
@@ -82,137 +77,137 @@ fun MathKeyboard(
         scientificKeys.add(1, "y")
     }
 
-    val standardKeys = listOf(
-        "C", "(", ")", "÷",
-        "7", "8", "9", "×",
-        "4", "5", "6", "-",
-        "1", "2", "3", "+",
-        "0", ".", "="
+    val rows = listOf(
+        listOf("C", "(", ")", "÷"),
+        listOf("7", "8", "9", "×"),
+        listOf("4", "5", "6", "-"),
+        listOf("1", "2", "3", "+"),
+        listOf("0", ".", "=")
     )
 
     Column(
-        modifier = modifier.fillMaxWidth()
+        modifier = modifier.fillMaxSize(),
+        verticalArrangement = Arrangement.spacedBy(6.dp)
     ) {
-        // Scientific functions scrollable row
+        // Scientific functions compact top strip (34.dp height)
         LazyRow(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(36.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
             items(scientificKeys) { key ->
                 val isVariable = key == "x" || key == "y"
                 Box(
                     modifier = Modifier
-                        .clip(RoundedCornerShape(percent = 50))
+                        .fillMaxHeight()
+                        .clip(RoundedCornerShape(18.dp))
                         .background(if (isVariable) SurfaceElevated else KeyOperator)
                         .border(
                             1.dp,
-                            if (isVariable) AccentPrimary.copy(alpha = 0.4f) else SurfaceBorder,
-                            RoundedCornerShape(percent = 50)
+                            if (isVariable) AccentPrimary.copy(alpha = 0.5f) else SurfaceBorder,
+                            RoundedCornerShape(18.dp)
                         )
-                        .kineticBounceClick(
+                        .adaptiveKineticClick(
                             onClick = { onKeyPressed(key) },
                             onHapticAndSound = {
                                 view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
                                 view.playSoundEffect(SoundEffectConstants.CLICK)
                             }
                         )
-                        .padding(horizontal = 18.dp, vertical = 10.dp)
+                        .padding(horizontal = 14.dp),
+                    contentAlignment = Alignment.Center
                 ) {
                     Text(
                         text = key,
                         color = if (isVariable) AccentPrimary else TextSecondary,
-                        fontSize = 15.sp,
+                        fontSize = 14.sp,
                         fontWeight = FontWeight.SemiBold
                     )
                 }
             }
         }
 
-        Spacer(modifier = Modifier.height(14.dp))
-
-        // Standard Keyboard Grid
-        LazyVerticalGrid(
-            columns = GridCells.Fixed(4),
-            modifier = Modifier.weight(1f, fill = false).padding(horizontal = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            items(
-                items = standardKeys,
-                span = { key ->
-                    if (key == "0") GridItemSpan(2) else GridItemSpan(1)
-                }
-            ) { key ->
-                val isOperator = key in listOf("÷", "×", "-", "+")
-                val isEqual = key == "="
-                val isClear = key == "C"
-                val isSecondary = key in listOf("(", ")")
-
-                val shape = if (key == "0") RoundedCornerShape(percent = 50) else CircleShape
-
-                val buttonBg = when {
-                    isEqual -> AccentPrimary // Solid Titanium White
-                    isClear -> KeyClear      // Subtle Dark Crimson
-                    isOperator -> KeyOperator // Dark Slate 800
-                    isSecondary -> KeyOperator
-                    else -> KeyNumeric        // Deep Charcoal Slate
-                }
-
-                val borderStroke = when {
-                    isEqual -> AccentPrimary
-                    isClear -> ErrorRed.copy(alpha = 0.3f)
-                    else -> SurfaceBorder
-                }
-
-                val textColor = when {
-                    isEqual -> Background    // Pure Obsidian Text on White button
-                    isClear -> ErrorRed
-                    isOperator -> TextPrimary
-                    isSecondary -> TextSecondary
-                    else -> TextPrimary
-                }
-
-                val boxModifier = Modifier
+        // 5 Fully Responsive & Dynamic Rows that adapt to the exact remaining height
+        rows.forEach { rowKeys ->
+            Row(
+                modifier = Modifier
                     .fillMaxWidth()
-                    .aspectRatio(if (key == "0") 2.1f else 1f)
-                    .clip(shape)
-                    .background(buttonBg)
-                    .border(1.dp, borderStroke, shape)
-                    .kineticBounceClick(
-                        onClick = { onKeyPressed(key) },
-                        onHapticAndSound = {
-                            when {
-                                isEqual -> {
-                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                    view.playSoundEffect(SoundEffectConstants.CLICK)
-                                }
-                                isClear -> {
-                                    view.performHapticFeedback(HapticFeedbackConstants.REJECT)
-                                    view.playSoundEffect(SoundEffectConstants.CLICK)
-                                }
-                                isOperator -> {
-                                    view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
-                                    view.playSoundEffect(SoundEffectConstants.CLICK)
-                                }
-                                else -> {
-                                    haptic.performHapticFeedback(HapticFeedbackType.KeyboardTap)
-                                    view.playSoundEffect(SoundEffectConstants.CLICK)
-                                }
-                            }
-                        }
-                    )
+                    .weight(1f),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                rowKeys.forEach { key ->
+                    val isOperator = key in listOf("÷", "×", "-", "+")
+                    val isEqual = key == "="
+                    val isClear = key == "C"
+                    val isSecondary = key in listOf("(", ")")
+                    val isZero = key == "0"
 
-                Box(
-                    modifier = boxModifier,
-                    contentAlignment = if (key == "0") Alignment.CenterStart else Alignment.Center
-                ) {
-                    Text(
-                        text = key,
-                        color = textColor,
-                        fontSize = 26.sp,
-                        fontWeight = if (isOperator || isEqual || isClear) FontWeight.Bold else FontWeight.Medium,
-                        modifier = if (key == "0") Modifier.padding(start = 28.dp) else Modifier
-                    )
+                    val weight = if (isZero) 2f else 1f
+
+                    val buttonBg = when {
+                        isEqual -> AccentPrimary       // Solid Titanium White
+                        isClear -> KeyClear            // Dark Crimson accent
+                        isOperator -> KeyOperator       // Dark Slate
+                        isSecondary -> KeyOperator
+                        else -> KeyNumeric              // Deep Charcoal (#1A1D27)
+                    }
+
+                    val borderStroke = when {
+                        isEqual -> AccentPrimary
+                        isClear -> ErrorRed.copy(alpha = 0.4f)
+                        else -> SurfaceBorder
+                    }
+
+                    val textColor = when {
+                        isEqual -> Background          // Pure Obsidian text on White button
+                        isClear -> ErrorRed
+                        isOperator -> TextPrimary
+                        isSecondary -> TextSecondary
+                        else -> TextPrimary
+                    }
+
+                    Box(
+                        modifier = Modifier
+                            .weight(weight)
+                            .fillMaxHeight()
+                            .clip(RoundedCornerShape(20.dp))
+                            .background(buttonBg)
+                            .border(1.dp, borderStroke, RoundedCornerShape(20.dp))
+                            .adaptiveKineticClick(
+                                onClick = { onKeyPressed(key) },
+                                onHapticAndSound = {
+                                    when {
+                                        isEqual -> {
+                                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                            view.playSoundEffect(SoundEffectConstants.CLICK)
+                                        }
+                                        isClear -> {
+                                            view.performHapticFeedback(HapticFeedbackConstants.REJECT)
+                                            view.playSoundEffect(SoundEffectConstants.CLICK)
+                                        }
+                                        isOperator -> {
+                                            view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                                            view.playSoundEffect(SoundEffectConstants.CLICK)
+                                        }
+                                        else -> {
+                                            haptic.performHapticFeedback(HapticFeedbackType.KeyboardTap)
+                                            view.playSoundEffect(SoundEffectConstants.CLICK)
+                                        }
+                                    }
+                                }
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = key,
+                            color = textColor,
+                            fontSize = if (isOperator || isEqual || isClear) 24.sp else 22.sp,
+                            fontWeight = if (isOperator || isEqual || isClear) FontWeight.Bold else FontWeight.Medium
+                        )
+                    }
                 }
             }
         }

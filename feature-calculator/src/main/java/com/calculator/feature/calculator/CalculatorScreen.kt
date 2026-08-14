@@ -128,8 +128,8 @@ fun CalculatorScreen(
             modifier = modifier
                 .fillMaxSize()
                 .background(com.calculator.core.ui.theme.Background)
-                .padding(16.dp),
-            horizontalArrangement = Arrangement.spacedBy(16.dp)
+                .padding(12.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             DisplayArea(
                 expr = expr,
@@ -152,7 +152,7 @@ fun CalculatorScreen(
             MathKeyboard(
                 onKeyPressed = onKeyPressed,
                 showVariables = false,
-                modifier = Modifier.weight(1f).fillMaxHeight()
+                modifier = Modifier.weight(1.2f).fillMaxHeight()
             )
         }
     } else {
@@ -160,7 +160,7 @@ fun CalculatorScreen(
             modifier = modifier
                 .fillMaxSize()
                 .background(com.calculator.core.ui.theme.Background)
-                .padding(16.dp)
+                .padding(horizontal = 12.dp, vertical = 6.dp)
         ) {
             DisplayArea(
                 expr = expr,
@@ -177,15 +177,17 @@ fun CalculatorScreen(
                 onBackspace = { onKeyPressed("⌫") },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .weight(1.5f)
+                    .weight(1f)
             )
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(6.dp))
 
             MathKeyboard(
                 onKeyPressed = onKeyPressed,
                 showVariables = false,
-                modifier = Modifier.weight(2.5f)
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1.5f)
             )
         }
     }
@@ -238,7 +240,7 @@ fun DisplayArea(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .padding(horizontal = 8.dp, vertical = 24.dp),
+            .padding(horizontal = 4.dp, vertical = 6.dp),
         verticalArrangement = Arrangement.SpaceBetween,
         horizontalAlignment = Alignment.End
     ) {

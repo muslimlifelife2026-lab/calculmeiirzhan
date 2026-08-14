@@ -1,18 +1,18 @@
 package com.aerocalc.smartcalculator.ui.main
 
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ShowChart
@@ -25,12 +25,8 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -38,7 +34,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.calculator.core.ui.R
 import com.calculator.core.ui.theme.*
-import com.calculator.core.ui.theme.TextSecondary
 import com.calculator.feature.calculator.CalculatorScreen
 import com.calculator.feature.chemistry.ChemistryScreen
 import com.calculator.feature.geometry.GeometryScreen
@@ -58,153 +53,113 @@ fun MainScreen(
     val currentPage by remember { derivedStateOf { pagerState.targetPage } }
 
     val navItems = listOf(
-        NavItem(Icons.Rounded.Calculate,    stringResource(R.string.tab_calculations)),
-        NavItem(Icons.Rounded.Architecture, stringResource(R.string.tab_geometry)),
-        NavItem(Icons.Rounded.Science,      stringResource(R.string.tab_physics)),
-        NavItem(Icons.Rounded.History,      stringResource(R.string.tab_history)),
+        NavItem(Icons.Rounded.Calculate,              stringResource(R.string.tab_calculations)),
+        NavItem(Icons.Rounded.Science,                stringResource(R.string.tab_physics)),
+        NavItem(Icons.Rounded.Biotech,                stringResource(R.string.tab_chemistry)),
+        NavItem(Icons.Rounded.Architecture,           stringResource(R.string.tab_geometry)),
         NavItem(Icons.AutoMirrored.Rounded.ShowChart, stringResource(R.string.tab_graphing)),
-        NavItem(Icons.Rounded.Biotech,      stringResource(R.string.tab_chemistry))
+        NavItem(Icons.Rounded.History,                stringResource(R.string.tab_history))
     )
 
     AeroCalcTheme {
-        Box(
+        Column(
             modifier = Modifier
                 .fillMaxSize()
                 .background(Background)
+                .statusBarsPadding()
+                .navigationBarsPadding()
         ) {
-            // ─── Content ────────────────────────────────────────────────────────
-            HorizontalPager(
-                state = pagerState,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .statusBarsPadding()
-                    .padding(bottom = 90.dp) // leave room for floating bar
-            ) { page ->
-                when (page) {
-                    0 -> CalculatorScreen()
-                    1 -> GeometryScreen()
-                    2 -> PhysicsScreen()
-                    3 -> HistoryScreen()
-                    4 -> GraphingScreen()
-                    5 -> ChemistryScreen()
-                }
-            }
-
-            // ─── Floating Navigation Bar ─────────────────────────────────────
-            FloatingNavBar(
+            // ─── Sleek Top Subject Tabs (Compact & Responsive) ─────────────────
+            TopSubjectTabBar(
                 items = navItems,
                 currentIndex = currentPage,
                 onItemSelected = { index ->
-                    coroutineScope.launch { pagerState.animateScrollToPage(index) }
+                    coroutineScope.launch { pagerState.scrollToPage(index) }
                 },
                 modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .padding(horizontal = 20.dp, vertical = 16.dp)
-                    .navigationBarsPadding()
+                    .fillMaxWidth()
+                    .padding(horizontal = 12.dp, vertical = 6.dp)
             )
+
+            // ─── Screen-Adaptive Content (100% Zero-Scroll Viewport) ────────────
+            HorizontalPager(
+                state = pagerState,
+                userScrollEnabled = false, // Disable accidental swipe gesture
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+            ) { page ->
+                when (page) {
+                    0 -> CalculatorScreen()
+                    1 -> PhysicsScreen()
+                    2 -> ChemistryScreen()
+                    3 -> GeometryScreen()
+                    4 -> GraphingScreen()
+                    5 -> HistoryScreen()
+                }
+            }
         }
     }
 }
 
 @Composable
-private fun FloatingNavBar(
+private fun TopSubjectTabBar(
     items: List<NavItem>,
     currentIndex: Int,
     onItemSelected: (Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .height(64.dp)
-            .clip(RoundedCornerShape(32.dp))
-            .background(SurfaceCard)
-            .border(1.dp, SurfaceBorder, RoundedCornerShape(32.dp))
+    LazyRow(
+        modifier = modifier,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 8.dp),
-            horizontalArrangement = Arrangement.SpaceEvenly,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            items.forEachIndexed { index, item ->
-                FloatingNavItem(
-                    item = item,
-                    isSelected = currentIndex == index,
-                    onClick = { onItemSelected(index) },
-                    modifier = Modifier.weight(1f)
-                )
-            }
-        }
-    }
-}
+        itemsIndexed(items) { index, item ->
+            val isSelected = currentIndex == index
 
-@Composable
-private fun FloatingNavItem(
-    item: NavItem,
-    isSelected: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    val iconScale by animateFloatAsState(
-        targetValue = if (isSelected) 1.12f else 1f,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessMedium
-        ),
-        label = "icon_scale"
-    )
-
-    Column(
-        modifier = modifier
-            .fillMaxHeight()
-            .clickable(
-                interactionSource = remember { MutableInteractionSource() },
-                indication = null,
-                onClick = onClick
-            ),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        Box(contentAlignment = Alignment.Center) {
-            val pillAlpha by animateFloatAsState(
-                targetValue = if (isSelected) 1f else 0f,
-                animationSpec = tween(180),
-                label = "pill_alpha"
+            val containerColor by animateColorAsState(
+                targetValue = if (isSelected) Color.White else SurfaceCard,
+                animationSpec = spring(stiffness = Spring.StiffnessMedium),
+                label = "tab_bg"
             )
+            val contentColor by animateColorAsState(
+                targetValue = if (isSelected) Background else TextSecondary,
+                animationSpec = spring(stiffness = Spring.StiffnessMedium),
+                label = "tab_fg"
+            )
+            val borderColor = if (isSelected) Color.White else SurfaceBorder
+
             Box(
                 modifier = Modifier
-                    .size(width = 46.dp, height = 30.dp)
-                    .clip(RoundedCornerShape(15.dp))
-                    .background(AccentPrimary.copy(alpha = pillAlpha))
-            )
-            Icon(
-                imageVector = item.icon,
-                contentDescription = item.label,
-                tint = if (isSelected) Background else TextSecondary,
-                modifier = Modifier
-                    .size(20.dp)
-                    .graphicsLayer {
-                        scaleX = iconScale
-                        scaleY = iconScale
-                    }
-            )
-        }
-
-        val labelAlpha by animateFloatAsState(
-            targetValue = if (isSelected) 1f else 0f,
-            animationSpec = tween(160),
-            label = "label_alpha"
-        )
-        if (labelAlpha > 0f) {
-            Text(
-                text = item.label,
-                fontSize = 9.sp,
-                fontWeight = FontWeight.Bold,
-                color = AccentPrimary.copy(alpha = labelAlpha),
-                maxLines = 1
-            )
+                    .clip(RoundedCornerShape(20.dp))
+                    .background(containerColor)
+                    .border(1.dp, borderColor, RoundedCornerShape(20.dp))
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null,
+                        onClick = { onItemSelected(index) }
+                    )
+                    .padding(horizontal = 14.dp, vertical = 8.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Icon(
+                        imageVector = item.icon,
+                        contentDescription = item.label,
+                        tint = contentColor,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Text(
+                        text = item.label,
+                        color = contentColor,
+                        fontSize = 13.sp,
+                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
+                    )
+                }
+            }
         }
     }
 }
