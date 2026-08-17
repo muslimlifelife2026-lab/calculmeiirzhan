@@ -28,6 +28,8 @@ val JetBrainsMonoFontFamily = FontFamily(
     Font(googleFont = GoogleFont("JetBrains Mono"), fontProvider = provider, weight = FontWeight.Bold)
 )
 
+val MonospaceFontFamily = JetBrainsMonoFontFamily
+
 val Typography = Typography(
     displayLarge = TextStyle(
         fontFamily = InterFontFamily,
@@ -74,5 +76,3 @@ val Typography = Typography(
         color = TextSecondary
     )
 )
-
-val MonospaceFontFamily = JetBrainsMonoFontFamily

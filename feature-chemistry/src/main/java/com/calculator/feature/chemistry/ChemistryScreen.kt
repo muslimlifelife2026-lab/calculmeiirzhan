@@ -6,6 +6,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
@@ -25,17 +26,14 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.calculator.core.ui.components.GlassCard
-import com.calculator.core.ui.theme.AccentCyan
-import com.calculator.core.ui.theme.AccentViolet
-import com.calculator.core.ui.theme.Background
-import com.calculator.core.ui.theme.ErrorRed
-import com.calculator.core.ui.theme.TextPrimary
-import com.calculator.core.ui.theme.TextSecondary
+import com.calculator.core.ui.theme.*
 import com.calculator.domain.model.Element
 import com.calculator.domain.model.PeriodicTable
 import com.calculator.domain.model.SolubilityData
 import com.calculator.domain.model.SolubilityStatus
 import com.calculator.engine.solver.ChemistrySolver
+
+import com.calculator.feature.chemistry.components.AtomModelCanvas
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -44,9 +42,10 @@ fun ChemistryScreen(
 ) {
     var formulaInput by remember { mutableStateOf("") }
     var equationInput by remember { mutableStateOf("") }
-    var selectedTab by remember { mutableStateOf(0) } // 0: Mass, 1: Balancer, 2: Periodic Table, 3: Solubility
+    var selectedTab by remember { mutableStateOf(0) } // 0: Mass, 1: Balancer, 2: Periodic Table, 3: Atom Model, 4: Solubility
     var selectedElement by remember { mutableStateOf<Element?>(null) }
     var selectedSolubilityPair by remember { mutableStateOf<Pair<String, String>?>(null) }
+    var selectedAtomElement by remember { mutableStateOf(PeriodicTable.getElement("C") ?: Element("C", "Carbon", 6, 12.011)) }
     
     val massResult = remember(formulaInput) {
         if (formulaInput.isNotBlank()) {
@@ -68,31 +67,31 @@ fun ChemistryScreen(
         modifier = modifier
             .fillMaxSize()
             .background(Background)
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+            .padding(horizontal = 12.dp, vertical = 6.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        // Mode Selector: 4 Tabs
+        // Mode Selector: 5 Tabs
         ScrollableTabRow(
             selectedTabIndex = selectedTab,
             containerColor = Color.Transparent,
-            contentColor = AccentViolet,
+            contentColor = Color.White,
             edgePadding = 0.dp,
             indicator = { tabPositions ->
                 if (selectedTab < tabPositions.size) {
                     TabRowDefaults.SecondaryIndicator(
                         modifier = Modifier.tabIndicatorOffset(tabPositions[selectedTab]),
-                        color = AccentViolet
+                        color = Color.White
                     )
                 }
             },
             modifier = Modifier.padding(bottom = 4.dp)
         ) {
-            val tabs = listOf("Молярная масса", "Балансировщик", "Таблица Менделеева", "Растворимость")
+            val tabs = listOf("🧪 Молярная масса", "⚖️ Балансировщик", "⚛️ Таблица Менделеева", "🔬 Модель атома", "💧 Растворимость")
             tabs.forEachIndexed { index, title ->
                 Tab(
                     selected = selectedTab == index,
                     onClick = { selectedTab = index },
-                    text = { Text(title, fontWeight = FontWeight.Bold, fontSize = 13.sp) }
+                    text = { Text(title, fontWeight = if (selectedTab == index) FontWeight.Bold else FontWeight.Normal, fontSize = 13.sp) }
                 )
             }
         }
@@ -452,6 +451,48 @@ fun ChemistryScreen(
             }
 
             3 -> {
+                // ─── ATOM MODEL VISUALIZER MODE ──────────────────────────────────────
+                val sampleElements = remember {
+                    PeriodicTable.allElements
+                }
+
+                Column(
+                    modifier = Modifier.fillMaxWidth().weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    // Quick Elements Selector Row
+                    LazyRow(
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        items(sampleElements) { elem ->
+                            val isSelected = selectedAtomElement.atomicNumber == elem.atomicNumber
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(14.dp))
+                                    .background(if (isSelected) Color.White else SurfaceElevated)
+                                    .border(1.dp, if (isSelected) Color.White else SurfaceBorder, RoundedCornerShape(14.dp))
+                                    .clickable { selectedAtomElement = elem }
+                                    .padding(horizontal = 10.dp, vertical = 5.dp)
+                            ) {
+                                Text(
+                                    text = "${elem.symbol} (${elem.name})",
+                                    color = if (isSelected) Background else TextSecondary,
+                                    fontSize = 11.sp,
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                                )
+                            }
+                        }
+                    }
+
+                    AtomModelCanvas(
+                        element = selectedAtomElement,
+                        modifier = Modifier.fillMaxWidth().weight(1f)
+                    )
+                }
+            }
+
+            4 -> {
                 // ─── SOLUBILITY MATRIX MODE ──────────────────────────────────────────
                 val cations = SolubilityData.cations
                 val anions = SolubilityData.anions
@@ -571,10 +612,19 @@ fun ChemistryScreen(
                 }
             },
             text = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(200.dp)
+                    ) {
+                        AtomModelCanvas(element = elem)
+                    }
                     HorizontalDivider(color = Color(0x22FFFFFF))
-                    Text("• Атомная масса: ${elem.atomicMass} г/моль", color = Color.White, fontSize = 14.sp)
-                    Text("• Символ элемента: ${elem.symbol}", color = AccentCyan, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                    Text("• Атомная масса: ${elem.atomicMass} г/моль", color = Color.White, fontSize = 13.sp)
                 }
             },
             confirmButton = {

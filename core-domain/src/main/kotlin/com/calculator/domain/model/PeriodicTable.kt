@@ -47,8 +47,9 @@ object PeriodicTable {
         Element("Au", "Gold", 79, 196.97),
         Element("Hg", "Mercury", 80, 200.59),
         Element("Pb", "Lead", 82, 207.2),
-        Element("U", "Uranium", 92, 238.03)
     ).associateBy { it.symbol }
+
+    val allElements: List<Element> get() = elements.values.toList()
 
     fun getElement(symbol: String): Element? = elements[symbol]
 }
