@@ -426,20 +426,21 @@ fun GeometryScreen(
 
                     // 5. Calculate Button
                     item {
-                        val neonCyanViolet = Brush.horizontalGradient(colors = listOf(NeonCyan, ElectricViolet))
                         Button(
                             onClick = {
                                 keyboardController?.hide()
                                 viewModel.solveFormula()
                             },
-                            colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Color.White,
+                                contentColor = Color(0xFF08090C)
+                            ),
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(52.dp)
-                                .background(neonCyanViolet, RoundedCornerShape(12.dp)),
-                            contentPadding = PaddingValues(0.dp)
+                                .height(50.dp),
+                            shape = RoundedCornerShape(12.dp)
                         ) {
-                            Text("Рассчитать ⚡", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                            Text("Рассчитать ⚡", color = Color(0xFF08090C), fontSize = 16.sp, fontWeight = FontWeight.Bold)
                         }
                     }
 
