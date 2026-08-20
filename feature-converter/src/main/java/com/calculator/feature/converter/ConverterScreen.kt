@@ -1,25 +1,30 @@
 package com.calculator.feature.converter
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.KeyboardArrowDown
+import androidx.compose.material.icons.rounded.SwapVert
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.calculator.core.ui.components.GlassCard
 import com.calculator.core.ui.components.MathKeyboard
-import com.calculator.core.ui.theme.NeonCyan
+import com.calculator.core.ui.components.bounceClick
+import com.calculator.core.ui.theme.*
+import java.util.Locale
 
 @Composable
 fun ConverterScreen(
@@ -41,66 +46,89 @@ fun ConverterScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(com.calculator.core.ui.theme.Background)
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+            .background(Background)
+            .padding(12.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        // Category Selector
+        // 1. Bento Category Selector
         LazyRow(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             modifier = Modifier.fillMaxWidth()
         ) {
             items(ConversionCategory.entries) { category ->
-                CategoryChip(
-                    title = category.title,
-                    isSelected = category == selectedCategory,
-                    onClick = {
-                        selectedCategory = category
-                        inputValue = "1" // Reset on category change
-                    }
-                )
+                val isSelected = category == selectedCategory
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(if (isSelected) Color.White else SurfaceCard)
+                        .border(1.dp, if (isSelected) Color.White else SurfaceBorder, RoundedCornerShape(12.dp))
+                        .bounceClick {
+                            selectedCategory = category
+                            inputValue = "1"
+                        }
+                        .padding(horizontal = 14.dp, vertical = 8.dp)
+                ) {
+                    Text(
+                        text = category.title,
+                        color = if (isSelected) Color(0xFF08090C) else TextPrimary,
+                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                        fontSize = 13.sp
+                    )
+                }
             }
         }
 
-        // Conversion Fields
+        // 2. Conversion Bento Cards with Interactive Swap Button
         Column(
             verticalArrangement = Arrangement.spacedBy(8.dp),
             modifier = Modifier.weight(1f)
         ) {
             // FROM field
             ConversionField(
-                label = "Из",
+                label = "ИЗНАЧАЛЬНО",
                 value = inputValue,
                 unit = fromUnit,
                 units = units,
                 onUnitSelected = { fromUnit = it },
-                onValueChanged = { inputValue = it },
-                isReadOnly = true // Assuming we use custom keyboard
+                isResult = false
             )
 
-            // Arrow down
+            // Interactive Swap Button
             Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                Icon(
-                    imageVector = Icons.Rounded.KeyboardArrowDown,
-                    contentDescription = "To",
-                    tint = NeonCyan,
-                    modifier = Modifier.size(32.dp)
-                )
+                Box(
+                    modifier = Modifier
+                        .size(38.dp)
+                        .clip(CircleShape)
+                        .background(SurfaceElevated)
+                        .border(1.dp, Color(0xFF38BDF8).copy(alpha = 0.4f), CircleShape)
+                        .bounceClick {
+                            val temp = fromUnit
+                            fromUnit = toUnit
+                            toUnit = temp
+                        },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.SwapVert,
+                        contentDescription = "Swap Units",
+                        tint = Color(0xFF38BDF8),
+                        modifier = Modifier.size(22.dp)
+                    )
+                }
             }
 
-            // TO field
+            // TO field (Result with Glowing Border)
             ConversionField(
-                label = "В",
-                value = String.format("%.6f", resultValue).trimEnd('0').trimEnd('.', ','),
+                label = "РЕЗУЛЬТАТ",
+                value = String.format(Locale.US, "%.6f", resultValue).trimEnd('0').trimEnd('.'),
                 unit = toUnit,
                 units = units,
                 onUnitSelected = { toUnit = it },
-                onValueChanged = {}, // Read only
-                isReadOnly = true
+                isResult = true
             )
         }
 
-        // Custom Numpad Keyboard
+        // 3. High-precision tactile keypad
         MathKeyboard(
             onKeyPressed = { key ->
                 inputValue = when (key) {
@@ -119,84 +147,75 @@ fun ConverterScreen(
 }
 
 @Composable
-fun CategoryChip(title: String, isSelected: Boolean, onClick: () -> Unit) {
-    val backgroundColor = if (isSelected) NeonCyan.copy(alpha = 0.2f) else Color(0x1AFFFFFF)
-    val textColor = if (isSelected) NeonCyan else Color.White.copy(alpha = 0.7f)
-
-    Box(
-        modifier = Modifier
-            .background(backgroundColor, RoundedCornerShape(20.dp))
-            .clickable { onClick() }
-            .padding(horizontal = 16.dp, vertical = 8.dp)
-    ) {
-        Text(
-            text = title,
-            color = textColor,
-            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-            fontSize = 14.sp
-        )
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
 fun ConversionField(
     label: String,
     value: String,
     unit: UnitItem,
     units: List<UnitItem>,
     onUnitSelected: (UnitItem) -> Unit,
-    onValueChanged: (String) -> Unit,
-    isReadOnly: Boolean
+    isResult: Boolean
 ) {
     var expanded by remember { mutableStateOf(false) }
 
-    GlassCard(modifier = Modifier.fillMaxWidth()) {
+    GlassCard(
+        modifier = Modifier
+            .fillMaxWidth()
+            .then(
+                if (isResult) Modifier.border(1.dp, Color(0xFF38BDF8).copy(alpha = 0.45f), RoundedCornerShape(16.dp))
+                else Modifier
+            ),
+        cornerRadius = 16.dp
+    ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
+                .padding(14.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Text Input
+            // Text Input / Output
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = label,
-                    color = Color.White.copy(alpha = 0.5f),
-                    fontSize = 12.sp
+                    color = if (isResult) Color(0xFF38BDF8) else TextSecondary,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 1.sp
                 )
+                Spacer(modifier = Modifier.height(2.dp))
                 Text(
-                    text = value,
+                    text = if (value.isEmpty()) "0" else value,
                     color = Color.White,
-                    fontSize = 32.sp,
+                    fontSize = 28.sp,
                     fontWeight = FontWeight.Bold,
                     maxLines = 1,
-                    modifier = Modifier.padding(top = 4.dp)
+                    fontFamily = MonospaceFontFamily
                 )
             }
 
-            // Unit Selector
+            // Unit Selector Pill Dropdown
             Box {
                 Surface(
-                    color = Color(0x1AFFFFFF),
-                    shape = RoundedCornerShape(12.dp),
+                    color = SurfaceElevated,
+                    shape = RoundedCornerShape(10.dp),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, SurfaceBorder),
                     modifier = Modifier.clickable { expanded = true }
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
                     ) {
                         Text(
                             text = unit.symbol,
-                            color = NeonCyan,
-                            fontSize = 18.sp,
+                            color = Color(0xFF38BDF8),
+                            fontSize = 15.sp,
                             fontWeight = FontWeight.Bold
                         )
+                        Spacer(modifier = Modifier.width(4.dp))
                         Icon(
                             imageVector = Icons.Rounded.KeyboardArrowDown,
                             contentDescription = "Select unit",
-                            tint = NeonCyan,
-                            modifier = Modifier.padding(start = 4.dp).size(20.dp)
+                            tint = Color(0xFF38BDF8),
+                            modifier = Modifier.size(18.dp)
                         )
                     }
                 }
@@ -204,21 +223,22 @@ fun ConversionField(
                 DropdownMenu(
                     expanded = expanded,
                     onDismissRequest = { expanded = false },
-                    modifier = Modifier.background(Color(0xFF1E1E2E))
+                    modifier = Modifier
+                        .background(SurfaceCard)
+                        .border(1.dp, SurfaceBorder, RoundedCornerShape(12.dp))
                 ) {
-                    units.forEach { item ->
+                    units.forEach { u ->
                         DropdownMenuItem(
-                            text = { 
-                                Row(
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    modifier = Modifier.fillMaxWidth()
-                                ) {
-                                    Text(item.name, color = Color.White)
-                                    Text(item.symbol, color = Color.White.copy(alpha = 0.5f))
-                                }
+                            text = {
+                                Text(
+                                    text = "${u.name} (${u.symbol})",
+                                    color = if (u == unit) Color(0xFF38BDF8) else Color.White,
+                                    fontSize = 13.sp,
+                                    fontWeight = if (u == unit) FontWeight.Bold else FontWeight.Normal
+                                )
                             },
                             onClick = {
-                                onUnitSelected(item)
+                                onUnitSelected(u)
                                 expanded = false
                             }
                         )
