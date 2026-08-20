@@ -75,12 +75,13 @@ fun PhysicsScreen(
 
     val presets = remember {
         listOf(
-            PhysicsPreset("🏎️ Разгон авто", "Скорость (кинематика)", "v", mapOf("v_0" to "0", "a" to "5", "t" to "6"), "Разгон с 0 до скорости за 6 сек при a=5 м/с²"),
-            PhysicsPreset("📱 Падение яблока", "Потенциальная энергия", "E_p", mapOf("m" to "0.2", "g" to "9.81", "h" to "3"), "Энергия яблока 200г на высоте 3м"),
-            PhysicsPreset("⚡ Электрочайник", "Электрическая мощность", "P", mapOf("U" to "220", "I" to "10"), "Мощность в сети 220В при токе 10А"),
-            PhysicsPreset("🚗 Торможение", "Второй закон Ньютона", "F", mapOf("m" to "1500", "a" to "8"), "Сила для торможения авто 1.5т"),
-            PhysicsPreset("💧 Масса воды", "Плотность вещества", "m", mapOf("rho" to "1000", "V" to "0.2"), "Масса 200 литров (0.2м³) воды"),
-            PhysicsPreset("💡 Закон Ома", "Закон Ома для участка цепи", "I", mapOf("U" to "220", "R" to "44"), "Сила тока при R=44 Ом")
+            PhysicsPreset("🏎️ Разгон авто", "velocity_kinematics", "v_f", mapOf("v_i" to "0", "a" to "5", "t" to "6"), "Разгон с 0 до скорости за 6 сек при a=5 м/с²"),
+            PhysicsPreset("📱 Падение яблока", "potential_energy", "Ep", mapOf("m" to "0.2", "g" to "9.81", "h" to "3"), "Энергия яблока 200г на высоте 3м"),
+            PhysicsPreset("🚗 Торможение", "force_newton", "F", mapOf("m" to "1500", "a" to "8"), "Сила для торможения авто 1.5т"),
+            PhysicsPreset("💧 Масса воды", "density", "m", mapOf("d" to "1000", "V" to "0.2"), "Масса 200 литров (0.2м³) воды"),
+            PhysicsPreset("💡 Закон Ома", "ohm_law", "I", mapOf("U" to "220", "R" to "44"), "Сила тока при R=44 Ом"),
+            PhysicsPreset("🏃‍♂️ Энергия бега", "kinetic_energy", "E_k", mapOf("m" to "70", "v" to "8"), "Кинетическая энергия человека 70кг при скорости 8м/с"),
+            PhysicsPreset("🏋️ Работа силы", "work_force", "A", mapOf("F" to "500", "s" to "20"), "Работа при перемещении груза силой 500Н на 20м")
         )
     }
 
@@ -224,7 +225,8 @@ fun PhysicsScreen(
                                                 .background(SurfaceCard)
                                                 .border(1.dp, SurfaceBorder, RoundedCornerShape(12.dp))
                                                 .clickable {
-                                                    val matched = formulas.firstOrNull { it.name.contains(preset.formulaName, ignoreCase = true) }
+                                                    val matched = formulas.firstOrNull { it.id == preset.formulaName }
+                                                        ?: formulas.firstOrNull { it.name.contains(preset.formulaName, ignoreCase = true) }
                                                     if (matched != null) {
                                                         viewModel.selectFormula(matched)
                                                         viewModel.applyPreset(preset.inputs, preset.target)

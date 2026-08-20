@@ -14,7 +14,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.calculator.core.ui.theme.NeonCyan
 import com.calculator.core.ui.theme.TextPrimary
 import com.calculator.core.ui.theme.TextSecondary
 
@@ -27,21 +26,21 @@ fun AdmobBannerSimulator(
         cornerRadius = 16.dp
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth().padding(4.dp),
+            modifier = Modifier.fillMaxWidth().padding(6.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             // Dummy Ad Icon
             Box(
                 modifier = Modifier
-                    .size(48.dp)
-                    .clip(RoundedCornerShape(8.dp))
+                    .size(44.dp)
+                    .clip(RoundedCornerShape(10.dp))
                     .background(Color(0x1A00E5FF)),
                 contentAlignment = Alignment.Center
             ) {
-                Text(text = "🚀", fontSize = 24.sp)
+                Text(text = "🚀", fontSize = 22.sp)
             }
 
-            Spacer(modifier = Modifier.width(12.dp))
+            Spacer(modifier = Modifier.width(10.dp))
 
             // Ad Text
             Column(modifier = Modifier.weight(1f)) {
@@ -63,7 +62,7 @@ fun AdmobBannerSimulator(
                     Text(
                         text = "Космическая Одиссея 3D",
                         color = TextPrimary,
-                        fontSize = 14.sp,
+                        fontSize = 13.sp,
                         fontWeight = FontWeight.Bold
                     )
                 }
@@ -81,12 +80,12 @@ fun AdmobBannerSimulator(
             // Action Button
             Button(
                 onClick = {},
-                colors = ButtonDefaults.buttonColors(containerColor = NeonCyan, contentColor = Color.Black),
-                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
-                shape = RoundedCornerShape(6.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Color.White),
+                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+                shape = RoundedCornerShape(8.dp),
                 modifier = Modifier.height(32.dp)
             ) {
-                Text(text = "Играть", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                Text(text = "Играть", color = Color(0xFF08090C), fontSize = 11.sp, fontWeight = FontWeight.Bold)
             }
         }
     }
