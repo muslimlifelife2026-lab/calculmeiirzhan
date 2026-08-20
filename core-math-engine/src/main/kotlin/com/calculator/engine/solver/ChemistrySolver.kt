@@ -112,9 +112,13 @@ object ChemistrySolver {
      * using brute-force recursion for coefficients up to 10.
      */
     fun balanceReaction(equation: String): String {
-        val cleanEq = equation.replace(" ", "")
+        val cleanEq = equation
+            .replace(" ", "")
+            .replace("->", "=")
+            .replace("=>", "=")
+            .replace("→", "=")
         val parts = cleanEq.split("=")
-        if (parts.size != 2) return "Ошибка: используйте '=' для разделения реагентов и продуктов"
+        if (parts.size != 2) return "Ошибка: используйте '=' или '->' для разделения реагентов и продуктов"
         
         val leftSp = parts[0].split("+").filter { it.isNotEmpty() }
         val rightSp = parts[1].split("+").filter { it.isNotEmpty() }

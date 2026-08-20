@@ -53,13 +53,27 @@ fun ChemistryScreen(
     val molarPresets = remember {
         listOf(
             ChemicalPreset("💧 Вода", "H2O"),
-            ChemicalPreset("🧂 Соль", "NaCl"),
+            ChemicalPreset("🧂 Поваренная соль", "NaCl"),
             ChemicalPreset("🔋 Серная к-та", "H2SO4"),
             ChemicalPreset("🍬 Глюкоза", "C6H12O6"),
-            ChemicalPreset("🧼 Сода", "NaHCO3"),
-            ChemicalPreset("🪨 Мел", "CaCO3"),
-            ChemicalPreset("🍷 Спирт", "C2H5OH"),
-            ChemicalPreset("💨 CO₂", "CO2")
+            ChemicalPreset("🧼 Сода пищевая", "NaHCO3"),
+            ChemicalPreset("🪨 Мел (Кальцит)", "CaCO3"),
+            ChemicalPreset("🍷 Спирт (Этанол)", "C2H5OH"),
+            ChemicalPreset("💨 Углекислый газ", "CO2"),
+            ChemicalPreset("🩹 Перекись водорода", "H2O2"),
+            ChemicalPreset("👃 Нашатырный спирт", "NH3"),
+            ChemicalPreset("🧪 Соляная к-та", "HCl"),
+            ChemicalPreset("⚗️ Азотная к-та", "HNO3"),
+            ChemicalPreset("🥗 Уксусная к-та", "CH3COOH"),
+            ChemicalPreset("🧼 Едкий натр (NaOH)", "NaOH"),
+            ChemicalPreset("🔥 Метан (Газ)", "CH4"),
+            ChemicalPreset("🍭 Сахар (Сахароза)", "C12H22O11"),
+            ChemicalPreset("💊 Аспирин", "C9H8O4"),
+            ChemicalPreset("🌾 Калийная селитра", "KNO3"),
+            ChemicalPreset("🔷 Медный купорос", "CuSO4"),
+            ChemicalPreset("🧱 Гашеная известь", "Ca(OH)2"),
+            ChemicalPreset("⚡ Озон", "O3"),
+            ChemicalPreset("🔩 Ржавчина", "Fe2O3")
         )
     }
 
@@ -69,7 +83,11 @@ fun ChemistryScreen(
             ReactionPreset("🧪 Ржавление железа", "Fe + O2 -> Fe2O3"),
             ReactionPreset("⚡ Электролиз воды", "H2O -> H2 + O2"),
             ReactionPreset("🧯 Сода + Кислота", "NaHCO3 + HCl -> NaCl + CO2 + H2O"),
-            ReactionPreset("🌱 Фотосинтез", "CO2 + H2O -> C6H12O6 + O2")
+            ReactionPreset("🌱 Фотосинтез", "CO2 + H2O -> C6H12O6 + O2"),
+            ReactionPreset("💧 Нейтрализация щёлочи", "NaOH + HCl -> NaCl + H2O"),
+            ReactionPreset("💨 Синтез аммиака", "N2 + H2 -> NH3"),
+            ReactionPreset("💥 Горение водорода", "H2 + O2 -> H2O"),
+            ReactionPreset("🪨 Разложение известняка", "CaCO3 -> CaO + CO2")
         )
     }
 
@@ -225,7 +243,7 @@ fun ChemistryScreen(
                                 verticalAlignment = Alignment.CenterVertically,
                                 modifier = Modifier.fillMaxWidth().padding(top = 4.dp)
                             ) {
-                                val keys = listOf("H", "O", "C", "N", "Na", "Cl", "Fe", "Ca", "S", "K", "Al", "Cu", "(", ")", "2", "3", "4", "5", "⌫")
+                                val keys = listOf("H", "O", "C", "N", "Na", "Cl", "Fe", "Ca", "S", "K", "Al", "Cu", "(", ")", "2", "3", "4", "5", "6", "⌫")
                                 items(keys) { key ->
                                     Box(
                                         modifier = Modifier
