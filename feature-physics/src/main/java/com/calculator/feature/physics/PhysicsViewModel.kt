@@ -85,6 +85,12 @@ class PhysicsViewModel(application: Application) : AndroidViewModel(application)
         _calculationResult.value = null
     }
 
+    fun applyPreset(presetInputs: Map<String, String>, target: String) {
+        _inputs.value = presetInputs
+        _targetVariableSymbol.value = target
+        solveFormula()
+    }
+
     fun solveFormula() {
         val formula = _selectedFormula.value ?: return
         val target = _targetVariableSymbol.value

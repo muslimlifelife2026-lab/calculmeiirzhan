@@ -8,6 +8,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -39,9 +40,20 @@ import com.calculator.core.ui.theme.NeonCyan
 import com.calculator.core.ui.theme.ElectricViolet
 import com.calculator.core.ui.theme.TextPrimary
 import com.calculator.core.ui.theme.TextSecondary
+import com.calculator.core.ui.theme.SurfaceCard
+import com.calculator.core.ui.theme.SurfaceBorder
+import com.calculator.core.ui.theme.SurfaceElevated
 import com.calculator.core.ui.R
 import com.calculator.feature.physics.simulators.PendulumSimulator
 import com.calculator.feature.physics.simulators.ProjectileSimulator
+
+data class PhysicsPreset(
+    val title: String,
+    val formulaName: String,
+    val target: String,
+    val inputs: Map<String, String>,
+    val description: String
+)
 
 @Composable
 fun PhysicsScreen(
@@ -66,6 +78,17 @@ fun PhysicsScreen(
     var searchQuery by remember { mutableStateOf("") }
 
     val listState = rememberLazyListState()
+
+    val presets = remember {
+        listOf(
+            PhysicsPreset("🏎️ Разгон авто", "Скорость (кинематика)", "v", mapOf("v_0" to "0", "a" to "5", "t" to "6"), "Разгон с 0 до скорости за 6 сек при a=5 м/с²"),
+            PhysicsPreset("📱 Падение яблока", "Потенциальная энергия", "E_p", mapOf("m" to "0.2", "g" to "9.81", "h" to "3"), "Энергия яблока 200г на высоте 3м"),
+            PhysicsPreset("⚡ Электрочайник", "Электрическая мощность", "P", mapOf("U" to "220", "I" to "10"), "Мощность в сети 220В при токе 10А"),
+            PhysicsPreset("🚗 Торможение", "Второй закон Ньютона", "F", mapOf("m" to "1500", "a" to "8"), "Сила для торможения авто 1.5т"),
+            PhysicsPreset("💧 Масса воды", "Плотность вещества", "m", mapOf("rho" to "1000", "V" to "0.2"), "Масса 200 литров (0.2м³) воды"),
+            PhysicsPreset("💡 Закон Ома", "Закон Ома для участка цепи", "I", mapOf("U" to "220", "R" to "44"), "Сила тока при R=44 Ом")
+        )
+    }
 
     LaunchedEffect(selectedFormula) {
         showSteps = false
@@ -121,7 +144,7 @@ fun PhysicsScreen(
                 PhysicsQuizSection(formulas = formulas)
             }
             else -> {
-                // Formula Solver Mode
+                // Formula Selector Dialog with Human Keyword Search
                 if (showFormulaSelector) {
                     AlertDialog(
                         onDismissRequest = { showFormulaSelector = false; searchQuery = "" },
@@ -131,7 +154,7 @@ fun PhysicsScreen(
                                 OutlinedTextField(
                                     value = searchQuery,
                                     onValueChange = { searchQuery = it },
-                                    placeholder = { Text("Поиск формулы...") },
+                                    placeholder = { Text("Поиск: ток, скорость, сила, масса...") },
                                     modifier = Modifier.fillMaxWidth(),
                                     colors = OutlinedTextFieldDefaults.colors(
                                         focusedBorderColor = com.calculator.core.ui.theme.AccentViolet,
@@ -143,13 +166,14 @@ fun PhysicsScreen(
                                 
                                 val filteredFormulas = formulas.filter {
                                     it.name.contains(searchQuery, ignoreCase = true) ||
-                                    it.subcategory.contains(searchQuery, ignoreCase = true)
+                                    it.subcategory.contains(searchQuery, ignoreCase = true) ||
+                                    it.description.contains(searchQuery, ignoreCase = true)
                                 }
 
                                 LazyColumn(
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .heightIn(max = 240.dp)
+                                        .heightIn(max = 260.dp)
                                 ) {
                                     items(filteredFormulas) { formula ->
                                         Column(
@@ -160,10 +184,10 @@ fun PhysicsScreen(
                                                     showFormulaSelector = false
                                                     searchQuery = ""
                                                 }
-                                                .padding(vertical = 12.dp, horizontal = 8.dp)
+                                                .padding(vertical = 10.dp, horizontal = 8.dp)
                                         ) {
-                                            Text(text = formula.name, color = TextPrimary, fontSize = 14.sp, fontWeight = FontWeight.Medium)
-                                            Text(text = formula.subcategory, color = TextSecondary, fontSize = 11.sp)
+                                            Text(text = formula.name, color = TextPrimary, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                                            Text(text = "${formula.subcategory} • ${formula.canonicalEquation}", color = Color(0xFF38BDF8), fontSize = 11.sp, fontFamily = FontFamily.Monospace)
                                         }
                                         HorizontalDivider(color = Color(0x1AFFFFFF))
                                     }
@@ -186,6 +210,46 @@ fun PhysicsScreen(
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                         contentPadding = PaddingValues(top = 4.dp, bottom = 40.dp)
                     ) {
+                        // 0. Life-Scenarios Quick Presets Row (1-Tap Experience)
+                        item {
+                            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                Text(
+                                    text = "🚀 Примеры из жизни (1 клик):",
+                                    color = TextSecondary,
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                                LazyRow(
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    items(presets) { preset ->
+                                        Box(
+                                            modifier = Modifier
+                                                .clip(RoundedCornerShape(12.dp))
+                                                .background(SurfaceCard)
+                                                .border(1.dp, SurfaceBorder, RoundedCornerShape(12.dp))
+                                                .clickable {
+                                                    val matched = formulas.firstOrNull { it.name.contains(preset.formulaName, ignoreCase = true) }
+                                                    if (matched != null) {
+                                                        viewModel.selectFormula(matched)
+                                                        viewModel.applyPreset(preset.inputs, preset.target)
+                                                    }
+                                                }
+                                                .padding(horizontal = 10.dp, vertical = 6.dp)
+                                        ) {
+                                            Text(
+                                                text = preset.title,
+                                                color = Color.White,
+                                                fontSize = 11.sp,
+                                                fontWeight = FontWeight.Medium
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
                         // 1. Selector Bar
                         item {
                             Row(
@@ -213,7 +277,7 @@ fun PhysicsScreen(
                                     )
                                 }
                                 Text(
-                                    text = stringResource(R.string.label_select),
+                                    text = "Выбрать другую ▾",
                                     color = com.calculator.core.ui.theme.AccentAmber,
                                     fontSize = 12.sp,
                                     fontWeight = FontWeight.Bold
@@ -221,18 +285,12 @@ fun PhysicsScreen(
                             }
                         }
 
-                        // 1.5 Info Card
+                        // 1.5 Quick Explanation & Tip
                         if (formula.description.isNotBlank()) {
                             item {
                                 GlassCard(modifier = Modifier.fillMaxWidth()) {
-                                    Column(modifier = Modifier.padding(16.dp)) {
-                                        Row(verticalAlignment = Alignment.CenterVertically) {
-                                            Text(text = "ℹ️", fontSize = 18.sp)
-                                            Spacer(modifier = Modifier.width(8.dp))
-                                            Text(text = "О формуле", color = TextPrimary, fontSize = 14.sp, fontWeight = FontWeight.Bold)
-                                        }
-                                        Spacer(modifier = Modifier.height(8.dp))
-                                        Text(text = formula.description, color = TextSecondary, fontSize = 12.sp)
+                                    Column(modifier = Modifier.padding(12.dp)) {
+                                        Text(text = "ℹ️ ${formula.description}", color = TextSecondary, fontSize = 12.sp, lineHeight = 16.sp)
                                     }
                                 }
                             }
@@ -244,16 +302,16 @@ fun PhysicsScreen(
                                 Column(
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .padding(16.dp),
+                                        .padding(14.dp),
                                     horizontalAlignment = Alignment.CenterHorizontally
                                 ) {
                                     Text(
-                                        text = "Каноническое уравнение:",
+                                        text = "Каноническая формула:",
                                         color = TextSecondary,
                                         fontSize = 11.sp,
                                         fontWeight = FontWeight.Medium
                                     )
-                                    Spacer(modifier = Modifier.height(6.dp))
+                                    Spacer(modifier = Modifier.height(4.dp))
                                     Text(
                                         text = formula.canonicalEquation,
                                         color = TextPrimary,
@@ -265,17 +323,17 @@ fun PhysicsScreen(
                             }
                         }
 
-                        // 3. Target Variable Selector
+                        // 3. Target Variable Selector with Clear Guidance
                         item {
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(vertical = 4.dp),
+                                    .padding(vertical = 2.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(
-                                    text = stringResource(R.string.label_find),
-                                    color = TextPrimary,
+                                    text = "🎯 Что ищем:",
+                                    color = Color.White,
                                     fontSize = 13.sp,
                                     fontWeight = FontWeight.Bold
                                 )
@@ -283,18 +341,18 @@ fun PhysicsScreen(
                                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                     formula.variables.forEach { variable ->
                                         val isSelected = variable.symbol == targetSymbol
-                                        val bg = if (isSelected) com.calculator.core.ui.theme.AccentViolet else Color(0x1AFFFFFF)
-                                        val border = if (isSelected) Color(0x448B5CF6) else Color(0x1AFFFFFF)
-                                        val tc = if (isSelected) Color.White else TextSecondary
+                                        val bg = if (isSelected) Color.White else SurfaceElevated
+                                        val border = if (isSelected) Color.White else SurfaceBorder
+                                        val tc = if (isSelected) com.calculator.core.ui.theme.Background else TextSecondary
                                         Box(
                                             modifier = Modifier
-                                                .clip(RoundedCornerShape(6.dp))
+                                                .clip(RoundedCornerShape(8.dp))
                                                 .background(bg)
-                                                .border(1.dp, border, RoundedCornerShape(6.dp))
+                                                .border(1.dp, border, RoundedCornerShape(8.dp))
                                                 .clickable { viewModel.setTargetVariable(variable.symbol) }
                                                 .padding(horizontal = 10.dp, vertical = 6.dp)
                                         ) {
-                                            Text(text = variable.symbol, color = tc, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                            Text(text = "${variable.symbol} (${variable.name})", color = tc, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                                         }
                                     }
                                 }
@@ -304,11 +362,11 @@ fun PhysicsScreen(
                         // 4. Input parameters header
                         item {
                             Text(
-                                text = stringResource(R.string.phys_params),
+                                text = "📝 Введите известные числа:",
                                 color = TextPrimary,
                                 fontSize = 13.sp,
                                 fontWeight = FontWeight.Bold,
-                                modifier = Modifier.padding(top = 4.dp)
+                                modifier = Modifier.padding(top = 2.dp)
                             )
                         }
 
@@ -336,12 +394,12 @@ fun PhysicsScreen(
                                 colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .height(56.dp)
+                                    .height(52.dp)
                                     .background(neonCyanViolet, RoundedCornerShape(12.dp)),
                                 contentPadding = PaddingValues(0.dp)
                             ) {
                                 Text(
-                                    text = stringResource(R.string.phys_btn_calculate),
+                                    text = "Вычислить ответ ⚡",
                                     color = Color.White,
                                     fontSize = 16.sp,
                                     fontWeight = FontWeight.Bold
@@ -356,14 +414,14 @@ fun PhysicsScreen(
                                     GlassCard(modifier = Modifier.fillMaxWidth()) {
                                         Column(modifier = Modifier.padding(16.dp)) {
                                             Text(
-                                                text = stringResource(R.string.result_title),
+                                                text = "ОТВЕТ",
                                                 color = com.calculator.core.ui.theme.AccentAmber,
-                                                fontSize = 12.sp,
+                                                fontSize = 11.sp,
                                                 fontWeight = FontWeight.Bold
                                             )
                                             Spacer(modifier = Modifier.height(4.dp))
                                             Text(
-                                                text = "${result.solvedSymbol} = ${String.format("%.6f", result.value).trimEnd('0').trimEnd('.')}",
+                                                text = "${result.solvedSymbol} = ${String.format("%.4f", result.value).trimEnd('0').trimEnd('.')} ${result.unitSymbol}".trim(),
                                                 color = Color.White,
                                                 fontSize = 24.sp,
                                                 fontWeight = FontWeight.Bold
@@ -375,12 +433,12 @@ fun PhysicsScreen(
                                 // Steps Breakdown Card Header
                                 item {
                                     Row(
-                                        modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                                        modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
                                         horizontalArrangement = Arrangement.SpaceBetween,
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
                                         Text(
-                                            text = stringResource(R.string.label_step_breakdown),
+                                            text = "Пошаговое решение:",
                                             color = TextPrimary,
                                             fontSize = 13.sp,
                                             fontWeight = FontWeight.Bold
@@ -393,7 +451,7 @@ fun PhysicsScreen(
 
                                 if (isPremiumActive) {
                                     items(result.steps) { step ->
-                                        GlassCard(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+                                        GlassCard(modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp)) {
                                             Column(modifier = Modifier.fillMaxWidth()) {
                                                 Text(
                                                     text = stringResource(R.string.label_step_num, step.order, step.description),
@@ -432,7 +490,7 @@ fun PhysicsScreen(
                                 item {
                                     GlassCard(modifier = Modifier.fillMaxWidth()) {
                                         Text(
-                                            text = result.errorMessage ?: stringResource(R.string.phys_error),
+                                            text = result.errorMessage ?: "Заполните параметры для расчета",
                                             color = MaterialTheme.colorScheme.error,
                                             fontSize = 13.sp,
                                             fontWeight = FontWeight.SemiBold
@@ -444,7 +502,7 @@ fun PhysicsScreen(
 
                         // 8. Banner advertisement
                         item {
-                            Spacer(modifier = Modifier.height(6.dp))
+                            Spacer(modifier = Modifier.height(4.dp))
                             com.calculator.core.ui.components.AdmobBannerSimulator()
                         }
                     }

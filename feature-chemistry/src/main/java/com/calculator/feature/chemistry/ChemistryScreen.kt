@@ -21,6 +21,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -32,21 +33,46 @@ import com.calculator.domain.model.PeriodicTable
 import com.calculator.domain.model.SolubilityData
 import com.calculator.domain.model.SolubilityStatus
 import com.calculator.engine.solver.ChemistrySolver
-
 import com.calculator.feature.chemistry.components.AtomModelCanvas
+
+data class ChemicalPreset(val title: String, val formula: String)
+data class ReactionPreset(val title: String, val equation: String)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ChemistryScreen(
     modifier: Modifier = Modifier
 ) {
-    var formulaInput by remember { mutableStateOf("") }
-    var equationInput by remember { mutableStateOf("") }
+    var formulaInput by remember { mutableStateOf("H2SO4") }
+    var equationInput by remember { mutableStateOf("Fe + O2 -> Fe2O3") }
     var selectedTab by remember { mutableStateOf(0) } // 0: Mass, 1: Balancer, 2: Periodic Table, 3: Atom Model, 4: Solubility
     var selectedElement by remember { mutableStateOf<Element?>(null) }
     var selectedSolubilityPair by remember { mutableStateOf<Pair<String, String>?>(null) }
     var selectedAtomElement by remember { mutableStateOf(PeriodicTable.getElement("C") ?: Element("C", "Carbon", 6, 12.011)) }
-    
+
+    val molarPresets = remember {
+        listOf(
+            ChemicalPreset("💧 Вода", "H2O"),
+            ChemicalPreset("🧂 Соль", "NaCl"),
+            ChemicalPreset("🔋 Серная к-та", "H2SO4"),
+            ChemicalPreset("🍬 Глюкоза", "C6H12O6"),
+            ChemicalPreset("🧼 Сода", "NaHCO3"),
+            ChemicalPreset("🪨 Мел", "CaCO3"),
+            ChemicalPreset("🍷 Спирт", "C2H5OH"),
+            ChemicalPreset("💨 CO₂", "CO2")
+        )
+    }
+
+    val reactionPresets = remember {
+        listOf(
+            ReactionPreset("🔥 Горение метана", "CH4 + O2 -> CO2 + H2O"),
+            ReactionPreset("🧪 Ржавление железа", "Fe + O2 -> Fe2O3"),
+            ReactionPreset("⚡ Электролиз воды", "H2O -> H2 + O2"),
+            ReactionPreset("🧯 Сода + Кислота", "NaHCO3 + HCl -> NaCl + CO2 + H2O"),
+            ReactionPreset("🌱 Фотосинтез", "CO2 + H2O -> C6H12O6 + O2")
+        )
+    }
+
     val massResult = remember(formulaInput) {
         if (formulaInput.isNotBlank()) {
             ChemistrySolver.solveMolarMass(formulaInput)
@@ -100,340 +126,469 @@ fun ChemistryScreen(
             0 -> {
                 // ─── MOLAR MASS MODE ──────────────────────────────────────────────────
                 Column(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                    modifier = Modifier.fillMaxWidth().weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Text(
-                        text = "🧪 Молярная Масса",
-                        color = Color.White,
-                        fontSize = 24.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Text(
-                        text = "Введите химическую формулу для автоматического расчета молярной массы.",
-                        color = Color.White.copy(alpha = 0.6f),
-                        fontSize = 13.sp
-                    )
-                }
-
-                GlassCard(modifier = Modifier.fillMaxWidth()) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
+                    // 1-Tap Substance Presets Row
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Text(
-                            text = "Химическая формула",
-                            color = Color.White.copy(alpha = 0.7f),
-                            fontSize = 14.sp
+                            text = "✨ Популярные вещества (1 тап):",
+                            color = TextSecondary,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.SemiBold
                         )
-                        
-                        TextField(
-                            value = formulaInput,
-                            onValueChange = { formulaInput = it },
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = TextFieldDefaults.colors(
-                                focusedContainerColor = Color(0x1AFFFFFF),
-                                unfocusedContainerColor = Color(0x0DFFFFFF),
-                                focusedTextColor = Color.White,
-                                unfocusedTextColor = Color.White,
-                                cursorColor = AccentCyan,
-                                focusedIndicatorColor = Color.Transparent,
-                                unfocusedIndicatorColor = Color.Transparent
-                            ),
-                            shape = RoundedCornerShape(12.dp),
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
-                            singleLine = true,
-                            textStyle = LocalTextStyle.current.copy(
-                                fontSize = 24.sp,
-                                fontWeight = FontWeight.Bold,
-                                letterSpacing = 2.sp
-                            ),
-                            placeholder = {
-                                Text(
-                                    text = "H2SO4, Fe2(SO4)3...",
-                                    color = Color.White.copy(alpha = 0.3f),
-                                    fontSize = 20.sp
-                                )
-                            }
-                        )
-
-                        // Quick Elements
-                        androidx.compose.foundation.lazy.LazyRow(
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
+                        LazyRow(
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            val elements = listOf("H", "O", "C", "N", "Na", "Cl", "Fe", "Cu", "Ca", "Ba", "S")
-                            items(elements) { element ->
-                                FilterChip(
-                                    selected = false,
-                                    onClick = { formulaInput += element },
-                                    label = { Text(element, color = Color.White) },
-                                    colors = FilterChipDefaults.filterChipColors(
-                                        containerColor = Color(0x1AFFFFFF)
+                            items(molarPresets) { preset ->
+                                Box(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .background(SurfaceCard)
+                                        .border(1.dp, SurfaceBorder, RoundedCornerShape(12.dp))
+                                        .clickable { formulaInput = preset.formula }
+                                        .padding(horizontal = 10.dp, vertical = 5.dp)
+                                ) {
+                                    Text(
+                                        text = "${preset.title} (${preset.formula})",
+                                        color = Color.White,
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Medium
                                     )
-                                )
+                                }
                             }
                         }
                     }
-                }
 
-                if (massResult != null) {
-                    if (massResult.success) {
-                        GlassCard(modifier = Modifier.fillMaxWidth()) {
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(16.dp),
-                                verticalArrangement = Arrangement.spacedBy(12.dp)
+                    GlassCard(modifier = Modifier.fillMaxWidth()) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(12.dp),
+                            verticalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(
-                                    text = "Молярная масса:",
-                                    color = Color.White.copy(alpha = 0.7f),
-                                    fontSize = 14.sp
-                                )
-                                
-                                Text(
-                                    text = String.format("%.3f г/моль", massResult.molarMass),
-                                    color = AccentCyan,
-                                    fontSize = 30.sp,
+                                    text = "Химическая формула:",
+                                    color = TextSecondary,
+                                    fontSize = 12.sp,
                                     fontWeight = FontWeight.Bold
                                 )
+                                if (formulaInput.isNotEmpty()) {
+                                    Text(
+                                        text = "Очистить",
+                                        color = ErrorRed,
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        modifier = Modifier.clickable { formulaInput = "" }
+                                    )
+                                }
+                            }
+                            
+                            TextField(
+                                value = formulaInput,
+                                onValueChange = { formulaInput = it },
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = TextFieldDefaults.colors(
+                                    focusedContainerColor = SurfaceElevated,
+                                    unfocusedContainerColor = SurfaceElevated,
+                                    focusedTextColor = Color.White,
+                                    unfocusedTextColor = Color.White,
+                                    cursorColor = Color.White,
+                                    focusedIndicatorColor = Color.Transparent,
+                                    unfocusedIndicatorColor = Color.Transparent
+                                ),
+                                shape = RoundedCornerShape(10.dp),
+                                singleLine = true,
+                                textStyle = LocalTextStyle.current.copy(
+                                    fontSize = 20.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    fontFamily = FontFamily.Monospace
+                                ),
+                                placeholder = {
+                                    Text(
+                                        text = "Например: H2SO4 или C6H12O6",
+                                        color = TextSecondary,
+                                        fontSize = 14.sp
+                                    )
+                                }
+                            )
 
-                                HorizontalDivider(color = Color.White.copy(alpha = 0.1f))
-
-                                Text(
-                                    text = "Состав элементов:",
-                                    color = Color.White.copy(alpha = 0.7f),
-                                    fontSize = 14.sp
-                                )
-
-                                LazyColumn(
-                                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                                    modifier = Modifier.fillMaxWidth().heightIn(max = 180.dp)
-                                ) {
-                                    items(massResult.elementCounts.toList()) { (element, count) ->
-                                        Row(
-                                            modifier = Modifier.fillMaxWidth(),
-                                            horizontalArrangement = Arrangement.SpaceBetween,
-                                            verticalAlignment = Alignment.CenterVertically
-                                        ) {
-                                            Row(
-                                                verticalAlignment = Alignment.CenterVertically,
-                                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                            ) {
-                                                Box(
-                                                    modifier = Modifier
-                                                        .clip(RoundedCornerShape(8.dp))
-                                                        .background(AccentCyan.copy(alpha = 0.15f))
-                                                        .padding(horizontal = 10.dp, vertical = 4.dp),
-                                                    contentAlignment = Alignment.Center
-                                                ) {
-                                                    Text(
-                                                        text = element.symbol,
-                                                        color = AccentCyan,
-                                                        fontWeight = FontWeight.Bold,
-                                                        fontSize = 16.sp
-                                                    )
+                            // Quick Chemistry Keyboard Chips
+                            LazyRow(
+                                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.fillMaxWidth().padding(top = 4.dp)
+                            ) {
+                                val keys = listOf("H", "O", "C", "N", "Na", "Cl", "Fe", "Ca", "S", "K", "Al", "Cu", "(", ")", "2", "3", "4", "5", "⌫")
+                                items(keys) { key ->
+                                    Box(
+                                        modifier = Modifier
+                                            .clip(RoundedCornerShape(8.dp))
+                                            .background(if (key == "⌫") ErrorRed.copy(alpha = 0.2f) else SurfaceElevated)
+                                            .border(1.dp, SurfaceBorder, RoundedCornerShape(8.dp))
+                                            .clickable {
+                                                if (key == "⌫") {
+                                                    if (formulaInput.isNotEmpty()) formulaInput = formulaInput.dropLast(1)
+                                                } else {
+                                                    formulaInput += key
                                                 }
-                                                Text(
-                                                    text = element.name,
-                                                    color = TextSecondary,
-                                                    fontSize = 14.sp
-                                                )
                                             }
-                                            Text(
-                                                text = "$count × ${element.atomicMass}",
-                                                color = TextPrimary,
-                                                fontSize = 14.sp,
-                                                fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace
-                                            )
-                                        }
+                                            .padding(horizontal = 9.dp, vertical = 6.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(
+                                            text = key,
+                                            color = if (key == "⌫") ErrorRed else Color.White,
+                                            fontSize = 13.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            fontFamily = FontFamily.Monospace
+                                        )
                                     }
                                 }
                             }
                         }
-                    } else {
-                        GlassCard(modifier = Modifier.fillMaxWidth()) {
-                            Text(
-                                text = massResult.errorMessage ?: "Ошибка расчёта",
-                                color = ErrorRed,
-                                fontSize = 16.sp,
-                                modifier = Modifier.padding(16.dp)
-                            )
+                    }
+
+                    if (massResult != null) {
+                        if (massResult.success) {
+                            GlassCard(modifier = Modifier.fillMaxWidth().weight(1f)) {
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(14.dp),
+                                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Text(
+                                        text = "МОЛЯРНАЯ МАССА:",
+                                        color = com.calculator.core.ui.theme.AccentAmber,
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                    
+                                    Text(
+                                        text = String.format("%.3f г/моль", massResult.molarMass),
+                                        color = Color.White,
+                                        fontSize = 26.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        fontFamily = FontFamily.Monospace
+                                    )
+
+                                    HorizontalDivider(color = SurfaceBorder)
+
+                                    Text(
+                                        text = "Состав и массовые доли:",
+                                        color = TextSecondary,
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.SemiBold
+                                    )
+
+                                    LazyColumn(
+                                        verticalArrangement = Arrangement.spacedBy(6.dp),
+                                        modifier = Modifier.fillMaxWidth().weight(1f)
+                                    ) {
+                                        items(massResult.elementCounts.toList()) { (element, count) ->
+                                            val elementTotalMass = element.atomicMass * count
+                                            val fractionPercent = (elementTotalMass / massResult.molarMass) * 100.0
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                horizontalArrangement = Arrangement.SpaceBetween,
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Row(
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                                ) {
+                                                    Box(
+                                                        modifier = Modifier
+                                                            .clip(RoundedCornerShape(6.dp))
+                                                            .background(SurfaceElevated)
+                                                            .border(1.dp, SurfaceBorder, RoundedCornerShape(6.dp))
+                                                            .padding(horizontal = 8.dp, vertical = 3.dp),
+                                                        contentAlignment = Alignment.Center
+                                                    ) {
+                                                        Text(
+                                                            text = element.symbol,
+                                                            color = Color(0xFF38BDF8),
+                                                            fontWeight = FontWeight.Bold,
+                                                            fontSize = 13.sp
+                                                        )
+                                                    }
+                                                    Text(
+                                                        text = "${element.name} (×$count)",
+                                                        color = TextPrimary,
+                                                        fontSize = 13.sp
+                                                    )
+                                                }
+                                                Text(
+                                                    text = "${String.format("%.1f", fractionPercent)}%",
+                                                    color = Color(0xFF10B981),
+                                                    fontSize = 13.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    fontFamily = FontFamily.Monospace
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        } else {
+                            GlassCard(modifier = Modifier.fillMaxWidth()) {
+                                Text(
+                                    text = massResult.errorMessage ?: "Проверьте правильность химической формулы",
+                                    color = MaterialTheme.colorScheme.error,
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                            }
                         }
                     }
                 }
             }
 
             1 -> {
-                // ─── EQUATION BALANCER MODE ───────────────────────────────────────────
+                // ─── CHEMICAL EQUATION BALANCER MODE ─────────────────────────────────
                 Column(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                    modifier = Modifier.fillMaxWidth().weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Text(
-                        text = "⚖️ Балансировщик Реакций",
-                        color = Color.White,
-                        fontSize = 24.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Text(
-                        text = "Введите реакцию (например: Fe + O2 = Fe2O3 или H2 + O2 = H2O).",
-                        color = Color.White.copy(alpha = 0.6f),
-                        fontSize = 13.sp
-                    )
-                }
-
-                GlassCard(modifier = Modifier.fillMaxWidth()) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
+                    // 1-Tap Reaction Presets Row
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Text(
-                            text = "Химическое уравнение",
-                            color = Color.White.copy(alpha = 0.7f),
-                            fontSize = 14.sp
+                            text = "🔥 Примеры реакций (1 тап):",
+                            color = TextSecondary,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.SemiBold
                         )
-                        
-                        TextField(
-                            value = equationInput,
-                            onValueChange = { equationInput = it },
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = TextFieldDefaults.colors(
-                                focusedContainerColor = Color(0x1AFFFFFF),
-                                unfocusedContainerColor = Color(0x0DFFFFFF),
-                                focusedTextColor = Color.White,
-                                unfocusedTextColor = Color.White,
-                                cursorColor = AccentCyan,
-                                focusedIndicatorColor = Color.Transparent,
-                                unfocusedIndicatorColor = Color.Transparent
-                            ),
-                            shape = RoundedCornerShape(12.dp),
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
-                            singleLine = true,
-                            textStyle = LocalTextStyle.current.copy(
-                                fontSize = 20.sp,
-                                fontWeight = FontWeight.Bold
-                            ),
-                            placeholder = {
-                                Text(
-                                    text = "H2 + O2 = H2O",
-                                    color = Color.White.copy(alpha = 0.3f),
-                                    fontSize = 18.sp
-                                )
-                            }
-                        )
-
-                        // Quick helpers for equations
-                        androidx.compose.foundation.lazy.LazyRow(
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
+                        LazyRow(
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            val symbols = listOf(" + ", " = ", "H2O", "CO2", "O2", "HCl", "NaOH")
-                            items(symbols) { item ->
-                                FilterChip(
-                                    selected = false,
-                                    onClick = { equationInput += item },
-                                    label = { Text(item.trim(), color = Color.White) },
-                                    colors = FilterChipDefaults.filterChipColors(
-                                        containerColor = Color(0x1AFFFFFF)
+                            items(reactionPresets) { preset ->
+                                Box(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .background(SurfaceCard)
+                                        .border(1.dp, SurfaceBorder, RoundedCornerShape(12.dp))
+                                        .clickable { equationInput = preset.equation }
+                                        .padding(horizontal = 10.dp, vertical = 5.dp)
+                                ) {
+                                    Text(
+                                        text = preset.title,
+                                        color = Color.White,
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Medium
                                     )
-                                )
+                                }
                             }
                         }
                     }
-                }
 
-                if (balanceResult != null) {
                     GlassCard(modifier = Modifier.fillMaxWidth()) {
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(16.dp),
-                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                                .padding(12.dp),
+                            verticalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
-                            Text(
-                                text = "Результат балансировки:",
-                                color = Color.White.copy(alpha = 0.7f),
-                                fontSize = 14.sp
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "Уравнение реакции (реагенты → продукты):",
+                                    color = TextSecondary,
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                if (equationInput.isNotEmpty()) {
+                                    Text(
+                                        text = "Очистить",
+                                        color = ErrorRed,
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        modifier = Modifier.clickable { equationInput = "" }
+                                    )
+                                }
+                            }
+
+                            TextField(
+                                value = equationInput,
+                                onValueChange = { equationInput = it },
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = TextFieldDefaults.colors(
+                                    focusedContainerColor = SurfaceElevated,
+                                    unfocusedContainerColor = SurfaceElevated,
+                                    focusedTextColor = Color.White,
+                                    unfocusedTextColor = Color.White,
+                                    cursorColor = Color.White,
+                                    focusedIndicatorColor = Color.Transparent,
+                                    unfocusedIndicatorColor = Color.Transparent
+                                ),
+                                shape = RoundedCornerShape(10.dp),
+                                singleLine = true,
+                                textStyle = LocalTextStyle.current.copy(
+                                    fontSize = 18.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    fontFamily = FontFamily.Monospace
+                                ),
+                                placeholder = {
+                                    Text(
+                                        text = "H2 + O2 -> H2O",
+                                        color = TextSecondary,
+                                        fontSize = 14.sp
+                                    )
+                                }
                             )
 
-                            val isError = balanceResult.startsWith("Ошибка") || balanceResult.startsWith("Не удалось")
-                            
-                            Text(
-                                text = balanceResult,
-                                color = if (isError) ErrorRed else com.calculator.core.ui.theme.AccentAmber,
-                                fontSize = 22.sp,
-                                fontWeight = FontWeight.Bold,
-                                modifier = Modifier.padding(vertical = 4.dp)
-                            )
+                            // Quick Operators & Elements for Balancer
+                            LazyRow(
+                                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.fillMaxWidth().padding(top = 4.dp)
+                            ) {
+                                val keys = listOf("+", " -> ", "H", "O", "C", "N", "Fe", "Na", "Cl", "2", "3", "4", "(", ")", "⌫")
+                                items(keys) { key ->
+                                    Box(
+                                        modifier = Modifier
+                                            .clip(RoundedCornerShape(8.dp))
+                                            .background(if (key == " -> " || key == "+") Color.White else SurfaceElevated)
+                                            .border(1.dp, SurfaceBorder, RoundedCornerShape(8.dp))
+                                            .clickable {
+                                                if (key == "⌫") {
+                                                    if (equationInput.isNotEmpty()) equationInput = equationInput.dropLast(1)
+                                                } else {
+                                                    equationInput += key
+                                                }
+                                            }
+                                            .padding(horizontal = 10.dp, vertical = 6.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(
+                                            text = key.trim(),
+                                            color = if (key == " -> " || key == "+") Background else Color.White,
+                                            fontSize = 13.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            fontFamily = FontFamily.Monospace
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    if (balanceResult != null) {
+                        val isSuccess = balanceResult.contains("=")
+                        if (isSuccess) {
+                            GlassCard(modifier = Modifier.fillMaxWidth()) {
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(14.dp),
+                                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Text(
+                                        text = "УРАВНЕННАЯ РЕАКЦИЯ:",
+                                        color = com.calculator.core.ui.theme.AccentAmber,
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+
+                                    Text(
+                                        text = balanceResult,
+                                        color = Color.White,
+                                        fontSize = 20.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        fontFamily = FontFamily.Monospace
+                                    )
+
+                                    HorizontalDivider(color = SurfaceBorder)
+
+                                    Text(
+                                        text = "Коэффициенты реакции расставлены по закону сохранения массы.",
+                                        color = TextSecondary,
+                                        fontSize = 12.sp
+                                    )
+                                }
+                            }
+                        } else {
+                            GlassCard(modifier = Modifier.fillMaxWidth()) {
+                                Text(
+                                    text = balanceResult,
+                                    color = MaterialTheme.colorScheme.error,
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                            }
                         }
                     }
                 }
             }
 
             2 -> {
-                // ─── PERIODIC TABLE MODE ─────────────────────────────────────────────
+                // ─── PERIODIC TABLE MODE ──────────────────────────────────────────────
+                val elements = remember { PeriodicTable.allElements }
                 var searchQuery by remember { mutableStateOf("") }
-                val allElements = remember { PeriodicTable.elements.values.toList() }
-                val filteredElements = remember(searchQuery) {
-                    if (searchQuery.isBlank()) allElements else {
-                        allElements.filter {
-                            it.name.contains(searchQuery, ignoreCase = true) ||
-                            it.symbol.contains(searchQuery, ignoreCase = true) ||
-                            it.atomicNumber.toString() == searchQuery
-                        }
-                    }
-                }
 
                 Column(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth().weight(1f),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     OutlinedTextField(
                         value = searchQuery,
                         onValueChange = { searchQuery = it },
-                        placeholder = { Text("Поиск элемента (символ, имя, номер)...") },
+                        placeholder = { Text("Поиск элемента: Fe, Железо, 26...") },
                         modifier = Modifier.fillMaxWidth(),
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = AccentViolet,
-                            focusedContainerColor = Color(0x0AFFFFFF),
-                            unfocusedContainerColor = Color(0x0AFFFFFF)
+                            focusedBorderColor = Color.White,
+                            unfocusedBorderColor = SurfaceBorder,
+                            focusedContainerColor = SurfaceElevated,
+                            unfocusedContainerColor = SurfaceElevated,
+                            focusedTextColor = Color.White,
+                            unfocusedTextColor = Color.White
                         ),
+                        shape = RoundedCornerShape(12.dp),
                         singleLine = true
                     )
 
+                    val filtered = elements.filter {
+                        it.name.contains(searchQuery, ignoreCase = true) ||
+                        it.symbol.contains(searchQuery, ignoreCase = true) ||
+                        it.atomicNumber.toString().contains(searchQuery)
+                    }
+
                     LazyVerticalGrid(
-                        columns = GridCells.Fixed(4),
+                        columns = GridCells.Adaptive(minSize = 75.dp),
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp),
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.fillMaxWidth().weight(1f)
                     ) {
-                        items(filteredElements) { elem ->
+                        items(filtered) { elem ->
                             Box(
                                 modifier = Modifier
-                                    .aspectRatio(1f)
                                     .clip(RoundedCornerShape(10.dp))
-                                    .background(Color(0x1AFFFFFF))
-                                    .border(1.dp, Color(0x22FFFFFF), RoundedCornerShape(10.dp))
+                                    .background(SurfaceCard)
+                                    .border(1.dp, SurfaceBorder, RoundedCornerShape(10.dp))
                                     .clickable { selectedElement = elem }
-                                    .padding(4.dp),
+                                    .padding(8.dp),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                     Text(
                                         text = elem.atomicNumber.toString(),
-                                        color = Color.White.copy(alpha = 0.5f),
-                                        fontSize = 9.sp,
+                                        color = TextSecondary,
+                                        fontSize = 10.sp,
                                         modifier = Modifier.align(Alignment.Start)
                                     )
                                     Text(
                                         text = elem.symbol,
-                                        color = AccentCyan,
+                                        color = Color.White,
                                         fontSize = 18.sp,
                                         fontWeight = FontWeight.Bold
                                     )
@@ -452,9 +607,7 @@ fun ChemistryScreen(
 
             3 -> {
                 // ─── ATOM MODEL VISUALIZER MODE ──────────────────────────────────────
-                val sampleElements = remember {
-                    PeriodicTable.allElements
-                }
+                val sampleElements = remember { PeriodicTable.allElements }
 
                 Column(
                     modifier = Modifier.fillMaxWidth().weight(1f),
@@ -505,12 +658,12 @@ fun ChemistryScreen(
                     Text(
                         text = "Таблица Растворимости Солей",
                         color = Color.White,
-                        fontSize = 18.sp,
+                        fontSize = 16.sp,
                         fontWeight = FontWeight.Bold
                     )
                     Text(
                         text = "Нажмите на ячейку для просмотра подробностей",
-                        color = Color.White.copy(alpha = 0.5f),
+                        color = TextSecondary,
                         fontSize = 11.sp
                     )
 
@@ -597,16 +750,16 @@ fun ChemistryScreen(
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     Box(
                         modifier = Modifier
-                            .size(50.dp)
+                            .size(48.dp)
                             .clip(RoundedCornerShape(12.dp))
-                            .background(AccentCyan.copy(alpha = 0.2f))
-                            .border(1.dp, AccentCyan, RoundedCornerShape(12.dp)),
+                            .background(SurfaceElevated)
+                            .border(1.dp, SurfaceBorder, RoundedCornerShape(12.dp)),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text(elem.symbol, color = AccentCyan, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+                        Text(elem.symbol, color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
                     }
                     Column {
-                        Text(elem.name, color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                        Text(elem.name, color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
                         Text("Атомный номер Z = ${elem.atomicNumber}", color = TextSecondary, fontSize = 12.sp)
                     }
                 }
@@ -623,7 +776,7 @@ fun ChemistryScreen(
                     ) {
                         AtomModelCanvas(element = elem)
                     }
-                    HorizontalDivider(color = Color(0x22FFFFFF))
+                    HorizontalDivider(color = SurfaceBorder)
                     Text("• Атомная масса: ${elem.atomicMass} г/моль", color = Color.White, fontSize = 13.sp)
                 }
             },
@@ -634,9 +787,9 @@ fun ChemistryScreen(
                         selectedElement = null
                         selectedTab = 0 // Jump to Molar Mass
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = AccentViolet)
+                    colors = ButtonDefaults.buttonColors(containerColor = AccentPrimary)
                 ) {
-                    Text("Вставить в формулу 🧪", color = Color.White)
+                    Text("Вставить в формулу 🧪", color = Background, fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {
@@ -644,7 +797,7 @@ fun ChemistryScreen(
                     Text("Закрыть", color = TextSecondary)
                 }
             },
-            containerColor = com.calculator.core.ui.theme.SurfaceCard
+            containerColor = SurfaceCard
         )
     }
 
@@ -688,10 +841,10 @@ fun ChemistryScreen(
             },
             confirmButton = {
                 TextButton(onClick = { selectedSolubilityPair = null }) {
-                    Text("Понятно", color = AccentCyan)
+                    Text("Понятно", color = Color.White)
                 }
             },
-            containerColor = com.calculator.core.ui.theme.SurfaceCard
+            containerColor = SurfaceCard
         )
     }
 }
