@@ -448,12 +448,33 @@ fun GeometryScreen(
                     calculationResult?.let { result ->
                         if (result.success) {
                             item {
-                                GlassCard(modifier = Modifier.fillMaxWidth()) {
+                                GlassCard(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .border(1.dp, Color(0xFF38BDF8).copy(alpha = 0.5f), RoundedCornerShape(16.dp)),
+                                    cornerRadius = 16.dp
+                                ) {
                                     Column(modifier = Modifier.padding(14.dp)) {
-                                        Text("ОТВЕТ", color = com.calculator.core.ui.theme.AccentAmber, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Text("ОТВЕТ", color = Color(0xFF38BDF8), fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+                                            Spacer(modifier = Modifier.width(8.dp))
+                                            Box(
+                                                modifier = Modifier
+                                                    .clip(RoundedCornerShape(6.dp))
+                                                    .background(Color(0xFF38BDF8).copy(alpha = 0.15f))
+                                                    .padding(horizontal = 6.dp, vertical = 2.dp)
+                                            ) {
+                                                Text(
+                                                    text = "СИ: ${result.unitSymbol}".trim(),
+                                                    color = Color(0xFF38BDF8),
+                                                    fontSize = 9.sp,
+                                                    fontWeight = FontWeight.Bold
+                                                )
+                                            }
+                                        }
                                         Spacer(modifier = Modifier.height(4.dp))
                                         Text(
-                                            text = "${result.solvedSymbol} = ${String.format("%.4f", result.value).trimEnd('0').trimEnd('.')} ${result.unitSymbol}".trim(),
+                                            text = "${result.solvedSymbol} = ${String.format(java.util.Locale.US, "%.4f", result.value).trimEnd('0').trimEnd('.')} ${result.unitSymbol}".trim(),
                                             color = Color.White,
                                             fontSize = 22.sp,
                                             fontWeight = FontWeight.Bold

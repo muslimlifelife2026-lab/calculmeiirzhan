@@ -102,6 +102,30 @@ fun Stereometry3DCanvas(
                 )
             }
 
+            // Holographic Perspective Floor Grid
+            val floorY = -0.95f
+            val gridLines = 4
+            val gridSize = 0.9f
+            for (i in -gridLines..gridLines) {
+                val step = (i.toFloat() / gridLines) * gridSize
+                val p1 = project(Point3D(step, floorY, -gridSize))
+                val p2 = project(Point3D(step, floorY, gridSize))
+                drawLine(
+                    color = Color(0xFF38BDF8).copy(alpha = 0.14f),
+                    start = p1.offset,
+                    end = p2.offset,
+                    strokeWidth = 1f
+                )
+                val p3 = project(Point3D(-gridSize, floorY, step))
+                val p4 = project(Point3D(gridSize, floorY, step))
+                drawLine(
+                    color = Color(0xFF38BDF8).copy(alpha = 0.14f),
+                    start = p3.offset,
+                    end = p4.offset,
+                    strokeWidth = 1f
+                )
+            }
+
             when (shapeType) {
                 Shape3DType.CUBE -> {
                     val w = 0.55f * (dimA / 10f).coerceIn(0.5f, 1.5f)
