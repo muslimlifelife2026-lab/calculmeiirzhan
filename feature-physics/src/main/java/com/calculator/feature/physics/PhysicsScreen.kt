@@ -36,13 +36,7 @@ import com.calculator.core.ui.components.VariableInput
 import com.calculator.core.ui.components.PremiumOverlay
 import com.calculator.core.ui.components.PremiumTimerBadge
 import com.calculator.core.ui.premium.PremiumManager
-import com.calculator.core.ui.theme.NeonCyan
-import com.calculator.core.ui.theme.ElectricViolet
-import com.calculator.core.ui.theme.TextPrimary
-import com.calculator.core.ui.theme.TextSecondary
-import com.calculator.core.ui.theme.SurfaceCard
-import com.calculator.core.ui.theme.SurfaceBorder
-import com.calculator.core.ui.theme.SurfaceElevated
+import com.calculator.core.ui.theme.*
 import com.calculator.core.ui.R
 import com.calculator.feature.physics.simulators.PendulumSimulator
 import com.calculator.feature.physics.simulators.ProjectileSimulator
@@ -250,109 +244,103 @@ fun PhysicsScreen(
                             }
                         }
 
-                        // 1. Selector Bar
-                        item {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clickable { showFormulaSelector = true }
-                                    .background(Color(0x0AFFFFFF), RoundedCornerShape(12.dp))
-                                    .border(1.dp, Color(0x1AFFFFFF), RoundedCornerShape(12.dp))
-                                    .padding(12.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.SpaceBetween
-                            ) {
-                                Column {
-                                    Text(
-                                        text = stringResource(R.string.phys_category, formula.subcategory),
-                                        color = com.calculator.core.ui.theme.AccentViolet,
-                                        fontSize = 11.sp,
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                    Text(
-                                        text = formula.name,
-                                        color = TextPrimary,
-                                        fontSize = 15.sp,
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                }
-                                Text(
-                                    text = "Выбрать другую ▾",
-                                    color = com.calculator.core.ui.theme.AccentAmber,
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.Bold
-                                )
-                            }
-                        }
-
-                        // 1.5 Quick Explanation & Tip
-                        if (formula.description.isNotBlank()) {
-                            item {
-                                GlassCard(modifier = Modifier.fillMaxWidth()) {
-                                    Column(modifier = Modifier.padding(12.dp)) {
-                                        Text(text = "ℹ️ ${formula.description}", color = TextSecondary, fontSize = 12.sp, lineHeight = 16.sp)
-                                    }
-                                }
-                            }
-                        }
-
-                        // 2. Main Equation Card
+                        // Unified Compact Formula Hub Card
                         item {
                             GlassCard(modifier = Modifier.fillMaxWidth()) {
                                 Column(
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .padding(14.dp),
-                                    horizontalAlignment = Alignment.CenterHorizontally
+                                        .padding(12.dp),
+                                    verticalArrangement = Arrangement.spacedBy(8.dp)
                                 ) {
-                                    Text(
-                                        text = "Каноническая формула:",
-                                        color = TextSecondary,
-                                        fontSize = 11.sp,
-                                        fontWeight = FontWeight.Medium
-                                    )
-                                    Spacer(modifier = Modifier.height(4.dp))
-                                    Text(
-                                        text = formula.canonicalEquation,
-                                        color = TextPrimary,
-                                        fontSize = 22.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        fontFamily = FontFamily.Monospace
-                                    )
-                                }
-                            }
-                        }
-
-                        // 3. Target Variable Selector with Clear Guidance
-                        item {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = 2.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(
-                                    text = "🎯 Что ищем:",
-                                    color = Color.White,
-                                    fontSize = 13.sp,
-                                    fontWeight = FontWeight.Bold
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                    formula.variables.forEach { variable ->
-                                        val isSelected = variable.symbol == targetSymbol
-                                        val bg = if (isSelected) Color.White else SurfaceElevated
-                                        val border = if (isSelected) Color.White else SurfaceBorder
-                                        val tc = if (isSelected) com.calculator.core.ui.theme.Background else TextSecondary
+                                    // Header: Category & Switcher button
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clickable { showFormulaSelector = true },
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            Text(
+                                                text = formula.subcategory.uppercase(),
+                                                color = Color(0xFF38BDF8),
+                                                fontSize = 10.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                letterSpacing = 1.sp
+                                            )
+                                            Text(
+                                                text = formula.name,
+                                                color = Color.White,
+                                                fontSize = 15.sp,
+                                                fontWeight = FontWeight.Bold
+                                            )
+                                        }
                                         Box(
                                             modifier = Modifier
                                                 .clip(RoundedCornerShape(8.dp))
-                                                .background(bg)
-                                                .border(1.dp, border, RoundedCornerShape(8.dp))
-                                                .clickable { viewModel.setTargetVariable(variable.symbol) }
-                                                .padding(horizontal = 10.dp, vertical = 6.dp)
+                                                .background(SurfaceElevated)
+                                                .border(1.dp, SurfaceBorder, RoundedCornerShape(8.dp))
+                                                .padding(horizontal = 8.dp, vertical = 4.dp)
                                         ) {
-                                            Text(text = "${variable.symbol} (${variable.name})", color = tc, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                            Text("Сменить ▾", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                        }
+                                    }
+
+                                    // Canonical Equation Display
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clip(RoundedCornerShape(10.dp))
+                                            .background(SurfaceElevated)
+                                            .padding(vertical = 8.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(
+                                            text = formula.canonicalEquation,
+                                            color = Color.White,
+                                            fontSize = 20.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            fontFamily = FontFamily.Monospace
+                                        )
+                                    }
+
+                                    // Target Variable Selector Row: Compact Capsules
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.SpaceBetween
+                                    ) {
+                                        val activeVar = formula.variables.firstOrNull { it.symbol == targetSymbol }
+                                        Text(
+                                            text = "🎯 Ищем: ${activeVar?.symbol ?: targetSymbol} (${activeVar?.name ?: ""})",
+                                            color = Color(0xFF38BDF8),
+                                            fontSize = 12.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            modifier = Modifier.weight(1f)
+                                        )
+
+                                        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                            formula.variables.forEach { variable ->
+                                                val isSelected = variable.symbol == targetSymbol
+                                                Box(
+                                                    modifier = Modifier
+                                                        .clip(RoundedCornerShape(6.dp))
+                                                        .background(if (isSelected) Color.White else SurfaceElevated)
+                                                        .border(1.dp, if (isSelected) Color.White else SurfaceBorder, RoundedCornerShape(6.dp))
+                                                        .clickable { viewModel.setTargetVariable(variable.symbol) }
+                                                        .padding(horizontal = 8.dp, vertical = 4.dp),
+                                                    contentAlignment = Alignment.Center
+                                                ) {
+                                                    Text(
+                                                        text = variable.symbol,
+                                                        color = if (isSelected) Background else TextSecondary,
+                                                        fontSize = 12.sp,
+                                                        fontWeight = FontWeight.Bold,
+                                                        fontFamily = FontFamily.Monospace
+                                                    )
+                                                }
+                                            }
                                         }
                                     }
                                 }
