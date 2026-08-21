@@ -6,13 +6,12 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ShowChart
@@ -27,12 +26,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.calculator.core.ui.R
+import com.calculator.core.ui.components.bounceClick
 import com.calculator.core.ui.theme.*
 import com.calculator.feature.calculator.CalculatorScreen
 import com.calculator.feature.chemistry.ChemistryScreen
@@ -118,45 +119,71 @@ private fun TopSubjectTabBar(
             val isSelected = currentIndex == index
 
             val containerColor by animateColorAsState(
-                targetValue = if (isSelected) Color.White else SurfaceCard,
+                targetValue = if (isSelected) SurfaceElevated else Color.Transparent,
                 animationSpec = spring(stiffness = Spring.StiffnessMedium),
                 label = "tab_bg"
             )
             val contentColor by animateColorAsState(
-                targetValue = if (isSelected) Background else TextSecondary,
+                targetValue = if (isSelected) Color.White else TextSecondary,
                 animationSpec = spring(stiffness = Spring.StiffnessMedium),
                 label = "tab_fg"
             )
-            val borderColor = if (isSelected) Color.White else SurfaceBorder
+            val borderColor by animateColorAsState(
+                targetValue = if (isSelected) SurfaceBorder else Color.Transparent,
+                animationSpec = spring(stiffness = Spring.StiffnessMedium),
+                label = "tab_border"
+            )
+            val dotScale by animateFloatAsState(
+                targetValue = if (isSelected) 1f else 0f,
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioMediumBouncy,
+                    stiffness = Spring.StiffnessMedium
+                ),
+                label = "tab_dot_scale"
+            )
 
             Box(
                 modifier = Modifier
                     .clip(RoundedCornerShape(20.dp))
                     .background(containerColor)
                     .border(1.dp, borderColor, RoundedCornerShape(20.dp))
-                    .clickable(
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = null,
-                        onClick = { onItemSelected(index) }
-                    )
-                    .padding(horizontal = 14.dp, vertical = 8.dp),
+                    .bounceClick { onItemSelected(index) }
+                    .padding(horizontal = 14.dp, vertical = 7.dp),
                 contentAlignment = Alignment.Center
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
                 ) {
-                    Icon(
-                        imageVector = item.icon,
-                        contentDescription = item.label,
-                        tint = contentColor,
-                        modifier = Modifier.size(16.dp)
-                    )
-                    Text(
-                        text = item.label,
-                        color = contentColor,
-                        fontSize = 13.sp,
-                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Icon(
+                            imageVector = item.icon,
+                            contentDescription = item.label,
+                            tint = contentColor,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Text(
+                            text = item.label,
+                            color = contentColor,
+                            fontSize = 13.sp,
+                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(3.dp))
+
+                    Box(
+                        modifier = Modifier
+                            .size(4.dp)
+                            .graphicsLayer {
+                                scaleX = dotScale
+                                scaleY = dotScale
+                                alpha = dotScale.coerceIn(0f, 1f)
+                            }
+                            .background(Color.White, CircleShape)
                     )
                 }
             }

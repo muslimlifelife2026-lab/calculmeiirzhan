@@ -1,5 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-
-    <style name="Theme.AeroCalc" parent="android:Theme.Material.Light.NoActionBar" />
+    <style name="Theme.AeroCalc" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">#08090C</item>
+        <item name="android:colorBackground">#08090C</item>
+        <item name="android:statusBarColor">#08090C</item>
+        <item name="android:navigationBarColor">#08090C</item>
+        <item name="android:forceDarkAllowed">false</item>
+    </style>
 </resources>

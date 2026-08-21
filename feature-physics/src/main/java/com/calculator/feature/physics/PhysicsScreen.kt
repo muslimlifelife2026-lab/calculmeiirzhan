@@ -1,53 +1,22 @@
 package com.calculator.feature.physics
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalSoftwareKeyboardController
-import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.calculator.domain.model.Formula
-import com.calculator.domain.model.Variable
-import com.calculator.domain.model.MeasurementUnit
-import com.calculator.core.ui.components.GlassCard
-import com.calculator.core.ui.components.VariableInput
-import com.calculator.core.ui.components.PremiumOverlay
-import com.calculator.core.ui.components.PremiumTimerBadge
 import com.calculator.core.ui.premium.PremiumManager
-import com.calculator.core.ui.theme.*
-import com.calculator.core.ui.R
+import com.calculator.core.ui.theme.Background
 import com.calculator.feature.physics.simulators.PendulumSimulator
 import com.calculator.feature.physics.simulators.ProjectileSimulator
-
-data class PhysicsPreset(
-    val title: String,
-    val formulaName: String,
-    val target: String,
-    val inputs: Map<String, String>,
-    val description: String
-)
 
 @Composable
 fun PhysicsScreen(
@@ -55,7 +24,6 @@ fun PhysicsScreen(
     viewModel: PhysicsViewModel = viewModel()
 ) {
     val context = LocalContext.current
-    val keyboardController = LocalSoftwareKeyboardController.current
     val premiumManager = remember { PremiumManager(context) }
     var isPremiumActive by remember { mutableStateOf(premiumManager.isPremiumActive()) }
 
@@ -66,28 +34,8 @@ fun PhysicsScreen(
     val targetSymbol by viewModel.targetVariableSymbol.collectAsState()
     val calculationResult by viewModel.calculationResult.collectAsState()
 
-    var showFormulaSelector by remember { mutableStateOf(false) }
-    var showSteps by remember { mutableStateOf(false) }
     var selectedPhysicsTab by remember { mutableStateOf(0) } // 0: Formulas, 1: Pendulum, 2: Projectile, 3: Quiz
-    var searchQuery by remember { mutableStateOf("") }
-
     val listState = rememberLazyListState()
-
-    val presets = remember {
-        listOf(
-            PhysicsPreset("🏎️ Разгон авто", "velocity_kinematics", "v_f", mapOf("v_i" to "0", "a" to "5", "t" to "6"), "Разгон с 0 до скорости за 6 сек при a=5 м/с²"),
-            PhysicsPreset("📱 Падение яблока", "potential_energy", "Ep", mapOf("m" to "0.2", "g" to "9.81", "h" to "3"), "Энергия яблока 200г на высоте 3м"),
-            PhysicsPreset("🚗 Торможение", "force_newton", "F", mapOf("m" to "1500", "a" to "8"), "Сила для торможения авто 1.5т"),
-            PhysicsPreset("💧 Масса воды", "density", "m", mapOf("d" to "1000", "V" to "0.2"), "Масса 200 литров (0.2м³) воды"),
-            PhysicsPreset("💡 Закон Ома", "ohm_law", "I", mapOf("U" to "220", "R" to "44"), "Сила тока при R=44 Ом"),
-            PhysicsPreset("🏃‍♂️ Энергия бега", "kinetic_energy", "E_k", mapOf("m" to "70", "v" to "8"), "Кинетическая энергия человека 70кг при скорости 8м/с"),
-            PhysicsPreset("🏋️ Работа силы", "work_force", "A", mapOf("F" to "500", "s" to "20"), "Работа при перемещении груза силой 500Н на 20м")
-        )
-    }
-
-    LaunchedEffect(selectedFormula) {
-        showSteps = false
-    }
 
     LaunchedEffect(calculationResult) {
         if (calculationResult?.success == true) {
@@ -99,7 +47,7 @@ fun PhysicsScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(com.calculator.core.ui.theme.Background)
+            .background(Background)
             .padding(horizontal = 12.dp, vertical = 6.dp)
     ) {
         // Mode Selector: 4 Tabs
@@ -139,573 +87,30 @@ fun PhysicsScreen(
                 PhysicsQuizSection(formulas = formulas)
             }
             else -> {
-                // Formula Selector Dialog with Human Keyword Search
-                if (showFormulaSelector) {
-                    AlertDialog(
-                        onDismissRequest = { showFormulaSelector = false; searchQuery = "" },
-                        title = { Text(text = stringResource(R.string.phys_select_formula), color = TextPrimary) },
-                        text = {
-                            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                OutlinedTextField(
-                                    value = searchQuery,
-                                    onValueChange = { searchQuery = it },
-                                    placeholder = { Text("Поиск: ток, скорость, сила, масса...") },
-                                    modifier = Modifier.fillMaxWidth(),
-                                    colors = OutlinedTextFieldDefaults.colors(
-                                        focusedBorderColor = com.calculator.core.ui.theme.AccentViolet,
-                                        focusedContainerColor = Color(0x0AFFFFFF),
-                                        unfocusedContainerColor = Color(0x0AFFFFFF)
-                                    ),
-                                    singleLine = true
-                                )
-                                
-                                val filteredFormulas = formulas.filter {
-                                    it.name.contains(searchQuery, ignoreCase = true) ||
-                                    it.subcategory.contains(searchQuery, ignoreCase = true) ||
-                                    it.description.contains(searchQuery, ignoreCase = true)
-                                }
-
-                                LazyColumn(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .heightIn(max = 260.dp)
-                                ) {
-                                    items(filteredFormulas) { formula ->
-                                        Column(
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .clickable {
-                                                    viewModel.selectFormula(formula)
-                                                    showFormulaSelector = false
-                                                    searchQuery = ""
-                                                }
-                                                .padding(vertical = 10.dp, horizontal = 8.dp)
-                                        ) {
-                                            Text(text = formula.name, color = TextPrimary, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
-                                            Text(text = "${formula.subcategory} • ${formula.canonicalEquation}", color = Color(0xFF38BDF8), fontSize = 11.sp, fontFamily = FontFamily.Monospace)
-                                        }
-                                        HorizontalDivider(color = Color(0x1AFFFFFF))
-                                    }
-                                }
-                            }
-                        },
-                        confirmButton = {
-                            TextButton(onClick = { showFormulaSelector = false; searchQuery = "" }) {
-                                Text(stringResource(R.string.btn_close), color = com.calculator.core.ui.theme.AccentAmber)
-                            }
-                        },
-                        containerColor = com.calculator.core.ui.theme.SurfaceCard
-                    )
-                }
-
-                selectedFormula?.let { formula ->
-                    LazyColumn(
-                        state = listState,
-                        modifier = Modifier.fillMaxSize(),
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                        contentPadding = PaddingValues(top = 4.dp, bottom = 40.dp)
-                    ) {
-                        // 0. Life-Scenarios Quick Presets Row (1-Tap Experience)
-                        item {
-                            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                Text(
-                                    text = "🚀 Примеры из жизни (1 клик):",
-                                    color = TextSecondary,
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.SemiBold
-                                )
-                                LazyRow(
-                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    items(presets) { preset ->
-                                        Box(
-                                            modifier = Modifier
-                                                .clip(RoundedCornerShape(12.dp))
-                                                .background(SurfaceCard)
-                                                .border(1.dp, SurfaceBorder, RoundedCornerShape(12.dp))
-                                                .clickable {
-                                                    val matched = formulas.firstOrNull { it.id == preset.formulaName }
-                                                        ?: formulas.firstOrNull { it.name.contains(preset.formulaName, ignoreCase = true) }
-                                                    if (matched != null) {
-                                                        viewModel.selectFormula(matched)
-                                                        viewModel.applyPreset(preset.inputs, preset.target)
-                                                    }
-                                                }
-                                                .padding(horizontal = 10.dp, vertical = 6.dp)
-                                        ) {
-                                            Text(
-                                                text = preset.title,
-                                                color = Color.White,
-                                                fontSize = 11.sp,
-                                                fontWeight = FontWeight.Medium
-                                            )
-                                        }
-                                    }
-                                }
-                            }
-                        }
-
-                        // Unified Compact Formula Hub Card
-                        item {
-                            GlassCard(modifier = Modifier.fillMaxWidth()) {
-                                Column(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(12.dp),
-                                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                                ) {
-                                    // Header: Category & Switcher button
-                                    Row(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .clickable { showFormulaSelector = true },
-                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Column(modifier = Modifier.weight(1f)) {
-                                            Text(
-                                                text = formula.subcategory.uppercase(),
-                                                color = Color(0xFF38BDF8),
-                                                fontSize = 10.sp,
-                                                fontWeight = FontWeight.Bold,
-                                                letterSpacing = 1.sp
-                                            )
-                                            Text(
-                                                text = formula.name,
-                                                color = Color.White,
-                                                fontSize = 15.sp,
-                                                fontWeight = FontWeight.Bold
-                                            )
-                                        }
-                                        Box(
-                                            modifier = Modifier
-                                                .clip(RoundedCornerShape(8.dp))
-                                                .background(SurfaceElevated)
-                                                .border(1.dp, SurfaceBorder, RoundedCornerShape(8.dp))
-                                                .padding(horizontal = 8.dp, vertical = 4.dp)
-                                        ) {
-                                            Text("Сменить ▾", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                                        }
-                                    }
-
-                                    // Canonical Equation Display
-                                    Box(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .clip(RoundedCornerShape(10.dp))
-                                            .background(SurfaceElevated)
-                                            .padding(vertical = 8.dp),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Text(
-                                            text = formula.canonicalEquation,
-                                            color = Color.White,
-                                            fontSize = 20.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            fontFamily = FontFamily.Monospace
-                                        )
-                                    }
-
-                                    // Target Variable Selector Row: Compact Capsules
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.SpaceBetween
-                                    ) {
-                                        val activeVar = formula.variables.firstOrNull { it.symbol == targetSymbol }
-                                        Text(
-                                            text = "🎯 Ищем: ${activeVar?.symbol ?: targetSymbol} (${activeVar?.name ?: ""})",
-                                            color = Color(0xFF38BDF8),
-                                            fontSize = 12.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            modifier = Modifier.weight(1f)
-                                        )
-
-                                        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                                            formula.variables.forEach { variable ->
-                                                val isSelected = variable.symbol == targetSymbol
-                                                Box(
-                                                    modifier = Modifier
-                                                        .clip(RoundedCornerShape(6.dp))
-                                                        .background(if (isSelected) Color.White else SurfaceElevated)
-                                                        .border(1.dp, if (isSelected) Color.White else SurfaceBorder, RoundedCornerShape(6.dp))
-                                                        .clickable { viewModel.setTargetVariable(variable.symbol) }
-                                                        .padding(horizontal = 8.dp, vertical = 4.dp),
-                                                    contentAlignment = Alignment.Center
-                                                ) {
-                                                    Text(
-                                                        text = variable.symbol,
-                                                        color = if (isSelected) Background else TextSecondary,
-                                                        fontSize = 12.sp,
-                                                        fontWeight = FontWeight.Bold,
-                                                        fontFamily = FontFamily.Monospace
-                                                    )
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-
-                        // 4. Input parameters header
-                        item {
-                            Text(
-                                text = "📝 Введите известные числа:",
-                                color = TextPrimary,
-                                fontSize = 13.sp,
-                                fontWeight = FontWeight.Bold,
-                                modifier = Modifier.padding(top = 2.dp)
-                            )
-                        }
-
-                        // 5. Input variables fields list
-                        val inputsList = formula.variables.filter { it.symbol != targetSymbol }
-                        items(inputsList) { variable ->
-                            val rawVal = inputs[variable.symbol] ?: ""
-                            VariableInput(
-                                variable = variable,
-                                value = rawVal,
-                                onValueChange = { viewModel.onInputValueChange(variable.symbol, it) },
-                                selectedUnit = inputUnits[variable.symbol],
-                                onUnitSelect = { viewModel.onUnitChange(variable.symbol, it) }
-                            )
-                        }
-
-                        // 6. Action Calculate Button
-                        item {
-                            Button(
-                                onClick = {
-                                    keyboardController?.hide()
-                                    viewModel.solveFormula()
-                                },
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = Color.White,
-                                    contentColor = Color(0xFF08090C)
-                                ),
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(50.dp),
-                                shape = RoundedCornerShape(12.dp)
-                            ) {
-                                Text(
-                                    text = "Вычислить ответ ⚡",
-                                    color = Color(0xFF08090C),
-                                    fontSize = 16.sp,
-                                    fontWeight = FontWeight.Bold
-                                )
-                            }
-                        }
-
-                        // 7. Evaluation Result Display
-                        calculationResult?.let { result ->
-                            if (result.success) {
-                                item {
-                                    GlassCard(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .border(1.dp, Color(0xFF38BDF8).copy(alpha = 0.5f), RoundedCornerShape(16.dp)),
-                                        cornerRadius = 16.dp
-                                    ) {
-                                        Row(
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .padding(16.dp),
-                                            horizontalArrangement = Arrangement.SpaceBetween,
-                                            verticalAlignment = Alignment.CenterVertically
-                                        ) {
-                                            Column {
-                                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                                    Text(
-                                                        text = "ОТВЕТ",
-                                                        color = Color(0xFF38BDF8),
-                                                        fontSize = 11.sp,
-                                                        fontWeight = FontWeight.Bold,
-                                                        letterSpacing = 1.sp
-                                                    )
-                                                    Spacer(modifier = Modifier.width(8.dp))
-                                                    Box(
-                                                        modifier = Modifier
-                                                            .clip(RoundedCornerShape(6.dp))
-                                                            .background(Color(0xFF38BDF8).copy(alpha = 0.15f))
-                                                            .padding(horizontal = 6.dp, vertical = 2.dp)
-                                                    ) {
-                                                        Text(
-                                                            text = "СИ: ${result.unitSymbol}".trim(),
-                                                            color = Color(0xFF38BDF8),
-                                                            fontSize = 9.sp,
-                                                            fontWeight = FontWeight.Bold
-                                                        )
-                                                    }
-                                                }
-                                                Spacer(modifier = Modifier.height(4.dp))
-                                                Text(
-                                                    text = "${result.solvedSymbol} = ${String.format(java.util.Locale.US, "%.4f", result.value).trimEnd('0').trimEnd('.')} ${result.unitSymbol}".trim(),
-                                                    color = Color.White,
-                                                    fontSize = 24.sp,
-                                                    fontWeight = FontWeight.Bold
-                                                )
-                                            }
-                                        }
-                                    }
-                                }
-
-                                // Steps Breakdown Card Header
-                                item {
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
-                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Text(
-                                            text = "Пошаговое решение:",
-                                            color = TextPrimary,
-                                            fontSize = 13.sp,
-                                            fontWeight = FontWeight.Bold
-                                        )
-                                        if (isPremiumActive) {
-                                            PremiumTimerBadge(unlockUntilTimestamp = premiumManager.getUnlockUntilTimestamp())
-                                        }
-                                    }
-                                }
-
-                                if (isPremiumActive) {
-                                    items(result.steps) { step ->
-                                        GlassCard(modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp)) {
-                                            Column(modifier = Modifier.fillMaxWidth()) {
-                                                Text(
-                                                    text = stringResource(R.string.label_step_num, step.order, step.description),
-                                                    color = TextPrimary,
-                                                    fontSize = 12.sp,
-                                                    fontWeight = FontWeight.SemiBold
-                                                )
-                                                if (step.equationLatex.isNotEmpty()) {
-                                                    Spacer(modifier = Modifier.height(4.dp))
-                                                    Text(
-                                                        text = step.equationLatex,
-                                                        color = com.calculator.core.ui.theme.AccentAmber,
-                                                        fontSize = 14.sp,
-                                                        fontWeight = FontWeight.Bold,
-                                                        fontFamily = FontFamily.Monospace
-                                                    )
-                                                }
-                                                step.substitutionDetails?.let { details ->
-                                                    Spacer(modifier = Modifier.height(2.dp))
-                                                    Text(text = details, color = TextSecondary, fontSize = 10.sp)
-                                                }
-                                            }
-                                        }
-                                    }
-                                } else {
-                                    item {
-                                        PremiumOverlay(
-                                            onUnlockSuccess = {
-                                                premiumManager.unlockFor24Hours()
-                                                isPremiumActive = true
-                                            }
-                                        )
-                                    }
-                                }
-                            } else {
-                                item {
-                                    GlassCard(modifier = Modifier.fillMaxWidth()) {
-                                        Text(
-                                            text = result.errorMessage ?: "Заполните параметры для расчета",
-                                            color = MaterialTheme.colorScheme.error,
-                                            fontSize = 13.sp,
-                                            fontWeight = FontWeight.SemiBold
-                                        )
-                                    }
-                                }
-                            }
-                        }
-
-                        // 8. Banner advertisement
-                        item {
-                            Spacer(modifier = Modifier.height(4.dp))
-                            com.calculator.core.ui.components.AdmobBannerSimulator()
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun PhysicsQuizSection(formulas: List<Formula>) {
-    if (formulas.isEmpty()) {
-        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            CircularProgressIndicator(color = Color.White)
-        }
-        return
-    }
-
-    var quizIndex by remember { mutableStateOf(0) }
-    val formula = formulas[quizIndex % formulas.size]
-
-    val cleanEquation = formula.canonicalEquation.replace(" ", "")
-    val originalTokens = remember(cleanEquation) {
-        val tokens = mutableListOf<String>()
-        var i = 0
-        while (i < cleanEquation.length) {
-            val c = cleanEquation[i]
-            if (c.isLetter()) {
-                val start = i
-                while (i < cleanEquation.length && (cleanEquation[i].isLetterOrDigit() || cleanEquation[i] == '_')) {
-                    i++
-                }
-                tokens.add(cleanEquation.substring(start, i))
-            } else if (c == '*' || c == '+' || c == '-' || c == '/' || c == '=' || c == '^') {
-                tokens.add(c.toString())
-                i++
-            } else if (c.isDigit()) {
-                val start = i
-                while (i < cleanEquation.length && cleanEquation[i].isDigit()) {
-                    i++
-                }
-                tokens.add(cleanEquation.substring(start, i))
-            } else {
-                tokens.add(c.toString())
-                i++
-            }
-        }
-        tokens
-    }
-
-    var options by remember(originalTokens) { mutableStateOf(originalTokens.shuffled()) }
-    var userAnswer by remember(originalTokens) { mutableStateOf<List<String>>(emptyList()) }
-    var quizMessage by remember(originalTokens) { mutableStateOf("") }
-    var isSuccess by remember(originalTokens) { mutableStateOf<Boolean?>(null) }
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        Text(
-            text = "Соберите формулу:",
-            color = TextPrimary,
-            fontSize = 18.sp,
-            fontWeight = FontWeight.Bold
-        )
-        Text(
-            text = "${formula.name} (${formula.subcategory})",
-            color = com.calculator.core.ui.theme.AccentViolet,
-            fontSize = 14.sp,
-            fontWeight = FontWeight.Medium
-        )
-
-        // User Answer Box
-        GlassCard(
-            modifier = Modifier
-                .fillMaxWidth()
-                .heightIn(min = 60.dp)
-        ) {
-            Row(
-                modifier = Modifier
-                    .padding(12.dp)
-                    .fillMaxWidth(),
-                horizontalArrangement = Arrangement.Center,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                if (userAnswer.isEmpty()) {
-                    Text("Нажимайте на блоки снизу...", color = TextSecondary, fontSize = 14.sp)
-                } else {
-                    userAnswer.forEachIndexed { index, token ->
-                        Button(
-                            onClick = {
-                                userAnswer = userAnswer.toMutableList().also { it.removeAt(index) }
-                                options = options + token
-                                isSuccess = null
-                                quizMessage = ""
-                            },
-                            colors = ButtonDefaults.buttonColors(containerColor = com.calculator.core.ui.theme.AccentViolet),
-                            modifier = Modifier.padding(horizontal = 2.dp)
-                        ) {
-                            Text(token, color = Color.White)
-                        }
-                    }
-                }
-            }
-        }
-
-        // Available Options
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.Center
-        ) {
-            options.forEachIndexed { index, token ->
-                Button(
-                    onClick = {
-                        userAnswer = userAnswer + token
-                        options = options.toMutableList().also { it.removeAt(index) }
-                        isSuccess = null
-                        quizMessage = ""
+                PhysicsFormulasSection(
+                    formulas = formulas,
+                    selectedFormula = selectedFormula,
+                    inputs = inputs,
+                    inputUnits = inputUnits,
+                    targetSymbol = targetSymbol,
+                    calculationResult = calculationResult,
+                    isPremiumActive = isPremiumActive,
+                    unlockUntilTimestamp = premiumManager.getUnlockUntilTimestamp(),
+                    onUnlockPremium = {
+                        premiumManager.unlockFor24Hours()
+                        isPremiumActive = true
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0x33FFFFFF)),
-                    modifier = Modifier.padding(2.dp)
-                ) {
-                    Text(token, color = TextPrimary)
-                }
-            }
-        }
-
-        // Action Buttons
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            modifier = Modifier.padding(top = 16.dp)
-        ) {
-            OutlinedButton(
-                onClick = {
-                    userAnswer = emptyList()
-                    options = originalTokens.shuffled()
-                    isSuccess = null
-                    quizMessage = ""
-                }
-            ) {
-                Text("Сброс", color = TextSecondary)
-            }
-
-            Button(
-                onClick = {
-                    if (userAnswer == originalTokens) {
-                        isSuccess = true
-                        quizMessage = "🎉 Правильно! Отличная работа!"
-                    } else {
-                        isSuccess = false
-                        quizMessage = "❌ Неверно. Попробуйте еще раз!"
-                    }
-                },
-                colors = ButtonDefaults.buttonColors(containerColor = com.calculator.core.ui.theme.AccentAmber)
-            ) {
-                Text("Проверить", color = Color.Black, fontWeight = FontWeight.Bold)
-            }
-        }
-
-        if (quizMessage.isNotEmpty()) {
-            Text(
-                text = quizMessage,
-                color = if (isSuccess == true) Color(0xFF00FFB2) else MaterialTheme.colorScheme.error,
-                fontWeight = FontWeight.Bold,
-                fontSize = 16.sp
-            )
-        }
-
-        if (isSuccess == true) {
-            Button(
-                onClick = {
-                    quizIndex++
-                    userAnswer = emptyList()
-                    isSuccess = null
-                    quizMessage = ""
-                },
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00FFB2))
-            ) {
-                Text("Следующая формула ➡️", color = Color.Black, fontWeight = FontWeight.Bold)
+                    onSelectFormula = { viewModel.selectFormula(it) },
+                    onSetTargetVariable = { viewModel.setTargetVariable(it) },
+                    onInputValueChange = { symbol, value -> viewModel.onInputValueChange(symbol, value) },
+                    onUnitChange = { symbol, unit -> viewModel.onUnitChange(symbol, unit) },
+                    onSolveFormula = { viewModel.solveFormula() },
+                    onPresetApply = { formula, presetInputs, presetTarget ->
+                        viewModel.selectFormula(formula)
+                        viewModel.applyPreset(presetInputs, presetTarget)
+                    },
+                    listState = listState
+                )
             }
         }
     }

@@ -424,21 +424,8 @@ fun DisplayArea(
                     .padding(vertical = 8.dp)
             ) {
                 if (error.isNotEmpty()) {
-                    val configuration = androidx.compose.ui.platform.LocalConfiguration.current
-                    val locale = configuration.locales[0]
-                    val isRussian = locale.language == "ru"
                     val errorPrefix = androidx.compose.ui.res.stringResource(com.calculator.core.ui.R.string.label_error)
-                    
-                    val localizedError = when {
-                        error.contains("Parentheses mismatch", ignoreCase = true) -> if (isRussian) "несовпадение скобок" else "parentheses mismatch"
-                        error.contains("Division by zero", ignoreCase = true) -> if (isRussian) "деление на ноль" else "division by zero"
-                        error.contains("Unknown operator", ignoreCase = true) -> if (isRussian) error.replace("Unknown operator", "неизвестный оператор") else error
-                        error.contains("Unexpected character", ignoreCase = true) -> if (isRussian) error.replace("Unexpected character", "неожиданный символ").replace("at position", "на позиции") else error
-                        error.contains("Variable not initialized", ignoreCase = true) -> if (isRussian) error.replace("Variable not initialized", "переменная не задана") else error
-                        error.contains("Факториал определен", ignoreCase = true) -> if (isRussian) "факториал определен только для целых неотрицательных чисел" else "factorial is only defined for non-negative integers"
-                        error.contains("Значение слишком велико", ignoreCase = true) -> if (isRussian) "значение слишком велико для факториала" else "value is too large for factorial"
-                        else -> error
-                    }
+                    val localizedError = com.calculator.core.ui.utils.ErrorLocalizer.localize(error)
 
                     Text(
                         text = "$errorPrefix: $localizedError",
