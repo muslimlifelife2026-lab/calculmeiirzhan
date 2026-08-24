@@ -6,6 +6,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.*
 import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -34,7 +35,7 @@ fun PhysicsScreen(
     val targetSymbol by viewModel.targetVariableSymbol.collectAsState()
     val calculationResult by viewModel.calculationResult.collectAsState()
 
-    var selectedPhysicsTab by remember { mutableStateOf(0) } // 0: Formulas, 1: Pendulum, 2: Projectile, 3: Quiz
+    var selectedPhysicsTab by rememberSaveable { mutableIntStateOf(0) } // 0: Formulas, 1: Pendulum, 2: Projectile, 3: Quiz
     val listState = rememberLazyListState()
 
     LaunchedEffect(calculationResult) {

@@ -163,25 +163,7 @@ fun HistoryScreen(
                 modifier = Modifier.weight(1f).fillMaxWidth(),
                 contentAlignment = Alignment.Center
             ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Text(text = "🕰️", fontSize = 56.sp)
-                    Text(
-                        text = "История пуста",
-                        color = TextSecondary,
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Medium
-                    )
-                    Text(
-                        text = "Сделайте первый расчёт,\nи он появится здесь",
-                        color = TextMuted,
-                        fontSize = 14.sp,
-                        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                        lineHeight = 20.sp
-                    )
-                }
+                com.calculator.core.ui.components.EmptyHistoryState()
             }
         } else {
             LazyColumn(

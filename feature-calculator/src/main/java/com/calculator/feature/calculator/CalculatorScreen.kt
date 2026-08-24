@@ -12,11 +12,13 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import kotlinx.coroutines.delay
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -214,6 +216,14 @@ fun DisplayArea(
     val coroutineScope = androidx.compose.runtime.rememberCoroutineScope()
     var showStepsSheet by remember { mutableStateOf(false) }
     var showHistorySheet by remember { mutableStateOf(false) }
+    var showCopiedBadge by remember { mutableStateOf(false) }
+
+    LaunchedEffect(showCopiedBadge) {
+        if (showCopiedBadge) {
+            kotlinx.coroutines.delay(1800)
+            showCopiedBadge = false
+        }
+    }
 
     val exportLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.CreateDocument("application/pdf")
@@ -418,7 +428,7 @@ fun DisplayArea(
                         val clipboard = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
                         val clip = android.content.ClipData.newPlainText("Result", result)
                         clipboard.setPrimaryClip(clip)
-                        android.widget.Toast.makeText(context, "Скопировано: $result", android.widget.Toast.LENGTH_SHORT).show()
+                        showCopiedBadge = true
                         showStepsSheet = true
                     }
                     .padding(vertical = 8.dp)
@@ -453,12 +463,33 @@ fun DisplayArea(
                             )
                         )
                         Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = "Нажмите, чтобы скопировать и посмотреть шаги ℹ️",
-                            color = TextSecondary,
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Normal
-                        )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.End
+                        ) {
+                            AnimatedVisibility(visible = showCopiedBadge) {
+                                Surface(
+                                    color = Color(0xFF10B981).copy(alpha = 0.2f),
+                                    shape = RoundedCornerShape(8.dp),
+                                    border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF10B981).copy(alpha = 0.6f)),
+                                    modifier = Modifier.padding(end = 6.dp)
+                                ) {
+                                    Text(
+                                        text = "✓ Скопировано",
+                                        color = Color(0xFF10B981),
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                    )
+                                }
+                            }
+                            Text(
+                                text = "Нажмите для шагов и копирования ℹ️",
+                                color = TextSecondary,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Normal
+                            )
+                        }
                     }
                 }
             }

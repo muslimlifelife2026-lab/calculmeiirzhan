@@ -14,6 +14,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.runtime.saveable.rememberSaveable
 import com.calculator.core.ui.theme.*
 import com.calculator.domain.model.Element
 import com.calculator.domain.model.SolubilityData
@@ -28,9 +29,9 @@ data class ReactionPreset(val title: String, val equation: String)
 fun ChemistryScreen(
     modifier: Modifier = Modifier
 ) {
-    var formulaInput by remember { mutableStateOf("H2SO4") }
-    var equationInput by remember { mutableStateOf("Fe + O2 -> Fe2O3") }
-    var selectedTab by remember { mutableStateOf(0) } // 0: Mass, 1: Balancer, 2: Periodic Table, 3: Atom Model, 4: Solubility
+    var formulaInput by rememberSaveable { mutableStateOf("H2SO4") }
+    var equationInput by rememberSaveable { mutableStateOf("Fe + O2 -> Fe2O3") }
+    var selectedTab by rememberSaveable { mutableIntStateOf(0) } // 0: Mass, 1: Balancer, 2: Periodic Table, 3: Atom Model, 4: Solubility
     var selectedElement by remember { mutableStateOf<Element?>(null) }
     var selectedSolubilityPair by remember { mutableStateOf<Pair<String, String>?>(null) }
 

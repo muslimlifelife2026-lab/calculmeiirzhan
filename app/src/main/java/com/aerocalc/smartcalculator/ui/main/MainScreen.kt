@@ -69,6 +69,7 @@ fun MainScreen(
                 .background(Background)
                 .statusBarsPadding()
                 .navigationBarsPadding()
+                .imePadding()
         ) {
             // ─── Sleek Top Subject Tabs (Compact & Responsive) ─────────────────
             TopSubjectTabBar(
@@ -90,13 +91,27 @@ fun MainScreen(
                     .fillMaxWidth()
                     .weight(1f)
             ) { page ->
-                when (page) {
-                    0 -> CalculatorScreen()
-                    1 -> PhysicsScreen()
-                    2 -> ChemistryScreen()
-                    3 -> GeometryScreen()
-                    4 -> GraphingScreen()
-                    5 -> HistoryScreen()
+                val pageOffset = (pagerState.currentPage - page) + pagerState.currentPageOffsetFraction
+                val alpha = (1f - kotlin.math.abs(pageOffset).coerceIn(0f, 1f) * 0.4f).coerceIn(0.5f, 1f)
+                val scale = (1f - kotlin.math.abs(pageOffset).coerceIn(0f, 1f) * 0.05f).coerceIn(0.95f, 1f)
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .graphicsLayer {
+                            scaleX = scale
+                            scaleY = scale
+                            this.alpha = alpha
+                        }
+                ) {
+                    when (page) {
+                        0 -> CalculatorScreen()
+                        1 -> PhysicsScreen()
+                        2 -> ChemistryScreen()
+                        3 -> GeometryScreen()
+                        4 -> GraphingScreen()
+                        5 -> HistoryScreen()
+                    }
                 }
             }
         }

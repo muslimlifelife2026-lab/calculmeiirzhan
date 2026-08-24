@@ -45,7 +45,7 @@ fun PendulumSimulator(
 
     var timeSeconds by remember { mutableFloatStateOf(0f) }
 
-    LaunchedEffect(isRunning, lengthMeters, selectedPlanet, damping) {
+    LaunchedEffect(isRunning) {
         var lastFrameTime = System.nanoTime()
         while (isActive) {
             withFrameNanos { frameTime ->

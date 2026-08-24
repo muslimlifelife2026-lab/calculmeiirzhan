@@ -15,6 +15,7 @@ import androidx.compose.material.icons.rounded.CollectionsBookmark
 import androidx.compose.material.icons.rounded.TableChart
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -31,15 +32,15 @@ import com.calculator.engine.solver.GraphEvaluator
 fun GraphingScreen(
     modifier: Modifier = Modifier
 ) {
-    var mode by remember { mutableStateOf(GraphMode.CARTESIAN) }
+    var mode by rememberSaveable { mutableStateOf(GraphMode.CARTESIAN) }
     var expressions by remember { mutableStateOf(listOf("sin(x)", "0.5*x - 1")) }
 
     // Analysis Toggles
-    var showRoots by remember { mutableStateOf(true) }
-    var showExtremums by remember { mutableStateOf(true) }
-    var showIntersections by remember { mutableStateOf(true) }
-    var showTangent by remember { mutableStateOf(false) }
-    var showIntegral by remember { mutableStateOf(false) }
+    var showRoots by rememberSaveable { mutableStateOf(true) }
+    var showExtremums by rememberSaveable { mutableStateOf(true) }
+    var showIntersections by rememberSaveable { mutableStateOf(true) }
+    var showTangent by rememberSaveable { mutableStateOf(false) }
+    var showIntegral by rememberSaveable { mutableStateOf(false) }
     var integralA by remember { mutableStateOf(0.0) }
     var integralB by remember { mutableStateOf(2.0) }
 

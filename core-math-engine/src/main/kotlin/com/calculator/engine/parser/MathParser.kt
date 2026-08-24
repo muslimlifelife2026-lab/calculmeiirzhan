@@ -76,7 +76,7 @@ object MathParser {
                 }
                 c.isLetter() || c == '_' -> {
                     val start = i
-                    while (i < len && (expression[i].isLetterOrDigit() || expression[i] == '_' || expression[i] == '.')) {
+                    while (i < len && (expression[i].isLetterOrDigit() || expression[i] == '_')) {
                         i++
                     }
                     val name = expression.substring(start, i)

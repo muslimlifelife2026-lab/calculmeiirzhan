@@ -27,6 +27,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.calculator.domain.model.Formula
@@ -52,7 +53,7 @@ fun GeometryScreen(
     val premiumManager = remember { PremiumManager(context) }
     var isPremiumActive by remember { mutableStateOf(premiumManager.isPremiumActive()) }
 
-    var selectedModeTab by remember { mutableStateOf(0) } // 0: 2D Planimetry, 1: 3D Stereometry
+    var selectedModeTab by rememberSaveable { mutableIntStateOf(0) } // 0: 2D Planimetry, 1: 3D Stereometry
 
     val formulas by viewModel.formulas.collectAsState()
     val selectedFormula by viewModel.selectedFormula.collectAsState()
