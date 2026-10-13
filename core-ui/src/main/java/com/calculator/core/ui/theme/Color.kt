@@ -1,47 +1,40 @@
 package com.calculator.core.ui.theme
-
 import androidx.compose.ui.graphics.Color
 
-// ─── Pure Monochromatic Apple/Bang & Olufsen Palette (Titanium Minimalist) ───
-val Background        = Color(0xFF08090C)  // Deepest matte obsidian carbon
-val SurfaceCard       = Color(0xFF12141C)  // Dark slate card surface
-val SurfaceElevated   = Color(0xFF1A1D27)  // Lighter container surface
-val SurfaceBorder     = Color(0xFF262936)  // Subtle 1px boundary stroke
+// Neutral graphite content and a softly lit, separate glass control layer.
+val Background = Color(0xFF14191F)
+val SurfaceCard = Color(0xE3262B32)
+val SurfaceElevated = Color(0xFF343B44)
+val SurfaceBorder = Color(0x30FFFFFF)
+val GlassHighlight = Color(0x5CFFFFFF)
+val GlassTint = Color(0xD3353E48)
+val AccentPrimary = Color(0xFFF0F4F7)
+val AccentSecondary = Color(0xFFC3D0DA)
+val AccentMuted = Color(0xFFA2A7B0)
+val TextPrimary = Color(0xFFF5F5F7)
+val TextSecondary = Color(0xFFC3CAD3)
+val TextMuted = Color(0xFFA7B1BC)
+val ErrorRed = Color(0xFFE5A19B)
+val SuccessGreen = Color(0xFFACC4B0)
+val KeyNumeric = Color(0xD9414952)
+val KeyOperator = Color(0xE1535E69)
+val KeyEqual = AccentPrimary
+val KeyClear = Color(0xDB493A3C)
+val KeySpecial = Color(0xD9475059)
 
-// ─── Monochromatic Accents ───────────────────────────────────────────────────
-val AccentPrimary     = Color(0xFFFFFFFF)  // Pure titanium white
-val AccentSecondary   = Color(0xFF94A3B8)  // Crisp slate gray
-val AccentMuted       = Color(0xFF64748B)  // Subdued secondary text
-
-// ─── Calculator Keyboard Tokens ──────────────────────────────────────────────
-val KeyNumeric        = Color(0xFF12141C)  // Dark slate capsule for digits
-val KeyOperator       = Color(0xFF1A1D27)  // Slightly lighter slate for operators
-val KeyEqual          = Color(0xFFFFFFFF)  // Solid titanium white equal button
-val KeyClear          = Color(0xFF261416)  // Subtle dark crimson for AC
-val KeySpecial        = Color(0xFF1A1D27)  // Slate 800 for ( ) %
-
-// ─── Text Tokens ─────────────────────────────────────────────────────────────
-val TextPrimary       = Color(0xFFF8FAFC)  // Crisp white
-val TextSecondary     = Color(0xFF94A3B8)  // Muted slate gray
-val TextMuted         = Color(0xFF64748B)  // Placeholder gray
-
-// ─── Semantic Tokens ─────────────────────────────────────────────────────────
-val ErrorRed          = Color(0xFFEF4444)
-val SuccessGreen      = Color(0xFF10B981)
-
-// ─── Legacy aliases for backward compatibility ────────────────────────────────
-val AccentViolet      = Color(0xFFFFFFFF)
-val AccentVioletLight = Color(0xFF94A3B8)
-val AccentCyan        = Color(0xFFFFFFFF)
-val AccentCyanLight   = Color(0xFFF8FAFC)
-val AccentAmber       = Color(0xFFE2E8F0)
-val AccentAmberLight  = Color(0xFFCBD5E1)
+// Compatibility names used by feature modules.
+val AccentViolet = AccentPrimary
+val AccentVioletLight = AccentSecondary
+val AccentCyan = AccentSecondary
+val AccentCyanLight = TextPrimary
+val AccentAmber = Color(0xFFD0C3AD)
+val AccentAmberLight = Color(0xFFE0D7C9)
 val ObsidianBackground = Background
-val ObsidianCard       = SurfaceCard
-val NeonCyan           = AccentPrimary
-val ElectricViolet     = AccentPrimary
-val CoralPink          = ErrorRed
-val KeyDarkGray        = KeyNumeric
-val KeyLightGray       = KeySpecial
-val KeyOrange          = AccentPrimary
-val TextPlaceholder    = TextMuted
+val ObsidianCard = SurfaceCard
+val NeonCyan = AccentSecondary
+val ElectricViolet = AccentPrimary
+val CoralPink = ErrorRed
+val KeyDarkGray = KeyNumeric
+val KeyLightGray = KeySpecial
+val KeyOrange = AccentPrimary
+val TextPlaceholder = TextMuted

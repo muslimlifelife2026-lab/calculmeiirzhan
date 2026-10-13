@@ -13,3 +13,15 @@ local.properties
 *.aar
 *.keystore
 *.jks
+*.p12
+*.pfx
+*.key
+*.aab
+/audit/*.log
+/audit/*.png
+!/audit/play-store-icon.png
+/audit/AuditProbe.java
+/audit/run-probe.ps1
+/audit/probe-results.txt
+/audit-gradle.log
+/repomix-output.xml

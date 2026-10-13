@@ -14,5 +14,16 @@
   "sphere_volume",
   "cylinder_volume",
   "pythagorean_theorem",
-  "percentage_part"
+  "percentage_part",
+  "cone_volume",
+  "electric_power",
+  "friction_force",
+  "gravity_accel",
+  "parallelogram_area",
+  "percent_decrease",
+  "percent_increase",
+  "potential_energy",
+  "torque_force",
+  "trapezoid_area",
+  "wave_frequency"
 ]

@@ -3,6 +3,8 @@ package com.calculator.feature.converter
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -13,6 +15,7 @@ import androidx.compose.material.icons.rounded.KeyboardArrowDown
 import androidx.compose.material.icons.rounded.SwapVert
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -30,13 +33,16 @@ import java.util.Locale
 fun ConverterScreen(
     modifier: Modifier = Modifier
 ) {
-    var selectedCategory by remember { mutableStateOf(ConversionCategory.LENGTH) }
+    var categoryName by rememberSaveable { mutableStateOf(ConversionCategory.LENGTH.name) }
+    val selectedCategory = ConversionCategory.valueOf(categoryName)
     
     val units = UnitConverter.getUnitsForCategory(selectedCategory)
-    var fromUnit by remember(selectedCategory) { mutableStateOf(units.first()) }
-    var toUnit by remember(selectedCategory) { mutableStateOf(units.getOrNull(1) ?: units.first()) }
+    var fromIndex by rememberSaveable(categoryName) { mutableIntStateOf(0) }
+    var toIndex by rememberSaveable(categoryName) { mutableIntStateOf(1) }
+    val fromUnit = units[fromIndex.coerceIn(units.indices)]
+    val toUnit = units[toIndex.coerceIn(units.indices)]
     
-    var inputValue by remember { mutableStateOf("1") }
+    var inputValue by rememberSaveable { mutableStateOf("1") }
     
     val resultValue = remember(inputValue, fromUnit, toUnit) {
         val value = inputValue.toDoubleOrNull() ?: 0.0
@@ -63,14 +69,14 @@ fun ConverterScreen(
                         .background(if (isSelected) Color.White else SurfaceCard)
                         .border(1.dp, if (isSelected) Color.White else SurfaceBorder, RoundedCornerShape(12.dp))
                         .bounceClick {
-                            selectedCategory = category
+                            categoryName = category.name
                             inputValue = "1"
                         }
                         .padding(horizontal = 14.dp, vertical = 8.dp)
                 ) {
                     Text(
                         text = category.title,
-                        color = if (isSelected) Color(0xFF08090C) else TextPrimary,
+                        color = if (isSelected) Color(0xFF161719) else TextPrimary,
                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
                         fontSize = 13.sp
                     )
@@ -81,7 +87,7 @@ fun ConverterScreen(
         // 2. Conversion Bento Cards with Interactive Swap Button
         Column(
             verticalArrangement = Arrangement.spacedBy(8.dp),
-            modifier = Modifier.weight(1f)
+            modifier = Modifier.weight(1f).verticalScroll(rememberScrollState())
         ) {
             // FROM field
             ConversionField(
@@ -89,7 +95,7 @@ fun ConverterScreen(
                 value = inputValue,
                 unit = fromUnit,
                 units = units,
-                onUnitSelected = { fromUnit = it },
+                onUnitSelected = { fromIndex = units.indexOf(it) },
                 isResult = false
             )
 
@@ -97,21 +103,21 @@ fun ConverterScreen(
             Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
                 Box(
                     modifier = Modifier
-                        .size(38.dp)
+                        .size(48.dp)
                         .clip(CircleShape)
                         .background(SurfaceElevated)
-                        .border(1.dp, Color(0xFF38BDF8).copy(alpha = 0.4f), CircleShape)
+                        .border(1.dp, Color(0xFFB9C6D6).copy(alpha = 0.4f), CircleShape)
                         .bounceClick {
-                            val temp = fromUnit
-                            fromUnit = toUnit
-                            toUnit = temp
+                            val temp = fromIndex
+                            fromIndex = toIndex
+                            toIndex = temp
                         },
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = Icons.Rounded.SwapVert,
-                        contentDescription = "Swap Units",
-                        tint = Color(0xFF38BDF8),
+                        contentDescription = "Поменять единицы местами",
+                        tint = Color(0xFFB9C6D6),
                         modifier = Modifier.size(22.dp)
                     )
                 }
@@ -120,24 +126,26 @@ fun ConverterScreen(
             // TO field (Result with Glowing Border)
             ConversionField(
                 label = "РЕЗУЛЬТАТ",
-                value = String.format(Locale.US, "%.6f", resultValue).trimEnd('0').trimEnd('.'),
+                value = com.calculator.core.ui.utils.NumberFormatter.formatResult(resultValue),
                 unit = toUnit,
                 units = units,
-                onUnitSelected = { toUnit = it },
+                onUnitSelected = { toIndex = units.indexOf(it) },
                 isResult = true
             )
         }
 
         // 3. High-precision tactile keypad
         MathKeyboard(
+            modifier = Modifier.fillMaxWidth().height(280.dp),
+            numbersOnly = true,
             onKeyPressed = { key ->
                 inputValue = when (key) {
                     "C" -> ""
                     "⌫" -> if (inputValue.isNotEmpty()) inputValue.dropLast(1) else ""
                     "." -> if (!inputValue.contains(".")) inputValue + "." else inputValue
                     "=" -> inputValue
-                    "+", "-", "×", "÷", "(", ")", "^", "sin", "cos", "tan", "ln", "log", "π", "e", "x", "y" -> inputValue
-                    else -> if (inputValue == "0") key else inputValue + key
+                    "±" -> if (inputValue.startsWith("-")) inputValue.removePrefix("-") else "-$inputValue"
+                    else -> if (key.all { it.isDigit() }) { if (inputValue == "0") key else inputValue + key } else inputValue
                 }
                 if (inputValue.isEmpty()) inputValue = "0"
             },
@@ -161,7 +169,7 @@ fun ConversionField(
         modifier = Modifier
             .fillMaxWidth()
             .then(
-                if (isResult) Modifier.border(1.dp, Color(0xFF38BDF8).copy(alpha = 0.45f), RoundedCornerShape(16.dp))
+                if (isResult) Modifier.border(1.dp, Color(0xFFB9C6D6).copy(alpha = 0.45f), RoundedCornerShape(16.dp))
                 else Modifier
             ),
         cornerRadius = 16.dp
@@ -169,14 +177,14 @@ fun ConversionField(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(14.dp),
+                .padding(horizontal = 14.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             // Text Input / Output
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = label,
-                    color = if (isResult) Color(0xFF38BDF8) else TextSecondary,
+                    color = if (isResult) Color(0xFFB9C6D6) else TextSecondary,
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Bold,
                     letterSpacing = 1.sp
@@ -206,15 +214,15 @@ fun ConversionField(
                     ) {
                         Text(
                             text = unit.symbol,
-                            color = Color(0xFF38BDF8),
+                            color = Color(0xFFB9C6D6),
                             fontSize = 15.sp,
                             fontWeight = FontWeight.Bold
                         )
                         Spacer(modifier = Modifier.width(4.dp))
                         Icon(
                             imageVector = Icons.Rounded.KeyboardArrowDown,
-                            contentDescription = "Select unit",
-                            tint = Color(0xFF38BDF8),
+                            contentDescription = "Выбрать единицу",
+                            tint = Color(0xFFB9C6D6),
                             modifier = Modifier.size(18.dp)
                         )
                     }
@@ -232,7 +240,7 @@ fun ConversionField(
                             text = {
                                 Text(
                                     text = "${u.name} (${u.symbol})",
-                                    color = if (u == unit) Color(0xFF38BDF8) else Color.White,
+                                    color = if (u == unit) Color(0xFFB9C6D6) else Color.White,
                                     fontSize = 13.sp,
                                     fontWeight = if (u == unit) FontWeight.Bold else FontWeight.Normal
                                 )

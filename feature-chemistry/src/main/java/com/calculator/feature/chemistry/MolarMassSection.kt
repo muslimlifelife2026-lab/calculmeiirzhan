@@ -228,7 +228,7 @@ fun MolarMassSection(
                                         ) {
                                             Text(
                                                 text = element.symbol,
-                                                color = Color(0xFF38BDF8),
+                                                color = Color(0xFFB9C6D6),
                                                 fontWeight = FontWeight.Bold,
                                                 fontSize = 13.sp
                                             )
@@ -241,7 +241,7 @@ fun MolarMassSection(
                                     }
                                     Text(
                                         text = "${String.format(Locale.US, "%.1f", fractionPercent)}%",
-                                        color = Color(0xFF10B981),
+                                        color = Color(0xFFACC4B0),
                                         fontSize = 13.sp,
                                         fontWeight = FontWeight.Bold,
                                         fontFamily = FontFamily.Monospace

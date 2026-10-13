@@ -1,7 +1,7 @@
 {
   "id": "potential_energy",
   "name": "Потенциальная энергия",
-  "category": "Физика",
+  "category": "PHYSICS",
   "subcategory": "Механика",
   "description": "Энергия взаимодействия тела с Землей. Зависит от массы, высоты поднятия и ускорения свободного падения.",
   "canonicalEquation": "Ep - m * g * h",
@@ -13,8 +13,16 @@
       "description": "Энергия в джоулях.",
       "defaultUnitSymbol": "J",
       "supportedUnits": [
-        { "name": "Джоули", "symbol": "J", "factor": "1" },
-        { "name": "Килоджоули", "symbol": "kJ", "factor": "1000" }
+        {
+          "name": "Джоули",
+          "symbol": "J",
+          "scaleFactor": 1.0
+        },
+        {
+          "name": "Килоджоули",
+          "symbol": "kJ",
+          "scaleFactor": 1000.0
+        }
       ]
     },
     {
@@ -23,8 +31,16 @@
       "description": "Масса объекта.",
       "defaultUnitSymbol": "kg",
       "supportedUnits": [
-        { "name": "Килограммы", "symbol": "kg", "factor": "1" },
-        { "name": "Граммы", "symbol": "g", "factor": "0.001" }
+        {
+          "name": "Килограммы",
+          "symbol": "kg",
+          "scaleFactor": 1.0
+        },
+        {
+          "name": "Граммы",
+          "symbol": "g",
+          "scaleFactor": 0.001
+        }
       ]
     },
     {
@@ -33,7 +49,11 @@
       "description": "Ускорение свободного падения (обычно 9.80665).",
       "defaultUnitSymbol": "m/s^2",
       "supportedUnits": [
-        { "name": "Метры в секунду в квадрате", "symbol": "m/s^2", "factor": "1" }
+        {
+          "name": "Метры в секунду в квадрате",
+          "symbol": "m/s^2",
+          "scaleFactor": 1.0
+        }
       ]
     },
     {
@@ -42,9 +62,23 @@
       "description": "Высота над уровнем отсчета.",
       "defaultUnitSymbol": "m",
       "supportedUnits": [
-        { "name": "Метры", "symbol": "m", "factor": "1" },
-        { "name": "Километры", "symbol": "km", "factor": "1000" }
+        {
+          "name": "Метры",
+          "symbol": "m",
+          "scaleFactor": 1.0
+        },
+        {
+          "name": "Километры",
+          "symbol": "km",
+          "scaleFactor": 1000.0
+        }
       ]
     }
-  ]
+  ],
+  "solvedEquations": {
+    "Ep": "m * g * h",
+    "m": "Ep / (g * h)",
+    "g": "Ep / (m * h)",
+    "h": "Ep / (m * g)"
+  }
 }

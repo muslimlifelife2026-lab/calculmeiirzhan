@@ -10,6 +10,7 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -27,7 +28,7 @@ fun PeriodicTableSection(
     modifier: Modifier = Modifier
 ) {
     val elements = remember { PeriodicTable.allElements }
-    var searchQuery by remember { mutableStateOf("") }
+    var searchQuery by rememberSaveable { mutableStateOf("") }
 
     Column(
         modifier = modifier.fillMaxWidth(),
@@ -52,6 +53,7 @@ fun PeriodicTableSection(
 
         val filtered = elements.filter {
             it.name.contains(searchQuery, ignoreCase = true) ||
+            it.nameRu.contains(searchQuery, ignoreCase = true) ||
             it.symbol.contains(searchQuery, ignoreCase = true) ||
             it.atomicNumber.toString().contains(searchQuery)
         }
@@ -86,7 +88,7 @@ fun PeriodicTableSection(
                             fontWeight = FontWeight.Bold
                         )
                         Text(
-                            text = elem.name,
+                            text = elem.nameRu,
                             color = TextSecondary,
                             fontSize = 9.sp,
                             maxLines = 1

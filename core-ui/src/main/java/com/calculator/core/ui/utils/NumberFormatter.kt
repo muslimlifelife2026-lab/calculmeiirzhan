@@ -1,41 +1,31 @@
 package com.calculator.core.ui.utils
 
-import java.util.Locale
+import java.math.BigDecimal
+import java.math.MathContext
+import java.math.RoundingMode
+import com.calculator.domain.model.CalculationResult
 
 object NumberFormatter {
-    fun formatResult(value: Double, maxDecimals: Int = 6): String {
-        return formatInternal(value, maxDecimals)
+    fun formatResult(result: CalculationResult): String =
+        result.exactValue.takeIf { it.isNotBlank() }?.let { formatExact(BigDecimal(it)) }
+            ?: formatResult(result.value)
+
+    fun formatExact(value: BigDecimal): String {
+        val compact = value.stripTrailingZeros()
+        if (compact.signum() == 0) return "0"
+        val exponent = compact.precision() - compact.scale() - 1
+        return if (exponent < -6 || exponent > 12) compact.toString() else compact.toPlainString()
     }
 
-    fun formatCompact(value: Double): String {
-        return formatInternal(value, 4)
-    }
+    fun formatResult(value: Double, significantDigits: Int = 8): String =
+        formatDouble(value, significantDigits)
 
-    private fun formatInternal(value: Double, decimals: Int): String {
+    fun formatCompact(value: Double): String = formatDouble(value, 5)
+
+    private fun formatDouble(value: Double, significantDigits: Int): String {
         if (value.isNaN()) return "NaN"
         if (value.isInfinite()) return if (value > 0) "Infinity" else "-Infinity"
-        
-        val absValue = Math.abs(value)
-        if (absValue > 0 && (absValue >= 1e9 || absValue < 1e-6)) {
-            val formatStr = "%." + decimals + "E"
-            var result = String.format(Locale.US, formatStr, value)
-            if (result.contains("E")) {
-                val parts = result.split("E")
-                var mantissa = parts[0]
-                val exponent = parts[1]
-                if (mantissa.contains(".")) {
-                    mantissa = mantissa.trimEnd('0').trimEnd('.')
-                }
-                result = "${mantissa}E${exponent}"
-            }
-            return result
-        }
-
-        val formatStr = "%." + decimals + "f"
-        var formatted = String.format(Locale.US, formatStr, value)
-        if (formatted.contains(".")) {
-            formatted = formatted.trimEnd('0').trimEnd('.')
-        }
-        return formatted
+        val rounded = BigDecimal.valueOf(value).round(MathContext(significantDigits, RoundingMode.HALF_UP))
+        return formatExact(rounded)
     }
 }

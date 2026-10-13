@@ -1,7 +1,7 @@
 {
   "id": "trapezoid_area",
   "name": "Площадь трапеции",
-  "category": "Геометрия",
+  "category": "GEOMETRY",
   "subcategory": "2D Фигуры",
   "description": "Рассчитывает площадь трапеции по длине двух ее параллельных оснований и высоте.",
   "canonicalEquation": "S - ((a + b) / 2) * h",
@@ -13,8 +13,16 @@
       "description": "Общая площадь фигуры.",
       "defaultUnitSymbol": "m^2",
       "supportedUnits": [
-        { "name": "Квадратные метры", "symbol": "m^2", "factor": "1" },
-        { "name": "Квадратные сантиметры", "symbol": "cm^2", "factor": "0.0001" }
+        {
+          "name": "Квадратные метры",
+          "symbol": "m^2",
+          "scaleFactor": 1.0
+        },
+        {
+          "name": "Квадратные сантиметры",
+          "symbol": "cm^2",
+          "scaleFactor": 0.0001
+        }
       ]
     },
     {
@@ -23,8 +31,16 @@
       "description": "Длина первого основания.",
       "defaultUnitSymbol": "m",
       "supportedUnits": [
-        { "name": "Метры", "symbol": "m", "factor": "1" },
-        { "name": "Сантиметры", "symbol": "cm", "factor": "0.01" }
+        {
+          "name": "Метры",
+          "symbol": "m",
+          "scaleFactor": 1.0
+        },
+        {
+          "name": "Сантиметры",
+          "symbol": "cm",
+          "scaleFactor": 0.01
+        }
       ]
     },
     {
@@ -33,8 +49,16 @@
       "description": "Длина второго основания.",
       "defaultUnitSymbol": "m",
       "supportedUnits": [
-        { "name": "Метры", "symbol": "m", "factor": "1" },
-        { "name": "Сантиметры", "symbol": "cm", "factor": "0.01" }
+        {
+          "name": "Метры",
+          "symbol": "m",
+          "scaleFactor": 1.0
+        },
+        {
+          "name": "Сантиметры",
+          "symbol": "cm",
+          "scaleFactor": 0.01
+        }
       ]
     },
     {
@@ -43,9 +67,23 @@
       "description": "Перпендикуляр между основаниями.",
       "defaultUnitSymbol": "m",
       "supportedUnits": [
-        { "name": "Метры", "symbol": "m", "factor": "1" },
-        { "name": "Сантиметры", "symbol": "cm", "factor": "0.01" }
+        {
+          "name": "Метры",
+          "symbol": "m",
+          "scaleFactor": 1.0
+        },
+        {
+          "name": "Сантиметры",
+          "symbol": "cm",
+          "scaleFactor": 0.01
+        }
       ]
     }
-  ]
+  ],
+  "solvedEquations": {
+    "S": "(a + b) * h / 2",
+    "a": "2 * S / h - b",
+    "b": "2 * S / h - a",
+    "h": "2 * S / (a + b)"
+  }
 }

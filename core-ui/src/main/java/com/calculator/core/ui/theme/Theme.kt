@@ -14,14 +14,14 @@ private val DarkColorScheme = darkColorScheme(
     background        = Background,
     surface           = SurfaceCard,
     surfaceVariant    = SurfaceElevated,
-    onPrimary         = Color.White,
+    onPrimary         = Background,
     onSecondary       = Color.Black,
     onTertiary        = Color.Black,
     onBackground      = TextPrimary,
     onSurface         = TextPrimary,
     onSurfaceVariant  = TextSecondary,
     error             = ErrorRed,
-    onError           = Color.White,
+    onError           = Background,
     outline           = TextMuted
 )
 

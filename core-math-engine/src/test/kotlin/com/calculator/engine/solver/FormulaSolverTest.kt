@@ -4,12 +4,36 @@ import com.calculator.domain.model.Formula
 import com.calculator.domain.model.Variable
 import com.calculator.domain.model.MeasurementUnit
 import com.calculator.domain.model.DimensionVector
+import com.calculator.domain.utils.FormulaLoader
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.math.BigDecimal
 
 class FormulaSolverTest {
+
+    @Test fun newlyIndexedFormulasSolveEveryTarget() {
+        val ids = setOf("cone_volume", "electric_power", "friction_force", "gravity_accel",
+            "parallelogram_area", "percent_decrease", "percent_increase", "potential_energy",
+            "torque_force", "trapezoid_area", "wave_frequency")
+        FormulaLoader.formulas.filter { it.id in ids }.forEach { formula ->
+            formula.variables.forEach { target ->
+                val inputs = formula.variables.filter { it.symbol != target.symbol }
+                    .associate { it.symbol to BigDecimal("2") }
+                val result = FormulaSolver.solve(formula, inputs, emptyMap(), target.symbol)
+                assertTrue("${formula.id}:${target.symbol} ${result.errorMessage}", result.success)
+            }
+        }
+    }
+
+    @Test fun numericalFallbackVerifiesRoot() {
+        val target = Variable("S", "Area", defaultUnitSymbol = "")
+        val cubic = Formula("cubic", "Cubic", "MATHEMATICS", canonicalEquation = "S^3 - 8",
+            latexTemplate = "", variables = listOf(target))
+        val square = cubic.copy(canonicalEquation = "S^2 - 4")
+        assertEquals(2.0, FormulaSolver.solve(cubic, emptyMap(), emptyMap(), "S").value, 1e-12)
+        assertEquals(2.0, FormulaSolver.solve(square, emptyMap(), emptyMap(), "S").value, 1e-12)
+    }
 
     @Test
     fun testSolveVelocityFormulaSymbolic() {

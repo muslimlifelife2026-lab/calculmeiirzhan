@@ -5,6 +5,8 @@
     <string name="tab_geometry">Geometry</string>
     <string name="tab_physics">Physics</string>
     <string name="tab_history">History</string>
+    <string name="tab_graphing">Graphs</string>
+    <string name="tab_chemistry">Chemistry</string>
 
     <!-- General / Calculator -->
     <string name="btn_clear">C</string>

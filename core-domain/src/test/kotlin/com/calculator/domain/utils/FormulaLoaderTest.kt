@@ -20,5 +20,12 @@ class FormulaLoaderTest {
         val circle = list.find { it.id == "circle_area" }
         assertNotNull("Circle area formula should be loaded", circle)
         assertEquals("GEOMETRY", circle!!.category)
+        assertEquals("Every indexed formula must load", 27, list.size)
+        list.forEach { formula ->
+            assertTrue(formula.id, formula.variables.isNotEmpty())
+            formula.variables.forEach { variable ->
+                variable.supportedUnits.forEach { unit -> assertTrue("${formula.id}:${unit.symbol}", unit.scaleFactor > 0.0) }
+            }
+        }
     }
 }

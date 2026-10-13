@@ -4,6 +4,8 @@ plugins {
   alias(libs.plugins.kotlin.serialization)
 }
 
+val releaseStorePath = providers.gradleProperty("RELEASE_STORE_FILE").orElse("")
+
 android {
     namespace = "com.aerocalc.smartcalculator"
     compileSdk = 36
@@ -11,21 +13,33 @@ android {
         applicationId = "com.aerocalc.smartcalculator"
         minSdk = 24
         targetSdk = 36
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = 2
+        versionName = "1.1.0"
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
+
+    val productionAppId = providers.gradleProperty("ADMOB_APP_ID").orElse("").get()
+    val productionBannerId = providers.gradleProperty("ADMOB_BANNER_UNIT_ID").orElse("").get()
 
     signingConfigs {
         create("release") {
-            storeFile = file("release.keystore")
-            storePassword = "aerocalc123"
-            keyAlias = "aerocalc_alias"
-            keyPassword = "aerocalc123"
+            storeFile = releaseStorePath.orNull?.takeIf { it.isNotBlank() }?.let { file(it) }
+            storePassword = providers.gradleProperty("RELEASE_STORE_PASSWORD").orNull
+            keyAlias = providers.gradleProperty("RELEASE_KEY_ALIAS").orElse("aerocalc_upload").get()
+            keyPassword = providers.gradleProperty("RELEASE_KEY_PASSWORD").orNull
         }
     }
 
     buildTypes {
+        debug {
+            manifestPlaceholders["admobAppId"] = "ca-app-pub-3940256099942544~3347511713"
+            buildConfigField("String", "ADMOB_APP_ID", "\"ca-app-pub-3940256099942544~3347511713\"")
+            buildConfigField("String", "ADMOB_BANNER_UNIT_ID", "\"ca-app-pub-3940256099942544/9214589741\"")
+        }
         release {
+            manifestPlaceholders["admobAppId"] = productionAppId
+            buildConfigField("String", "ADMOB_APP_ID", "\"$productionAppId\"")
+            buildConfigField("String", "ADMOB_BANNER_UNIT_ID", "\"$productionBannerId\"")
             isMinifyEnabled = true
             isShrinkResources = true
             signingConfig = signingConfigs.getByName("release")
@@ -39,7 +53,7 @@ android {
     buildFeatures {
       compose = true
       aidl = false
-      buildConfig = false
+      buildConfig = true
       shaders = false
     }
 
@@ -50,11 +64,39 @@ android {
     }
 }
 
+tasks.register("verifyReleaseConfiguration") {
+    inputs.property("appId", providers.gradleProperty("ADMOB_APP_ID").orElse(""))
+    inputs.property("bannerId", providers.gradleProperty("ADMOB_BANNER_UNIT_ID").orElse(""))
+    inputs.property("hasStorePassword", providers.gradleProperty("RELEASE_STORE_PASSWORD").map { it.isNotBlank() }.orElse(false))
+    inputs.property("hasKeyPassword", providers.gradleProperty("RELEASE_KEY_PASSWORD").map { it.isNotBlank() }.orElse(false))
+    inputs.property("hasKeystore", releaseStorePath.map { it.isNotBlank() && file(it).isFile })
+    doLast {
+        val appId = inputs.properties.getValue("appId").toString()
+        val bannerId = inputs.properties.getValue("bannerId").toString()
+        require(Regex("ca-app-pub-\\d{16}~\\d{10}").matches(appId) &&
+            appId != "ca-app-pub-3940256099942544~3347511713") {
+            "Set a real ADMOB_APP_ID Gradle property before release."
+        }
+        require(Regex("ca-app-pub-\\d{16}/\\d{10}").matches(bannerId) &&
+            bannerId != "ca-app-pub-3940256099942544/9214589741") {
+            "Set a real ADMOB_BANNER_UNIT_ID Gradle property before release."
+        }
+        require(inputs.properties["hasKeystore"] == true &&
+            inputs.properties["hasStorePassword"] == true &&
+            inputs.properties["hasKeyPassword"] == true) {
+            "Release signing is missing. Configure RELEASE_STORE_FILE, RELEASE_STORE_PASSWORD and RELEASE_KEY_PASSWORD outside the repository."
+        }
+    }
+}
+tasks.matching { it.name == "preReleaseBuild" }.configureEach { dependsOn("verifyReleaseConfiguration") }
+
 kotlin {
     jvmToolchain(17)
 }
 
 dependencies {
+  implementation("com.google.android.libraries.ads.mobile.sdk:ads-mobile-sdk:1.5.0")
+  implementation("com.google.android.ump:user-messaging-platform:4.0.0")
   val composeBom = platform(libs.androidx.compose.bom)
   implementation(composeBom)
   androidTestImplementation(composeBom)

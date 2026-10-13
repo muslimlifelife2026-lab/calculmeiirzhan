@@ -1,7 +1,7 @@
 {
   "id": "percent_decrease",
   "name": "Процентный спад",
-  "category": "Математика",
+  "category": "MATHEMATICS",
   "subcategory": "Проценты",
   "description": "Рассчитывает процентное уменьшение от начального значения к конечному.",
   "canonicalEquation": "P - ((v1 - v2) / v1) * 100",
@@ -13,7 +13,11 @@
       "description": "Изменение в процентах.",
       "defaultUnitSymbol": "%",
       "supportedUnits": [
-        { "name": "Процент", "symbol": "%", "factor": "1" }
+        {
+          "name": "Процент",
+          "symbol": "%",
+          "scaleFactor": 1.0
+        }
       ]
     },
     {
@@ -30,5 +34,10 @@
       "defaultUnitSymbol": "",
       "supportedUnits": []
     }
-  ]
+  ],
+  "solvedEquations": {
+    "P": "(v1 - v2) / v1 * 100",
+    "v1": "v2 / (1 - P / 100)",
+    "v2": "v1 * (1 - P / 100)"
+  }
 }

@@ -126,7 +126,7 @@ fun PresetsSheet(
 ) {
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        containerColor = Color(0xFF0F1117),
+        containerColor = Color(0xFF27292D),
         dragHandle = { BottomSheetDefaults.DragHandle(color = SurfaceBorder) }
     ) {
         Column(
@@ -141,7 +141,7 @@ fun PresetsSheet(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "📚 Библиотека математических кривых",
+                    text = "Библиотека математических кривых",
                     color = Color.White,
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Bold
@@ -200,12 +200,12 @@ private fun PresetCard(
                 Box(
                     modifier = Modifier
                         .clip(RoundedCornerShape(6.dp))
-                        .background(Color(0xFF38BDF8).copy(alpha = 0.15f))
+                        .background(Color(0xFFB9C6D6).copy(alpha = 0.15f))
                         .padding(horizontal = 6.dp, vertical = 2.dp)
                 ) {
                     Text(
                         text = preset.mode.title.split(" ").first(),
-                        color = Color(0xFF38BDF8),
+                        color = Color(0xFFB9C6D6),
                         fontSize = 10.sp,
                         fontWeight = FontWeight.Bold
                     )
@@ -232,7 +232,7 @@ private fun PresetCard(
                     ) {
                         Text(
                             text = expr,
-                            color = Color(0xFFA855F7),
+                            color = Color(0xFFB9ADC8),
                             fontSize = 10.sp,
                             fontFamily = FontFamily.Monospace
                         )

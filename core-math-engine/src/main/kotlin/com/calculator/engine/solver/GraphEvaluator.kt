@@ -12,7 +12,9 @@ class GraphEvaluator(val expression: String) {
     private val rpn: List<MathToken>
 
     init {
+        require(expression.length <= 256) { "График: слишком длинное выражение" }
         val tokens = MathParser.tokenize(expression)
+        require(tokens.size <= 256) { "График: слишком сложное выражение" }
         rpn = MathParser.shuntingYard(tokens)
     }
 
@@ -40,20 +42,29 @@ class GraphEvaluator(val expression: String) {
         x: Double,
         params: Map<String, Double> = emptyMap(),
         varSymbol: String = "x"
+    ): Double = evaluateWithStack(x, params, varSymbol, DoubleArray(rpn.size), BooleanArray(rpn.size))
+
+    private fun evaluateWithStack(
+        x: Double,
+        params: Map<String, Double>,
+        varSymbol: String,
+        stack: DoubleArray,
+        percentFlags: BooleanArray
     ): Double {
         if (rpn.isEmpty()) return Double.NaN
-        val stack = DoubleArray(rpn.size)
         var sp = 0
 
         for (token in rpn) {
             when (token) {
                 is MathToken.Number -> {
                     stack[sp++] = token.value.toDouble()
+                    percentFlags[sp - 1] = false
                 }
                 is MathToken.Variable -> {
                     val sym = token.symbol
                     when {
-                        sym.equals(varSymbol, ignoreCase = true) -> {
+                        sym.equals(varSymbol, ignoreCase = true) ||
+                            (varSymbol == "theta" && sym.equals("th", ignoreCase = true)) -> {
                             stack[sp++] = x
                         }
                         params.containsKey(sym) -> {
@@ -66,12 +77,17 @@ class GraphEvaluator(val expression: String) {
                             stack[sp++] = Math.E
                         }
                         else -> {
-                            stack[sp++] = 0.0
+                            stack[sp++] = Double.NaN
                         }
                     }
+                    percentFlags[sp - 1] = false
                 }
                 is MathToken.Operator -> {
-                    if (token.symbol == "u-") {
+                    if (token.symbol == "%") {
+                        if (sp < 1) return Double.NaN
+                        stack[sp - 1] /= 100.0
+                        percentFlags[sp - 1] = true
+                    } else if (token.symbol == "u-") {
                         if (sp < 1) return Double.NaN
                         val a = stack[--sp]
                         stack[sp++] = -a
@@ -79,15 +95,17 @@ class GraphEvaluator(val expression: String) {
                         if (sp < 2) return Double.NaN
                         val b = stack[--sp]
                         val a = stack[--sp]
+                        val bIsPercent = percentFlags[sp + 1]
                         val res = when (token.symbol) {
-                            "+" -> a + b
-                            "-" -> a - b
+                            "+" -> a + if (bIsPercent) a * b else b
+                            "-" -> a - if (bIsPercent) a * b else b
                             "*" -> a * b
                             "/" -> if (b == 0.0) Double.NaN else a / b
                             "^" -> a.pow(b)
                             else -> Double.NaN
                         }
                         stack[sp++] = res
+                        percentFlags[sp - 1] = false
                     }
                 }
                 is MathToken.Func -> {
@@ -114,6 +132,7 @@ class GraphEvaluator(val expression: String) {
                         else -> Double.NaN
                     }
                     stack[sp++] = res
+                    percentFlags[sp - 1] = false
                 }
                 else -> {
                     // Ignore comma, parens
@@ -133,13 +152,16 @@ class GraphEvaluator(val expression: String) {
         params: Map<String, Double> = emptyMap(),
         varSymbol: String = "x"
     ): DoubleArray {
+        require(pointsCount in 0..1200) { "Слишком много точек графика" }
         val yValues = DoubleArray(pointsCount)
         if (pointsCount <= 1) return yValues
 
         val step = (xMax - xMin) / (pointsCount - 1)
+        val stack = DoubleArray(rpn.size)
+        val flags = BooleanArray(rpn.size)
         for (i in 0 until pointsCount) {
             val x = xMin + i * step
-            yValues[i] = evaluate(x, params, varSymbol)
+            yValues[i] = evaluateWithStack(x, params, varSymbol, stack, flags)
         }
         return yValues
     }
@@ -209,10 +231,12 @@ class GraphEvaluator(val expression: String) {
     ): List<Pair<Double, Double>> {
         val points = mutableListOf<Pair<Double, Double>>()
         val step = (thetaMax - thetaMin) / max(1, pointsCount - 1)
+        val stack = DoubleArray(rpn.size)
+        val flags = BooleanArray(rpn.size)
 
         for (i in 0 until pointsCount) {
             val theta = thetaMin + i * step
-            val r = evaluate(theta, params, varSymbol = "theta")
+            val r = evaluateWithStack(theta, params, "theta", stack, flags)
             if (!r.isNaN() && !r.isInfinite()) {
                 val x = r * cos(theta)
                 val y = r * sin(theta)
@@ -236,11 +260,15 @@ class GraphEvaluator(val expression: String) {
     ): List<Pair<Double, Double>> {
         val points = mutableListOf<Pair<Double, Double>>()
         val step = (tMax - tMin) / max(1, pointsCount - 1)
+        val xStack = DoubleArray(rpn.size)
+        val yStack = DoubleArray(otherY.rpn.size)
+        val xFlags = BooleanArray(rpn.size)
+        val yFlags = BooleanArray(otherY.rpn.size)
 
         for (i in 0 until pointsCount) {
             val t = tMin + i * step
-            val x = evaluate(t, params, varSymbol = "t")
-            val y = otherY.evaluate(t, params, varSymbol = "t")
+            val x = evaluateWithStack(t, params, "t", xStack, xFlags)
+            val y = otherY.evaluateWithStack(t, params, "t", yStack, yFlags)
             if (!x.isNaN() && !y.isNaN() && !x.isInfinite() && !y.isInfinite()) {
                 points.add(Pair(x, y))
             } else {
@@ -248,6 +276,54 @@ class GraphEvaluator(val expression: String) {
             }
         }
         return points
+    }
+
+    fun findRoots(xMin: Double, xMax: Double, pointsCount: Int = 400,
+                  params: Map<String, Double> = emptyMap()): List<Double> {
+        if (pointsCount < 3 || xMax <= xMin) return emptyList()
+        val step = (xMax - xMin) / (pointsCount - 1)
+        val values = evaluateRange(xMin, xMax, pointsCount, params)
+        val roots = mutableListOf<Double>()
+        fun addIfValid(x: Double) {
+            val y = evaluate(x, params)
+            if (y.isFinite() && abs(y) <= 1e-6 && roots.none { abs(it - x) < step * 2 }) roots += x
+        }
+        for (i in 0 until pointsCount - 1) {
+            val y0 = values[i]
+            val y1 = values[i + 1]
+            if (!y0.isFinite() || !y1.isFinite()) continue
+            val x0 = xMin + i * step
+            if (y0 == 0.0) addIfValid(x0)
+            if (y0.sign != y1.sign) {
+                var left = x0
+                var right = x0 + step
+                var leftY = y0
+                repeat(50) {
+                    val mid = (left + right) / 2
+                    val midY = evaluate(mid, params)
+                    if (midY.isFinite()) {
+                        if (midY == 0.0 || midY.sign == leftY.sign) {
+                            left = mid
+                            leftY = midY
+                        } else right = mid
+                    }
+                }
+                addIfValid((left + right) / 2)
+            }
+            if (i > 0 && abs(y0) <= abs(values[i - 1]) && abs(y0) <= abs(y1)) {
+                var left = x0 - step
+                var right = x0 + step
+                repeat(40) {
+                    val third = (right - left) / 3
+                    val a = abs(evaluate(left + third, params))
+                    val b = abs(evaluate(right - third, params))
+                    if (a < b) right -= third else left += third
+                }
+                addIfValid((left + right) / 2)
+            }
+        }
+        addIfValid(xMax)
+        return roots
     }
 
     /**
@@ -260,41 +336,14 @@ class GraphEvaluator(val expression: String) {
         pointsCount: Int = 300,
         params: Map<String, Double> = emptyMap()
     ): List<Pair<Double, Double>> {
-        val intersections = mutableListOf<Pair<Double, Double>>()
-        val step = (xMax - xMin) / (pointsCount - 1)
-
-        var prevDiff = evaluate(xMin, params) - other.evaluate(xMin, params)
-        var prevX = xMin
-
-        for (i in 1 until pointsCount) {
-            val currX = xMin + i * step
-            val y1 = evaluate(currX, params)
-            val y2 = other.evaluate(currX, params)
-            val currDiff = y1 - y2
-
-            if (!prevDiff.isNaN() && !currDiff.isNaN()) {
-                if ((prevDiff <= 0 && currDiff >= 0) || (prevDiff >= 0 && currDiff <= 0)) {
-                    // Linear interpolation zero-crossing refinement
-                    val denom = abs(currDiff - prevDiff)
-                    val crossX = if (denom > 1e-12) {
-                        prevX + step * (abs(prevDiff) / denom)
-                    } else {
-                        (prevX + currX) / 2.0
-                    }
-                    val crossY = (evaluate(crossX, params) + other.evaluate(crossX, params)) / 2.0
-
-                    if (!crossY.isNaN() && !crossY.isInfinite()) {
-                        if (intersections.none { abs(it.first - crossX) < (xMax - xMin) / 40.0 }) {
-                            intersections.add(Pair(crossX, crossY))
-                        }
-                    }
-                }
-            }
-            prevDiff = currDiff
-            prevX = currX
+        val difference = GraphEvaluator("($expression)-(${other.expression})")
+        return difference.findRoots(xMin, xMax, pointsCount, params).mapNotNull { x ->
+            val y1 = evaluate(x, params)
+            val y2 = other.evaluate(x, params)
+            if (y1.isFinite() && y2.isFinite() && abs(y1 - y2) <= 1e-5 * max(1.0, abs(y1))) {
+                x to (y1 + y2) / 2
+            } else null
         }
-
-        return intersections
     }
 }
 

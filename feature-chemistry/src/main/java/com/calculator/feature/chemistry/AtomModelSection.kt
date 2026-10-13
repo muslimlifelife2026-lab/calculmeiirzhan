@@ -9,6 +9,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -25,7 +26,9 @@ import com.calculator.feature.chemistry.components.AtomModelCanvas
 fun AtomModelSection(
     modifier: Modifier = Modifier
 ) {
-    var selectedAtomElement by remember { mutableStateOf(PeriodicTable.getElement("C") ?: Element("C", "Carbon", 6, 12.011)) }
+    var selectedAtomSymbol by rememberSaveable { mutableStateOf("C") }
+    val selectedAtomElement = PeriodicTable.getElement(selectedAtomSymbol)
+        ?: Element("C", "Carbon", 6, 12.011)
     val sampleElements = remember { PeriodicTable.allElements }
 
     Column(
@@ -44,7 +47,7 @@ fun AtomModelSection(
                         .clip(RoundedCornerShape(14.dp))
                         .background(if (isSelected) Color.White else SurfaceElevated)
                         .border(1.dp, if (isSelected) Color.White else SurfaceBorder, RoundedCornerShape(14.dp))
-                        .clickable { selectedAtomElement = elem }
+                        .clickable { selectedAtomSymbol = elem.symbol }
                         .padding(horizontal = 10.dp, vertical = 5.dp)
                 ) {
                     Text(

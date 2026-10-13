@@ -33,7 +33,7 @@ fun GraphingScreen(
     modifier: Modifier = Modifier
 ) {
     var mode by rememberSaveable { mutableStateOf(GraphMode.CARTESIAN) }
-    var expressions by remember { mutableStateOf(listOf("sin(x)", "0.5*x - 1")) }
+    var expressions by rememberSaveable { mutableStateOf(listOf("sin(x)", "0.5*x - 1")) }
 
     // Analysis Toggles
     var showRoots by rememberSaveable { mutableStateOf(true) }
@@ -41,8 +41,8 @@ fun GraphingScreen(
     var showIntersections by rememberSaveable { mutableStateOf(true) }
     var showTangent by rememberSaveable { mutableStateOf(false) }
     var showIntegral by rememberSaveable { mutableStateOf(false) }
-    var integralA by remember { mutableStateOf(0.0) }
-    var integralB by remember { mutableStateOf(2.0) }
+    var integralA by rememberSaveable { mutableStateOf(0.0) }
+    var integralB by rememberSaveable { mutableStateOf(2.0) }
 
     // Controls and Modals
     var resetTrigger by remember { mutableStateOf(0) }
@@ -50,7 +50,7 @@ fun GraphingScreen(
     var showValuesTable by remember { mutableStateOf(false) }
 
     // Dynamic Parameter Slider State (e.g., 'a', 'b', 'c', 'k')
-    var paramValues by remember {
+    var paramValues by rememberSaveable {
         mutableStateOf(
             mapOf("a" to 1.0, "b" to 1.0, "c" to 0.0, "k" to 1.0)
         )
@@ -78,12 +78,16 @@ fun GraphingScreen(
         }
         list
     }
+    LaunchedEffect(detectedParams) {
+        val missing = detectedParams.filterNot { it in paramValues }
+        if (missing.isNotEmpty()) paramValues = paramValues + missing.associateWith { 1.0 }
+    }
 
     val graphColors = listOf(
         Color(0xFFFFFFFF), // Titanium White
-        Color(0xFF38BDF8), // Ice Blue
-        Color(0xFFA855F7), // Purple
-        Color(0xFF10B981)  // Emerald
+        Color(0xFFB9C6D6), // Ice Blue
+        Color(0xFFB9ADC8), // Purple
+        Color(0xFFACC4B0)  // Emerald
     )
 
     Column(
@@ -157,7 +161,7 @@ fun GraphingScreen(
                             Icon(
                                 imageVector = Icons.Rounded.CollectionsBookmark,
                                 contentDescription = "Пресеты",
-                                tint = Color(0xFF38BDF8),
+                                tint = Color(0xFFB9C6D6),
                                 modifier = Modifier.size(13.dp)
                             )
                             Text("Библиотека", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
@@ -179,7 +183,7 @@ fun GraphingScreen(
                             Icon(
                                 imageVector = Icons.Rounded.TableChart,
                                 contentDescription = "Таблица",
-                                tint = Color(0xFFA855F7),
+                                tint = Color(0xFFB9ADC8),
                                 modifier = Modifier.size(13.dp)
                             )
                             Text("Таблица", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
@@ -194,7 +198,7 @@ fun GraphingScreen(
                 val placeholderText = when (mode) {
                     GraphMode.CARTESIAN -> "y${index + 1} = ..."
                     GraphMode.POLAR -> "r${index + 1}(θ) = ..."
-                    GraphMode.PARAMETRIC -> if (index == 0) "x(t) = ..." else "y(t) = ..."
+                    GraphMode.PARAMETRIC -> if (index == 0) "x(t) = ..."else "y(t) = ..."
                 }
 
                 Row(
@@ -279,7 +283,7 @@ fun GraphingScreen(
                     // Roots
                     item {
                         CalculusTogglePill(
-                            label = "🎯 Корни",
+                            label = "Корни",
                             isActive = showRoots,
                             activeColor = Color(0xFF06B6D4),
                             onClick = { showRoots = !showRoots }
@@ -288,9 +292,9 @@ fun GraphingScreen(
                     // Extremums
                     item {
                         CalculusTogglePill(
-                            label = "📊 Экстремумы",
+                            label = "Экстремумы",
                             isActive = showExtremums,
-                            activeColor = Color(0xFFF59E0B),
+                            activeColor = Color(0xFFD0C3AD),
                             onClick = { showExtremums = !showExtremums }
                         )
                     }
@@ -299,25 +303,25 @@ fun GraphingScreen(
                         CalculusTogglePill(
                             label = "✖ Пересечения",
                             isActive = showIntersections,
-                            activeColor = Color(0xFFA855F7),
+                            activeColor = Color(0xFFB9ADC8),
                             onClick = { showIntersections = !showIntersections }
                         )
                     }
                     // Tangent
                     item {
                         CalculusTogglePill(
-                            label = "📐 Касательная",
+                            label = "Касательная",
                             isActive = showTangent,
-                            activeColor = Color(0xFFF59E0B),
+                            activeColor = Color(0xFFD0C3AD),
                             onClick = { showTangent = !showTangent }
                         )
                     }
                     // Definite Integral
                     item {
                         CalculusTogglePill(
-                            label = "🧮 Интеграл ∫",
+                            label = "Интеграл ∫",
                             isActive = showIntegral,
-                            activeColor = Color(0xFF38BDF8),
+                            activeColor = Color(0xFFB9C6D6),
                             onClick = { showIntegral = !showIntegral }
                         )
                     }
@@ -339,7 +343,7 @@ fun GraphingScreen(
                     verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
                     Text(
-                        text = "🎛 Интерактивные коэффициенты (Sliders):",
+                        text = "Интерактивные коэффициенты (Sliders):",
                         color = Color(0xFF94A3B8),
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold
@@ -367,8 +371,8 @@ fun GraphingScreen(
                                 steps = 99,
                                 modifier = Modifier.weight(1f),
                                 colors = SliderDefaults.colors(
-                                    thumbColor = Color(0xFF38BDF8),
-                                    activeTrackColor = Color(0xFF38BDF8),
+                                    thumbColor = Color(0xFFB9C6D6),
+                                    activeTrackColor = Color(0xFFB9C6D6),
                                     inactiveTrackColor = SurfaceBorder
                                 )
                             )
@@ -426,6 +430,7 @@ fun GraphingScreen(
     if (showValuesTable) {
         ValuesTableDialog(
             expressions = expressions.filter { it.isNotBlank() },
+            mode = mode,
             params = paramValues,
             onDismiss = { showValuesTable = false }
         )
@@ -473,7 +478,7 @@ private fun FloatingSnapOriginButton(
         Icon(
             imageVector = Icons.Rounded.CenterFocusStrong,
             contentDescription = "Сброс к центру (0,0)",
-            tint = Color(0xFF38BDF8),
+            tint = Color(0xFFB9C6D6),
             modifier = Modifier.size(20.dp)
         )
     }

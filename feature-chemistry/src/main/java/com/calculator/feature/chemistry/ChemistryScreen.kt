@@ -37,42 +37,42 @@ fun ChemistryScreen(
 
     val molarPresets = remember {
         listOf(
-            ChemicalPreset("💧 Вода", "H2O"),
-            ChemicalPreset("🧂 Поваренная соль", "NaCl"),
-            ChemicalPreset("🔋 Серная к-та", "H2SO4"),
-            ChemicalPreset("🍬 Глюкоза", "C6H12O6"),
-            ChemicalPreset("🧼 Сода пищевая", "NaHCO3"),
-            ChemicalPreset("🪨 Мел (Кальцит)", "CaCO3"),
-            ChemicalPreset("🍷 Спирт (Этанол)", "C2H5OH"),
-            ChemicalPreset("💨 Углекислый газ", "CO2"),
-            ChemicalPreset("🩹 Перекись водорода", "H2O2"),
-            ChemicalPreset("👃 Нашатырный спирт", "NH3"),
-            ChemicalPreset("🧪 Соляная к-та", "HCl"),
-            ChemicalPreset("⚗️ Азотная к-та", "HNO3"),
-            ChemicalPreset("🥗 Уксусная к-та", "CH3COOH"),
-            ChemicalPreset("🧼 Едкий натр (NaOH)", "NaOH"),
-            ChemicalPreset("🔥 Метан (Газ)", "CH4"),
-            ChemicalPreset("🍭 Сахар (Сахароза)", "C12H22O11"),
-            ChemicalPreset("💊 Аспирин", "C9H8O4"),
-            ChemicalPreset("🌾 Калийная селитра", "KNO3"),
-            ChemicalPreset("🔷 Медный купорос", "CuSO4"),
-            ChemicalPreset("🧱 Гашеная известь", "Ca(OH)2"),
-            ChemicalPreset("⚡ Озон", "O3"),
-            ChemicalPreset("🔩 Ржавчина", "Fe2O3")
+            ChemicalPreset("Вода", "H2O"),
+            ChemicalPreset("Поваренная соль", "NaCl"),
+            ChemicalPreset("Серная к-та", "H2SO4"),
+            ChemicalPreset("Глюкоза", "C6H12O6"),
+            ChemicalPreset("Сода пищевая", "NaHCO3"),
+            ChemicalPreset("Мел (Кальцит)", "CaCO3"),
+            ChemicalPreset("Спирт (Этанол)", "C2H5OH"),
+            ChemicalPreset("Углекислый газ", "CO2"),
+            ChemicalPreset("Перекись водорода", "H2O2"),
+            ChemicalPreset("Нашатырный спирт", "NH3"),
+            ChemicalPreset("Соляная к-та", "HCl"),
+            ChemicalPreset("Азотная к-та", "HNO3"),
+            ChemicalPreset("Уксусная к-та", "CH3COOH"),
+            ChemicalPreset("Едкий натр (NaOH)", "NaOH"),
+            ChemicalPreset("Метан (Газ)", "CH4"),
+            ChemicalPreset("Сахар (Сахароза)", "C12H22O11"),
+            ChemicalPreset("Аспирин", "C9H8O4"),
+            ChemicalPreset("Калийная селитра", "KNO3"),
+            ChemicalPreset("Медный купорос", "CuSO4"),
+            ChemicalPreset("Гашеная известь", "Ca(OH)2"),
+            ChemicalPreset("Озон", "O3"),
+            ChemicalPreset("Ржавчина", "Fe2O3")
         )
     }
 
     val reactionPresets = remember {
         listOf(
-            ReactionPreset("🔥 Горение метана", "CH4 + O2 -> CO2 + H2O"),
-            ReactionPreset("🧪 Ржавление железа", "Fe + O2 -> Fe2O3"),
-            ReactionPreset("⚡ Электролиз воды", "H2O -> H2 + O2"),
-            ReactionPreset("🧯 Сода + Кислота", "NaHCO3 + HCl -> NaCl + CO2 + H2O"),
-            ReactionPreset("🌱 Фотосинтез", "CO2 + H2O -> C6H12O6 + O2"),
-            ReactionPreset("💧 Нейтрализация щёлочи", "NaOH + HCl -> NaCl + H2O"),
-            ReactionPreset("💨 Синтез аммиака", "N2 + H2 -> NH3"),
-            ReactionPreset("💥 Горение водорода", "H2 + O2 -> H2O"),
-            ReactionPreset("🪨 Разложение известняка", "CaCO3 -> CaO + CO2")
+            ReactionPreset("Горение метана", "CH4 + O2 -> CO2 + H2O"),
+            ReactionPreset("Ржавление железа", "Fe + O2 -> Fe2O3"),
+            ReactionPreset("Электролиз воды", "H2O -> H2 + O2"),
+            ReactionPreset("Сода + Кислота", "NaHCO3 + HCl -> NaCl + CO2 + H2O"),
+            ReactionPreset("Фотосинтез", "CO2 + H2O -> C6H12O6 + O2"),
+            ReactionPreset("Нейтрализация щёлочи", "NaOH + HCl -> NaCl + H2O"),
+            ReactionPreset("Синтез аммиака", "N2 + H2 -> NH3"),
+            ReactionPreset("Горение водорода", "H2 + O2 -> H2O"),
+            ReactionPreset("Разложение известняка", "CaCO3 -> CaO + CO2")
         )
     }
 
@@ -83,31 +83,12 @@ fun ChemistryScreen(
             .padding(horizontal = 12.dp, vertical = 6.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        // Mode Selector: 5 Tabs
-        ScrollableTabRow(
-            selectedTabIndex = selectedTab,
-            containerColor = Color.Transparent,
-            contentColor = Color.White,
-            edgePadding = 0.dp,
-            indicator = { tabPositions ->
-                if (selectedTab < tabPositions.size) {
-                    TabRowDefaults.SecondaryIndicator(
-                        modifier = Modifier.tabIndicatorOffset(tabPositions[selectedTab]),
-                        color = Color.White
-                    )
-                }
-            },
+        com.calculator.core.ui.components.GlassTabs(
+            tabs = listOf("Молярная масса", "Балансировщик", "Таблица Менделеева", "Модель атома", "Растворимость"),
+            selectedIndex = selectedTab,
+            onSelect = { selectedTab = it },
             modifier = Modifier.padding(bottom = 4.dp)
-        ) {
-            val tabs = listOf("🧪 Молярная масса", "⚖️ Балансировщик", "⚛️ Таблица Менделеева", "🔬 Модель атома", "💧 Растворимость")
-            tabs.forEachIndexed { index, title ->
-                Tab(
-                    selected = selectedTab == index,
-                    onClick = { selectedTab = index },
-                    text = { Text(title, fontWeight = if (selectedTab == index) FontWeight.Bold else FontWeight.Normal, fontSize = 13.sp) }
-                )
-            }
-        }
+        )
 
         when (selectedTab) {
             0 -> MolarMassSection(
@@ -183,7 +164,7 @@ fun ChemistryScreen(
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = AccentPrimary)
                 ) {
-                    Text("Вставить в формулу 🧪", color = Background, fontWeight = FontWeight.Bold)
+                    Text("Вставить в формулу ", color = Background, fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {
@@ -227,6 +208,7 @@ fun ChemistryScreen(
                             SolubilityStatus.INSOLUBLE -> "Нерастворимое вещество. Выпадает в осадок при взаимодействии соответствующих ионов."
                             SolubilityStatus.SLIGHTLY_SOLUBLE -> "Малорастворимое вещество. Лишь небольшая часть соли переходит в раствор."
                             SolubilityStatus.DECOMPOSES -> "Вещество разлагается водой (необратимый гидролиз) или не существует в водном растворе."
+                            SolubilityStatus.UNKNOWN -> "Для этой пары нет проверенных данных. Не используйте клетку как справочное значение."
                         },
                         color = TextSecondary,
                         fontSize = 13.sp

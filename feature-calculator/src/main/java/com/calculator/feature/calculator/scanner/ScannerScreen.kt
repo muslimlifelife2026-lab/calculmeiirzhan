@@ -2,6 +2,9 @@ package com.calculator.feature.calculator.scanner
 
 import android.Manifest
 import android.content.Context
+import android.content.Intent
+import android.net.Uri
+import android.provider.Settings
 import android.view.ViewGroup
 import androidx.camera.core.Camera
 import androidx.camera.core.CameraSelector
@@ -22,6 +25,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -44,6 +48,7 @@ import androidx.compose.material.icons.rounded.FlashOff
 import com.calculator.core.ui.theme.ElectricViolet
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
+import com.google.accompanist.permissions.shouldShowRationale
 import com.google.accompanist.permissions.rememberPermissionState
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -56,20 +61,33 @@ fun ScannerScreen(
     onClose: () -> Unit
 ) {
     val cameraPermissionState = rememberPermissionState(Manifest.permission.CAMERA)
+    val context = LocalContext.current
+    var permissionRequested by rememberSaveable { mutableStateOf(false) }
 
     if (cameraPermissionState.status.isGranted) {
         CameraPreview(onResult = onResult, onClose = onClose)
     } else {
         LaunchedEffect(Unit) {
+            if (!permissionRequested) {
+                permissionRequested = true
             cameraPermissionState.launchPermissionRequest()
+            }
         }
         Box(modifier = Modifier.fillMaxSize().background(Color.Black), contentAlignment = Alignment.Center) {
             Text("Требуется разрешение на использование камеры", color = Color.White)
             Button(
-                onClick = { cameraPermissionState.launchPermissionRequest() },
+                onClick = {
+                    if (permissionRequested && !cameraPermissionState.status.shouldShowRationale) {
+                        context.startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                            Uri.parse("package:${context.packageName}")))
+                    } else {
+                        permissionRequested = true
+                        cameraPermissionState.launchPermissionRequest()
+                    }
+                },
                 modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 64.dp)
             ) {
-                Text("Разрешить")
+                Text(if (permissionRequested && !cameraPermissionState.status.shouldShowRationale) "Открыть настройки" else "Разрешить")
             }
         }
     }
@@ -86,9 +104,22 @@ private fun CameraPreview(
     
     val imageCapture = remember { ImageCapture.Builder().build() }
     val mathOcrEngine = remember { MathOcrEngine() }
+    val cameraProviderFuture = remember(context) { ProcessCameraProvider.getInstance(context) }
+    val disposed = remember { java.util.concurrent.atomic.AtomicBoolean(false) }
+    var camera by remember { mutableStateOf<Camera?>(null) }
+    DisposableEffect(lifecycleOwner) {
+        disposed.set(false)
+        onDispose {
+            disposed.set(true)
+            camera?.cameraControl?.enableTorch(false)
+            if (cameraProviderFuture.isDone) {
+                runCatching { cameraProviderFuture.get().unbindAll() }
+            }
+            mathOcrEngine.close()
+        }
+    }
     
     var isProcessing by remember { mutableStateOf(false) }
-    var camera by remember { mutableStateOf<Camera?>(null) }
     var isTorchEnabled by remember { mutableStateOf(false) }
     var previewViewRef by remember { mutableStateOf<PreviewView?>(null) }
 
@@ -120,8 +151,8 @@ private fun CameraPreview(
                     )
                 }
                 
-                val cameraProviderFuture = ProcessCameraProvider.getInstance(ctx)
                 cameraProviderFuture.addListener({
+                    if (disposed.get()) return@addListener
                     val cameraProvider = cameraProviderFuture.get()
                     val preview = Preview.Builder().build().also {
                         it.setSurfaceProvider(previewView.surfaceProvider)
@@ -138,7 +169,8 @@ private fun CameraPreview(
                             imageCapture
                         )
                     } catch (e: Exception) {
-                        e.printStackTrace()
+                        android.widget.Toast.makeText(ctx, "Не удалось открыть камеру", android.widget.Toast.LENGTH_LONG).show()
+                        android.util.Log.e("ScannerScreen", "Camera binding failed", e)
                     }
                 }, ContextCompat.getMainExecutor(ctx))
                 
@@ -317,12 +349,12 @@ private fun CameraPreview(
             colors = ButtonDefaults.buttonColors(containerColor = ElectricViolet)
         ) {
             if (isProcessing) {
-                CircularProgressIndicator(color = Color.White)
+                CircularProgressIndicator(color = com.calculator.core.ui.theme.Background)
             } else {
                 Icon(
                     imageVector = Icons.Rounded.CameraAlt,
                     contentDescription = "Capture Image",
-                    tint = Color.White,
+                    tint = com.calculator.core.ui.theme.Background,
                     modifier = Modifier.size(32.dp)
                 )
             }

@@ -1,7 +1,7 @@
 {
   "id": "torque_force",
   "name": "Момент силы",
-  "category": "Физика",
+  "category": "PHYSICS",
   "subcategory": "Механика",
   "description": "Вращательное действие силы на тело. Рассчитывается как произведение силы на плечо рычага.",
   "canonicalEquation": "tau - F * r",
@@ -13,7 +13,11 @@
       "description": "Вращающий момент.",
       "defaultUnitSymbol": "N*m",
       "supportedUnits": [
-        { "name": "Ньютон-метр", "symbol": "N*m", "factor": "1" }
+        {
+          "name": "Ньютон-метр",
+          "symbol": "N*m",
+          "scaleFactor": 1.0
+        }
       ]
     },
     {
@@ -22,7 +26,11 @@
       "description": "Приложенная перпендикулярно сила.",
       "defaultUnitSymbol": "N",
       "supportedUnits": [
-        { "name": "Ньютоны", "symbol": "N", "factor": "1" }
+        {
+          "name": "Ньютоны",
+          "symbol": "N",
+          "scaleFactor": 1.0
+        }
       ]
     },
     {
@@ -31,9 +39,22 @@
       "description": "Расстояние от оси вращения до точки приложения.",
       "defaultUnitSymbol": "m",
       "supportedUnits": [
-        { "name": "Метры", "symbol": "m", "factor": "1" },
-        { "name": "Сантиметры", "symbol": "cm", "factor": "0.01" }
+        {
+          "name": "Метры",
+          "symbol": "m",
+          "scaleFactor": 1.0
+        },
+        {
+          "name": "Сантиметры",
+          "symbol": "cm",
+          "scaleFactor": 0.01
+        }
       ]
     }
-  ]
+  ],
+  "solvedEquations": {
+    "tau": "F * r",
+    "F": "tau / r",
+    "r": "tau / F"
+  }
 }

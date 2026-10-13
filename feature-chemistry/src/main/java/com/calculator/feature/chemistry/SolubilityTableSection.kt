@@ -34,13 +34,13 @@ fun SolubilityTableSection(
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         Text(
-            text = "Таблица Растворимости Солей",
+            text = "Таблица растворимости",
             color = Color.White,
             fontSize = 16.sp,
             fontWeight = FontWeight.Bold
         )
         Text(
-            text = "Нажмите на ячейку для просмотра подробностей",
+            text = "Нажмите на ячейку. ? — нет проверенных данных",
             color = TextSecondary,
             fontSize = 11.sp
         )

@@ -30,6 +30,7 @@ dependencies {
     implementation(project(":core-domain"))
     implementation(project(":core-ui"))
     implementation(project(":core-data"))
+    implementation(libs.kotlinx.serialization.json)
 
     val composeBom = platform(libs.androidx.compose.bom)
     implementation(composeBom)

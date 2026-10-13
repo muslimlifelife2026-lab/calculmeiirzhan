@@ -28,10 +28,16 @@ object FormulaLoader {
 
             // 2. Load each formula file
             for (id in formulaIds) {
-                val stream = javaClass.classLoader.getResourceAsStream("formulas/$id.json") ?: continue
-                val content = BufferedReader(InputStreamReader(stream, "UTF-8")).use { it.readText() }
-                val formula: Formula = json.decodeFromString(content)
-                loaded.add(formula)
+                try {
+                    val stream = javaClass.classLoader.getResourceAsStream("formulas/$id.json")
+                        ?: throw IllegalStateException("Формула $id отсутствует")
+                    val content = BufferedReader(InputStreamReader(stream, Charsets.UTF_8)).use { it.readText() }
+                    val formula: Formula = json.decodeFromString(content)
+                    require(formula.id == id && formula.variables.isNotEmpty()) { "Некорректная формула $id" }
+                    loaded.add(formula)
+                } catch (e: Exception) {
+                    System.err.println("Ошибка загрузки формулы $id: ${e.message}")
+                }
             }
         } catch (e: Exception) {
             e.printStackTrace()

@@ -1,215 +1,154 @@
 package com.calculator.core.ui.components
 
 import android.view.HapticFeedbackConstants
-import android.view.SoundEffectConstants
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.PressInteraction
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.Backspace
+import androidx.compose.material.icons.rounded.ExpandLess
+import androidx.compose.material.icons.rounded.ExpandMore
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.composed
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.calculator.core.ui.theme.*
-
-fun Modifier.adaptiveKineticClick(
-    onClick: () -> Unit,
-    onHapticAndSound: () -> Unit
-): Modifier = composed {
-    val interactionSource = remember { MutableInteractionSource() }
-    val isPressed by interactionSource.collectIsPressedAsState()
-    val scale by animateFloatAsState(
-        targetValue = if (isPressed) 0.90f else 1f,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessMedium
-        ),
-        label = "adaptive_bounce"
-    )
-
-    this
-        .graphicsLayer {
-            scaleX = scale
-            scaleY = scale
-        }
-        .clickable(
-            interactionSource = interactionSource,
-            indication = null,
-            onClick = {
-                onHapticAndSound()
-                onClick()
-            }
-        )
-}
+import kotlinx.coroutines.flow.collect
 
 @Composable
 fun MathKeyboard(
     modifier: Modifier = Modifier,
     onKeyPressed: (String) -> Unit,
-    showVariables: Boolean = false
+    showVariables: Boolean = false,
+    numbersOnly: Boolean = false
 ) {
-    val haptic = LocalHapticFeedback.current
+    var scientific by rememberSaveable { mutableStateOf(false) }
     val view = LocalView.current
-
-    val scientificKeys = mutableListOf("sin(", "cos(", "tan(", "sqrt(", "^", "fact(", "ln(", "log(", "%", "π", "e")
-    if (showVariables) {
-        scientificKeys.add(0, "x")
-        scientificKeys.add(1, "y")
-    }
-
-    val rows = listOf(
-        listOf("C", "(", ")", "÷"),
-        listOf("7", "8", "9", "×"),
-        listOf("4", "5", "6", "-"),
-        listOf("1", "2", "3", "+"),
-        listOf("0", ".", "=")
+    val rows = if (numbersOnly) listOf(
+        listOf("C", "±", "⌫"), listOf("7", "8", "9"), listOf("4", "5", "6"),
+        listOf("1", "2", "3"), listOf("0", ".", "=")
+    ) else listOf(
+        listOf("C", "⌫", "%", "÷"), listOf("7", "8", "9", "×"),
+        listOf("4", "5", "6", "-"), listOf("1", "2", "3", "+"), listOf("0", ".", "=")
     )
-
-    Column(
-        modifier = modifier.fillMaxSize(),
-        verticalArrangement = Arrangement.spacedBy(6.dp)
-    ) {
-        // Scientific functions compact top strip (34.dp height)
-        LazyRow(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(36.dp),
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            items(scientificKeys) { key ->
-                val isVariable = key == "x" || key == "y"
-                Box(
-                    modifier = Modifier
-                        .fillMaxHeight()
-                        .clip(RoundedCornerShape(18.dp))
-                        .background(if (isVariable) SurfaceElevated else KeyOperator)
-                        .border(
-                            1.dp,
-                            if (isVariable) AccentPrimary.copy(alpha = 0.5f) else SurfaceBorder,
-                            RoundedCornerShape(18.dp)
-                        )
-                        .adaptiveKineticClick(
-                            onClick = { onKeyPressed(key) },
-                            onHapticAndSound = {
-                                view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
-                                view.playSoundEffect(SoundEffectConstants.CLICK)
-                            }
-                        )
-                        .padding(horizontal = 14.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = key,
-                        color = if (isVariable) AccentPrimary else TextSecondary,
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                }
-            }
-        }
-
-        // 5 Fully Responsive & Dynamic Rows that adapt to the exact remaining height
-        rows.forEach { rowKeys ->
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                rowKeys.forEach { key ->
-                    val isOperator = key in listOf("÷", "×", "-", "+")
-                    val isEqual = key == "="
-                    val isClear = key == "C"
-                    val isSecondary = key in listOf("(", ")")
-                    val isZero = key == "0"
-
-                    val weight = if (isZero) 2f else 1f
-
-                    val buttonBg = when {
-                        isEqual -> AccentPrimary       // Solid Titanium White
-                        isClear -> KeyClear            // Dark Crimson accent
-                        isOperator -> KeyOperator       // Dark Slate
-                        isSecondary -> KeyOperator
-                        else -> KeyNumeric              // Deep Charcoal (#1A1D27)
+    BoxWithConstraints(modifier.fillMaxSize()) {
+        val minimum = if (scientific && !numbersOnly) 470.dp else if (numbersOnly) 280.dp else 330.dp
+        val contentHeight = maxHeight.coerceAtLeast(minimum)
+        Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
+            Column(Modifier.fillMaxWidth().height(contentHeight), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                if (!numbersOnly) {
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        TextButton(onClick = {
+                            view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                            scientific = !scientific
+                        }) {
+                            Text("Научный", color = TextSecondary, fontSize = 13.sp)
+                            Icon(if (scientific) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore,
+                                if (scientific) "Скрыть научные функции" else "Показать научные функции", tint = TextSecondary)
+                        }
+                        Spacer(Modifier.weight(1f))
+                        TextButton(onClick = {
+                            view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                            onKeyPressed("(")
+                        }) { Text("(", color = TextSecondary) }
+                        TextButton(onClick = {
+                            view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                            onKeyPressed(")")
+                        }) { Text(")", color = TextSecondary) }
                     }
-
-                    val borderStroke = when {
-                        isEqual -> AccentPrimary
-                        isClear -> ErrorRed.copy(alpha = 0.4f)
-                        else -> SurfaceBorder
-                    }
-
-                    val textColor = when {
-                        isEqual -> Background          // Pure Obsidian text on White button
-                        isClear -> ErrorRed
-                        isOperator -> TextPrimary
-                        isSecondary -> TextSecondary
-                        else -> TextPrimary
-                    }
-
-                    Box(
-                        modifier = Modifier
-                            .weight(weight)
-                            .fillMaxHeight()
-                            .clip(RoundedCornerShape(20.dp))
-                            .background(buttonBg)
-                            .border(1.dp, borderStroke, RoundedCornerShape(20.dp))
-                            .adaptiveKineticClick(
-                                onClick = { onKeyPressed(key) },
-                                onHapticAndSound = {
-                                    when {
-                                        isEqual -> {
-                                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                            view.playSoundEffect(SoundEffectConstants.CLICK)
-                                        }
-                                        isClear -> {
-                                            view.performHapticFeedback(HapticFeedbackConstants.REJECT)
-                                            view.playSoundEffect(SoundEffectConstants.CLICK)
-                                        }
-                                        isOperator -> {
-                                            view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
-                                            view.playSoundEffect(SoundEffectConstants.CLICK)
-                                        }
-                                        else -> {
-                                            haptic.performHapticFeedback(HapticFeedbackType.KeyboardTap)
-                                            view.playSoundEffect(SoundEffectConstants.CLICK)
-                                        }
-                                    }
+                    if (scientific) {
+                        val functions = listOf("sin(", "cos(", "tan(", "sqrt(", "^", "fact(", "ln(", "log(", "π", "e") +
+                            if (showVariables) listOf("x", "y") else emptyList()
+                        functions.chunked(5).forEach { row ->
+                            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                row.forEach { key ->
+                                    KeyboardKey(key, Modifier.weight(1f).height(44.dp), small = true) { onKeyPressed(key) }
                                 }
-                            ),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = key,
-                            color = textColor,
-                            fontSize = if (isOperator || isEqual || isClear) 24.sp else 22.sp,
-                            fontWeight = if (isOperator || isEqual || isClear) FontWeight.Bold else FontWeight.Medium
-                        )
+                                repeat(5 - row.size) { Spacer(Modifier.weight(1f)) }
+                            }
+                        }
+                    }
+                }
+                rows.forEach { row ->
+                    Row(Modifier.fillMaxWidth().weight(1f), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        row.forEach { key ->
+                            KeyboardKey(key, Modifier.weight(if (key == "0" && !numbersOnly) 2f else 1f).fillMaxHeight()) {
+                                onKeyPressed(key)
+                            }
+                        }
                     }
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun KeyboardKey(key: String, modifier: Modifier, small: Boolean = false, onClick: () -> Unit) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val view = LocalView.current
+    LaunchedEffect(interactionSource, view) {
+        interactionSource.interactions.collect { interaction ->
+            if (interaction is PressInteraction.Press) {
+                view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+            }
+        }
+    }
+    val pressed by interactionSource.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        if (pressed) 0.955f else 1f,
+        animationSpec = spring(stiffness = Spring.StiffnessHigh),
+        label = "keyPress"
+    )
+    val pressGlow by animateFloatAsState(if (pressed) 0.16f else 0f, animationSpec = tween(100), label = "glassPress")
+    val equal = key == "="
+    val operator = key in listOf("+", "-", "×", "÷")
+    val special = key in listOf("C", "⌫", "%", "±")
+    val fill = when { equal -> KeyEqual; key == "C" -> KeyClear; operator -> KeyOperator; special || small -> KeySpecial; else -> KeyNumeric }
+    val foreground = when { equal -> Background; key == "C" -> ErrorRed; small -> TextSecondary; else -> TextPrimary }
+    val shape = RoundedCornerShape(if (small) 16.dp else 28.dp)
+    val label = when(key) {
+        "C" -> "Очистить"; "⌫" -> "Удалить последний символ"; "=" -> "Равно"
+        "sqrt(" -> "Квадратный корень"; "fact(" -> "Факториал"; "±" -> "Изменить знак"
+        else -> key
+    }
+    Box(
+        modifier.graphicsLayer { scaleX = scale; scaleY = scale; translationY = if (pressed) 1.dp.toPx() else 0f }
+            .clip(shape).background(fill)
+            .background(Brush.verticalGradient(listOf(Color.White.copy(alpha = if (operator) 0.17f else 0.12f), Color.Transparent, Color.Black.copy(alpha = 0.10f))))
+            .background(Color.White.copy(alpha = pressGlow))
+            .border(0.8.dp, Brush.verticalGradient(listOf(Color.White.copy(alpha = if (pressed) 0.5f else if (equal) 0.3f else 0.26f), SurfaceBorder, Color.White.copy(alpha = 0.07f))), shape)
+            .clickable(interactionSource = interactionSource, indication = null, role = Role.Button, onClick = onClick)
+            .semantics { contentDescription = label },
+        contentAlignment = Alignment.Center
+    ) {
+        if (key == "⌫") Icon(Icons.AutoMirrored.Rounded.Backspace, null, tint = foreground, modifier = Modifier.size(24.dp))
+        else Text(
+            when(key) { "sqrt(" -> "√"; "fact(" -> "n!"; "sin(" -> "sin"; "cos(" -> "cos"; "tan(" -> "tan"; "ln(" -> "ln"; "log(" -> "log"; "-" -> "−"; else -> key },
+            color = foreground, fontSize = if (small) 16.sp else 27.sp, fontWeight = FontWeight.Medium
+        )
     }
 }

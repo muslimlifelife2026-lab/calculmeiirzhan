@@ -69,20 +69,30 @@ object PdfGenerator {
                 .setIncludePad(false)
                 .build()
 
-            // Page break logic
-            if (currentY + staticLayout.height > pageHeight - 50f) {
-                document.finishPage(page)
-                page = document.startPage(pageInfo)
-                canvas = page.canvas
-                currentY = 50f
+            var firstLine = 0
+            while (firstLine < staticLayout.lineCount) {
+                if (currentY + staticLayout.getLineBottom(firstLine) - staticLayout.getLineTop(firstLine) > pageHeight - 50f) {
+                    document.finishPage(page)
+                    page = document.startPage(pageInfo)
+                    canvas = page.canvas
+                    currentY = 50f
+                }
+                var lastLine = firstLine
+                while (lastLine < staticLayout.lineCount &&
+                    currentY + staticLayout.getLineBottom(lastLine) - staticLayout.getLineTop(firstLine) <= pageHeight - 50f
+                ) lastLine++
+                if (lastLine == firstLine) lastLine++
+                val top = staticLayout.getLineTop(firstLine)
+                val bottom = staticLayout.getLineBottom(lastLine - 1)
+                canvas.save()
+                canvas.translate(marginX, currentY - top)
+                canvas.clipRect(0, top, contentWidth, bottom)
+                staticLayout.draw(canvas)
+                canvas.restore()
+                currentY += (bottom - top).toFloat()
+                firstLine = lastLine
             }
-
-            canvas.save()
-            canvas.translate(marginX, currentY)
-            staticLayout.draw(canvas)
-            canvas.restore()
-            
-            currentY += staticLayout.height + lineSpacing
+            currentY += lineSpacing
         }
 
         // Draw title

@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -30,10 +31,10 @@ data class PlanetGravity(val name: String, val g: Float)
 fun PendulumSimulator(
     modifier: Modifier = Modifier
 ) {
-    var lengthMeters by remember { mutableFloatStateOf(1.0f) }
-    var initialAngleDeg by remember { mutableFloatStateOf(30f) }
-    var damping by remember { mutableFloatStateOf(0.02f) }
-    var isRunning by remember { mutableStateOf(true) }
+    var lengthMeters by rememberSaveable { mutableFloatStateOf(1.0f) }
+    var initialAngleDeg by rememberSaveable { mutableFloatStateOf(30f) }
+    var damping by rememberSaveable { mutableFloatStateOf(0.02f) }
+    var isRunning by rememberSaveable { mutableStateOf(true) }
 
     val planets = listOf(
         PlanetGravity("Земля", 9.81f),
@@ -41,9 +42,10 @@ fun PendulumSimulator(
         PlanetGravity("Марс", 3.71f),
         PlanetGravity("Юпитер", 24.79f)
     )
-    var selectedPlanet by remember { mutableStateOf(planets[0]) }
+    var selectedPlanetName by rememberSaveable { mutableStateOf(planets[0].name) }
+    val selectedPlanet = planets.first { it.name == selectedPlanetName }
 
-    var timeSeconds by remember { mutableFloatStateOf(0f) }
+    var timeSeconds by rememberSaveable { mutableFloatStateOf(0f) }
 
     LaunchedEffect(isRunning) {
         var lastFrameTime = System.nanoTime()
@@ -67,8 +69,12 @@ fun PendulumSimulator(
             Math.exp((-damping * timeSeconds).toDouble()) *
             Math.cos((omega * timeSeconds).toDouble())).toFloat()
 
-    val currentSpeed = Math.abs(lengthMeters * omega * Math.sin((omega * timeSeconds).toDouble())).toFloat()
-    val maxSpeed = (lengthMeters * omega * Math.toRadians(initialAngleDeg.toDouble())).toFloat()
+    val amplitude = Math.toRadians(initialAngleDeg.toDouble())
+    val decay = Math.exp((-damping * timeSeconds).toDouble())
+    val phase = (omega * timeSeconds).toDouble()
+    val currentSpeed = (lengthMeters * amplitude * decay *
+        Math.abs(-damping * Math.cos(phase) - omega * Math.sin(phase))).toFloat()
+    val maxSpeed = (lengthMeters * amplitude * decay * Math.hypot(damping.toDouble(), omega.toDouble())).toFloat()
     val kineticFraction = if (maxSpeed > 0) (currentSpeed / maxSpeed).coerceIn(0f, 1f) else 0f
     val potentialFraction = (1f - kineticFraction).coerceIn(0f, 1f)
 
@@ -97,11 +103,11 @@ fun PendulumSimulator(
             }
             Column {
                 Text("Частота ν", color = TextSecondary, fontSize = 11.sp)
-                Text(String.format("%.2f Гц", frequencyHz), color = Color(0xFF38BDF8), fontSize = 15.sp, fontWeight = FontWeight.Bold, fontFamily = MonospaceFontFamily)
+                Text(String.format("%.2f Гц", frequencyHz), color = Color(0xFFB9C6D6), fontSize = 15.sp, fontWeight = FontWeight.Bold, fontFamily = MonospaceFontFamily)
             }
             Column {
                 Text("Скорость v", color = TextSecondary, fontSize = 11.sp)
-                Text(String.format("%.2f м/с", currentSpeed), color = Color(0xFF10B981), fontSize = 15.sp, fontWeight = FontWeight.Bold, fontFamily = MonospaceFontFamily)
+                Text(String.format("%.2f м/с", currentSpeed), color = Color(0xFFACC4B0), fontSize = 15.sp, fontWeight = FontWeight.Bold, fontFamily = MonospaceFontFamily)
             }
             Button(
                 onClick = {
@@ -113,7 +119,7 @@ fun PendulumSimulator(
                 shape = RoundedCornerShape(10.dp),
                 modifier = Modifier.height(32.dp)
             ) {
-                Text(if (isRunning) "Сброс" else "Старт", color = if (isRunning) Color.White else Background, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                Text(if (isRunning) "Сброс"else "Старт", color = if (isRunning) Color.White else Background, fontSize = 11.sp, fontWeight = FontWeight.Bold)
             }
         }
 
@@ -123,7 +129,7 @@ fun PendulumSimulator(
                 .fillMaxWidth()
                 .weight(1f)
                 .clip(RoundedCornerShape(18.dp))
-                .background(Color(0xFF08090C))
+                .background(Color(0xFF161719))
                 .border(1.dp, SurfaceBorder, RoundedCornerShape(18.dp))
         ) {
             Canvas(modifier = Modifier.fillMaxSize()) {
@@ -160,10 +166,10 @@ fun PendulumSimulator(
                 )
 
                 // Bob Mass Glow & Body
-                drawCircle(color = Color(0xFF38BDF8).copy(alpha = 0.35f), radius = 22.dp.toPx(), center = Offset(bobX, bobY))
+                drawCircle(color = Color(0xFFB9C6D6).copy(alpha = 0.35f), radius = 22.dp.toPx(), center = Offset(bobX, bobY))
                 drawCircle(
                     brush = Brush.radialGradient(
-                        colors = listOf(Color.White, Color(0xFF38BDF8), Color(0xFF0284C7)),
+                        colors = listOf(Color.White, Color(0xFFB9C6D6), Color(0xFF788797)),
                         center = Offset(bobX - 4f, bobY - 4f),
                         radius = 16.dp.toPx()
                     ),
@@ -206,7 +212,7 @@ fun PendulumSimulator(
                             .background(if (isSelected) Color.White else SurfaceElevated)
                             .border(1.dp, if (isSelected) Color.White else SurfaceBorder, RoundedCornerShape(12.dp))
                             .clickable {
-                                selectedPlanet = planet
+                                selectedPlanetName = planet.name
                                 timeSeconds = 0f
                             }
                             .padding(horizontal = 8.dp, vertical = 3.dp)
@@ -249,7 +255,7 @@ fun PendulumSimulator(
                     onValueChange = { initialAngleDeg = it; timeSeconds = 0f },
                     valueRange = 5f..60f,
                     modifier = Modifier.weight(1f).padding(horizontal = 8.dp),
-                    colors = SliderDefaults.colors(thumbColor = Color(0xFF38BDF8), activeTrackColor = Color(0xFF38BDF8))
+                    colors = SliderDefaults.colors(thumbColor = Color(0xFFB9C6D6), activeTrackColor = Color(0xFFB9C6D6))
                 )
             }
         }

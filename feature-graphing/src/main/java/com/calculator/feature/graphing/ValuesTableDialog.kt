@@ -9,6 +9,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -20,16 +21,18 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.calculator.core.ui.theme.*
 import com.calculator.engine.solver.GraphEvaluator
+import com.calculator.core.ui.utils.NumberFormatter
 
 @Composable
 fun ValuesTableDialog(
     expressions: List<String>,
+    mode: GraphMode,
     params: Map<String, Double> = emptyMap(),
     onDismiss: () -> Unit
 ) {
-    var step by remember { mutableStateOf(0.5) }
-    var rangeMin by remember { mutableStateOf(-5.0) }
-    var rangeMax by remember { mutableStateOf(5.0) }
+    var step by rememberSaveable { mutableStateOf(0.5) }
+    var rangeMin by rememberSaveable { mutableStateOf(-5.0) }
+    var rangeMax by rememberSaveable { mutableStateOf(5.0) }
 
     val validEvaluators = remember(expressions) {
         expressions.mapNotNull { expr ->
@@ -41,16 +44,18 @@ fun ValuesTableDialog(
         }
     }
 
-    val rows = remember(validEvaluators, step, rangeMin, rangeMax, params) {
+    val rows = remember(validEvaluators, mode, step, rangeMin, rangeMax, params) {
+        fun shown(value: Double) = if (value.isFinite()) NumberFormatter.formatCompact(value) else "—"
         val list = mutableListOf<List<String>>()
         var x = rangeMin
         while (x <= rangeMax + 1e-6) {
-            val rowValues = mutableListOf(String.format("%.2f", x).trimEnd('0').trimEnd('.'))
-            for (evaluator in validEvaluators) {
-                val y = evaluator.evaluate(x, params)
-                rowValues.add(
-                    if (y.isNaN() || y.isInfinite()) "—" else String.format("%.4f", y).trimEnd('0').trimEnd('.')
-                )
+            val rowValues = mutableListOf(shown(x))
+            if (mode == GraphMode.PARAMETRIC && validEvaluators.size >= 2) {
+                rowValues += shown(validEvaluators[0].evaluate(x, params, "t"))
+                rowValues += shown(validEvaluators[1].evaluate(x, params, "t"))
+            } else for (evaluator in validEvaluators) {
+                val y = evaluator.evaluate(x, params, if (mode == GraphMode.POLAR) "theta" else "x")
+                rowValues += shown(y)
             }
             list.add(rowValues)
             x += step
@@ -63,7 +68,7 @@ fun ValuesTableDialog(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(20.dp))
-                .background(Color(0xFF0F1117))
+                .background(Color(0xFF27292D))
                 .border(1.dp, SurfaceBorder, RoundedCornerShape(20.dp))
                 .padding(16.dp)
         ) {
@@ -75,7 +80,11 @@ fun ValuesTableDialog(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "📋 Таблица значений X-Y",
+                        text = when (mode) {
+                            GraphMode.CARTESIAN -> "Таблица значений X–Y"
+                            GraphMode.POLAR -> "Таблица значений θ–r"
+                            GraphMode.PARAMETRIC -> "Таблица значений t–X–Y"
+                        },
                         color = Color.White,
                         fontSize = 15.sp,
                         fontWeight = FontWeight.Bold
@@ -98,13 +107,13 @@ fun ValuesTableDialog(
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("Шаг Δx:", color = TextSecondary, fontSize = 12.sp)
+                    Text("Шаг:", color = TextSecondary, fontSize = 12.sp)
                     listOf(0.1, 0.25, 0.5, 1.0, 2.0).forEach { s ->
                         val isSelected = step == s
                         Box(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(10.dp))
-                                .background(if (isSelected) Color(0xFF38BDF8) else SurfaceElevated)
+                                .background(if (isSelected) Color(0xFFB9C6D6) else SurfaceElevated)
                                 .clickable { step = s }
                                 .padding(horizontal = 8.dp, vertical = 4.dp)
                         ) {
@@ -128,19 +137,19 @@ fun ValuesTableDialog(
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Text(
-                        text = "X",
-                        color = Color(0xFF38BDF8),
+                        text = when (mode) { GraphMode.CARTESIAN -> "X"; GraphMode.POLAR -> "θ"; GraphMode.PARAMETRIC -> "t" },
+                        color = Color(0xFFB9C6D6),
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.weight(1f)
                     )
                     validEvaluators.forEachIndexed { i, _ ->
                         Text(
-                            text = "Y${i + 1}",
+                            text = when (mode) { GraphMode.CARTESIAN -> "Y${i + 1}"; GraphMode.POLAR -> "r${i + 1}"; GraphMode.PARAMETRIC -> if (i == 0) "X" else "Y" },
                             color = when (i) {
                                 0 -> Color.White
-                                1 -> Color(0xFF38BDF8)
-                                else -> Color(0xFFA855F7)
+                                1 -> Color(0xFFB9C6D6)
+                                else -> Color(0xFFB9ADC8)
                             },
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold,

@@ -22,15 +22,17 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.calculator.core.ui.R
 import com.calculator.core.ui.components.GlassCard
 import com.calculator.core.ui.theme.*
+import com.calculator.core.ui.utils.NumberFormatter
+import com.calculator.core.data.database.CalculationEntity
+import com.calculator.domain.model.SolutionStep
+import kotlinx.serialization.json.Json
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -44,6 +46,16 @@ private fun accentForCategory(name: String): Color = when {
     else -> AccentAmber
 }
 
+private fun calculationCount(count: Int): String {
+    val word = when {
+        count % 100 in 11..14 -> "вычислений"
+        count % 10 == 1 -> "вычисление"
+        count % 10 in 2..4 -> "вычисления"
+        else -> "вычислений"
+    }
+    return "$count $word"
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HistoryScreen(
@@ -53,6 +65,7 @@ fun HistoryScreen(
     val context = androidx.compose.ui.platform.LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     var itemToExport by remember { mutableStateOf<com.calculator.core.data.database.CalculationEntity?>(null) }
+    var confirmClear by remember { mutableStateOf(false) }
 
     val exportLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
         contract = androidx.activity.result.contract.ActivityResultContracts.CreateDocument("application/pdf")
@@ -60,15 +73,13 @@ fun HistoryScreen(
         val item = itemToExport
         if (uri != null && item != null) {
             coroutineScope.launch {
-                val stepsList = if (item.serializedSteps.isNotEmpty()) {
-                    item.serializedSteps.split("|")
-                } else emptyList()
+                val stepsList = formatHistorySteps(item)
                 val success = com.calculator.core.ui.utils.PdfGenerator.generateAndSavePdf(
                     context = context,
                     uri = uri,
                     title = "History: ${item.formulaName}",
-                    expression = item.solvedVariable,
-                    result = "${String.format(Locale.US, "%.4f", item.resultValue)} ${item.resultUnit}",
+                    expression = item.expression.ifBlank { item.solvedVariable },
+                    result = formatHistoryResult(item),
                     steps = stepsList
                 )
                 android.widget.Toast.makeText(
@@ -84,7 +95,24 @@ fun HistoryScreen(
     }
 
     val historyItems by viewModel.historyItems.collectAsState()
-    val dateFormat = remember { SimpleDateFormat("dd MMM yyyy, HH:mm", Locale.getDefault()) }
+    val dateFormat = remember { SimpleDateFormat("dd MMM yyyy, HH:mm", Locale.forLanguageTag("ru")) }
+
+    if (confirmClear) {
+        AlertDialog(
+            onDismissRequest = { confirmClear = false },
+            title = { Text("Очистить историю?") },
+            text = { Text("Все сохранённые вычисления будут удалены.") },
+            confirmButton = {
+                TextButton(onClick = { viewModel.clearHistory(); confirmClear = false }) {
+                    Text("Удалить", color = ErrorRed)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmClear = false }) { Text("Отмена") }
+            },
+            containerColor = SurfaceElevated
+        )
+    }
 
     Column(
         modifier = modifier
@@ -108,17 +136,13 @@ fun HistoryScreen(
                     modifier = Modifier
                         .size(40.dp)
                         .clip(RoundedCornerShape(12.dp))
-                        .background(
-                            Brush.radialGradient(
-                                colors = listOf(AccentVioletLight.copy(alpha = 0.4f), Color.Transparent)
-                            )
-                        ),
+                        .background(SurfaceElevated),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = Icons.Rounded.History,
                         contentDescription = null,
-                        tint = AccentAmber,
+                        tint = TextPrimary,
                         modifier = Modifier.size(22.dp)
                     )
                 }
@@ -130,7 +154,7 @@ fun HistoryScreen(
                         fontWeight = FontWeight.Bold
                     )
                     Text(
-                        text = "${historyItems.size} вычислений",
+                        text = calculationCount(historyItems.size),
                         color = TextMuted,
                         fontSize = 12.sp
                     )
@@ -138,7 +162,7 @@ fun HistoryScreen(
             }
 
             if (historyItems.isNotEmpty()) {
-                TextButton(onClick = { viewModel.clearHistory() }) {
+                TextButton(onClick = { confirmClear = true }) {
                     Icon(
                         Icons.Rounded.DeleteOutline,
                         contentDescription = null,
@@ -147,7 +171,7 @@ fun HistoryScreen(
                     )
                     Spacer(Modifier.width(4.dp))
                     Text(
-                        text = stringResource(R.string.history_btn_clear),
+                        text = "Очистить",
                         color = ErrorRed,
                         fontSize = 13.sp
                     )
@@ -242,9 +266,16 @@ private fun HistoryCard(
                     )
                     Spacer(Modifier.height(2.dp))
                     Text(
-                        text = "${item.solvedVariable} = ${String.format(Locale.US, "%.4f", item.resultValue)} ${item.resultUnit}",
+                        text = item.expression.ifBlank { item.solvedVariable },
+                        color = TextSecondary,
+                        fontSize = 13.sp,
+                        maxLines = 2
+                    )
+                    Spacer(Modifier.height(3.dp))
+                    Text(
+                        text = formatHistoryResult(item),
                         color = accentColor,
-                        fontSize = 16.sp,
+                        fontSize = 18.sp,
                         fontWeight = FontWeight.SemiBold,
                         fontFamily = FontFamily.Monospace
                     )
@@ -260,7 +291,7 @@ private fun HistoryCard(
                     IconButton(onClick = onExport, modifier = Modifier.size(36.dp)) {
                         Icon(
                             imageVector = Icons.Rounded.PictureAsPdf,
-                            contentDescription = "Export PDF",
+                            contentDescription = "Экспорт PDF",
                             tint = AccentVioletLight,
                             modifier = Modifier.size(20.dp)
                         )
@@ -268,7 +299,7 @@ private fun HistoryCard(
                     IconButton(onClick = onDelete, modifier = Modifier.size(36.dp)) {
                         Icon(
                             imageVector = Icons.Rounded.DeleteOutline,
-                            contentDescription = "Delete",
+                            contentDescription = "Удалить",
                             tint = ErrorRed.copy(alpha = 0.8f),
                             modifier = Modifier.size(20.dp)
                         )
@@ -277,4 +308,23 @@ private fun HistoryCard(
             }
         }
     }
+}
+
+private fun formatHistoryResult(item: CalculationEntity): String {
+    val value = item.result.ifBlank { NumberFormatter.formatResult(item.resultValue) }
+    return if (item.resultUnit.isBlank() || value.trim().endsWith(item.resultUnit)) value else "$value ${item.resultUnit}"
+}
+
+private fun formatHistorySteps(item: CalculationEntity): List<String> {
+    val raw = item.serializedSteps.trim()
+    if (raw.isEmpty()) return emptyList()
+    if (raw.startsWith("[")) {
+        return runCatching {
+            Json.decodeFromString<List<SolutionStep>>(raw).map { step ->
+                listOfNotNull(step.description, step.equationLatex.takeIf { it.isNotBlank() }, step.substitutionDetails)
+                    .joinToString(" — ")
+            }
+        }.getOrElse { listOf("Не удалось прочитать сохранённые шаги") }
+    }
+    return raw.split(";").filter { it.isNotBlank() }.map { it.replace("|", ": ") }
 }

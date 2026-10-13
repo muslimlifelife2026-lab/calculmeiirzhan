@@ -25,8 +25,6 @@ import com.calculator.domain.model.MeasurementUnit
 import com.calculator.domain.model.CalculationResult
 import com.calculator.core.ui.components.GlassCard
 import com.calculator.core.ui.components.VariableInput
-import com.calculator.core.ui.components.PremiumOverlay
-import com.calculator.core.ui.components.PremiumTimerBadge
 import com.calculator.core.ui.theme.*
 import com.calculator.core.ui.R
 
@@ -38,9 +36,6 @@ fun PhysicsFormulasSection(
     inputUnits: Map<String, MeasurementUnit?>,
     targetSymbol: String,
     calculationResult: CalculationResult?,
-    isPremiumActive: Boolean,
-    unlockUntilTimestamp: Long?,
-    onUnlockPremium: () -> Unit,
     onSelectFormula: (Formula) -> Unit,
     onSetTargetVariable: (String) -> Unit,
     onInputValueChange: (String, String) -> Unit,
@@ -97,7 +92,7 @@ fun PhysicsFormulasSection(
                                     .padding(vertical = 10.dp, horizontal = 8.dp)
                             ) {
                                 Text(text = formula.name, color = TextPrimary, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
-                                Text(text = "${formula.subcategory} • ${formula.canonicalEquation}", color = Color(0xFF38BDF8), fontSize = 11.sp, fontFamily = FontFamily.Monospace)
+                                Text(text = "${formula.subcategory} • ${formula.canonicalEquation}", color = Color(0xFFB9C6D6), fontSize = 11.sp, fontFamily = FontFamily.Monospace)
                             }
                             HorizontalDivider(color = Color(0x1AFFFFFF))
                         }
@@ -148,7 +143,7 @@ fun PhysicsFormulasSection(
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
                                     text = formula.subcategory.uppercase(),
-                                    color = Color(0xFF38BDF8),
+                                    color = Color(0xFFB9C6D6),
                                     fontSize = 10.sp,
                                     fontWeight = FontWeight.Bold,
                                     letterSpacing = 1.sp
@@ -197,8 +192,8 @@ fun PhysicsFormulasSection(
                         ) {
                             val activeVar = formula.variables.firstOrNull { it.symbol == targetSymbol }
                             Text(
-                                text = "🎯 Ищем: ${activeVar?.symbol ?: targetSymbol} (${activeVar?.name ?: ""})",
-                                color = Color(0xFF38BDF8),
+                                text = "Ищем: ${activeVar?.symbol ?: targetSymbol} (${activeVar?.name ?: ""})",
+                                color = Color(0xFFB9C6D6),
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Bold,
                                 modifier = Modifier.weight(1f)
@@ -234,7 +229,7 @@ fun PhysicsFormulasSection(
             // 4. Input parameters header
             item {
                 Text(
-                    text = "📝 Введите известные числа:",
+                    text = "Введите известные числа:",
                     color = TextPrimary,
                     fontSize = 13.sp,
                     fontWeight = FontWeight.Bold,
@@ -264,7 +259,7 @@ fun PhysicsFormulasSection(
                     },
                     colors = ButtonDefaults.buttonColors(
                         containerColor = Color.White,
-                        contentColor = Color(0xFF08090C)
+                        contentColor = Color(0xFF161719)
                     ),
                     modifier = Modifier
                         .fillMaxWidth()
@@ -272,8 +267,8 @@ fun PhysicsFormulasSection(
                     shape = RoundedCornerShape(12.dp)
                 ) {
                     Text(
-                        text = "Вычислить ответ ⚡",
-                        color = Color(0xFF08090C),
+                        text = "Вычислить ответ ",
+                        color = Color(0xFF161719),
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold
                     )
@@ -287,7 +282,7 @@ fun PhysicsFormulasSection(
                         GlassCard(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .border(1.dp, Color(0xFF38BDF8).copy(alpha = 0.5f), RoundedCornerShape(16.dp)),
+                                .border(1.dp, Color(0xFFB9C6D6).copy(alpha = 0.5f), RoundedCornerShape(16.dp)),
                             cornerRadius = 16.dp
                         ) {
                             Row(
@@ -301,7 +296,7 @@ fun PhysicsFormulasSection(
                                     Row(verticalAlignment = Alignment.CenterVertically) {
                                         Text(
                                             text = "ОТВЕТ",
-                                            color = Color(0xFF38BDF8),
+                                            color = Color(0xFFB9C6D6),
                                             fontSize = 11.sp,
                                             fontWeight = FontWeight.Bold,
                                             letterSpacing = 1.sp
@@ -310,12 +305,12 @@ fun PhysicsFormulasSection(
                                         Box(
                                             modifier = Modifier
                                                 .clip(RoundedCornerShape(6.dp))
-                                                .background(Color(0xFF38BDF8).copy(alpha = 0.15f))
+                                                .background(Color(0xFFB9C6D6).copy(alpha = 0.15f))
                                                 .padding(horizontal = 6.dp, vertical = 2.dp)
                                         ) {
                                             Text(
                                                 text = "СИ: ${result.unitSymbol}".trim(),
-                                                color = Color(0xFF38BDF8),
+                                                color = Color(0xFFB9C6D6),
                                                 fontSize = 9.sp,
                                                 fontWeight = FontWeight.Bold
                                             )
@@ -323,7 +318,7 @@ fun PhysicsFormulasSection(
                                     }
                                     Spacer(modifier = Modifier.height(4.dp))
                                     Text(
-                                        text = "${result.solvedSymbol} = ${String.format(java.util.Locale.US, "%.4f", result.value).trimEnd('0').trimEnd('.')} ${result.unitSymbol}".trim(),
+                                        text = "${result.solvedSymbol} = ${com.calculator.core.ui.utils.NumberFormatter.formatResult(result)} ${result.unitSymbol}".trim(),
                                         color = Color.White,
                                         fontSize = 24.sp,
                                         fontWeight = FontWeight.Bold
@@ -346,14 +341,10 @@ fun PhysicsFormulasSection(
                                 fontSize = 13.sp,
                                 fontWeight = FontWeight.Bold
                             )
-                            if (isPremiumActive && unlockUntilTimestamp != null) {
-                                PremiumTimerBadge(unlockUntilTimestamp = unlockUntilTimestamp)
-                            }
                         }
                     }
 
-                    if (isPremiumActive) {
-                        items(result.steps) { step ->
+                    items(result.steps) { step ->
                             GlassCard(modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp)) {
                                 Column(modifier = Modifier.fillMaxWidth()) {
                                     Text(
@@ -378,15 +369,6 @@ fun PhysicsFormulasSection(
                                     }
                                 }
                             }
-                        }
-                    } else {
-                        item {
-                            PremiumOverlay(
-                                onUnlockSuccess = {
-                                    onUnlockPremium()
-                                }
-                            )
-                        }
                     }
                 } else {
                     item {
@@ -402,11 +384,6 @@ fun PhysicsFormulasSection(
                 }
             }
 
-            // 8. Banner advertisement
-            item {
-                Spacer(modifier = Modifier.height(4.dp))
-                com.calculator.core.ui.components.AdmobBannerSimulator()
-            }
         }
     }
 }

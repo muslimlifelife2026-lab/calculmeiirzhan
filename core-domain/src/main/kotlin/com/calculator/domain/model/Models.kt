@@ -120,5 +120,6 @@ data class CalculationResult(
     val value: Double = 0.0,
     val unitSymbol: String = "",
     val steps: List<SolutionStep> = emptyList(),
-    val errorMessage: String? = null
+    val errorMessage: String? = null,
+    val exactValue: String = ""
 )

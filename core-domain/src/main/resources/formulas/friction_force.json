@@ -1,20 +1,28 @@
 {
   "id": "friction_force",
   "name": "Сила трения",
-  "category": "Физика",
+  "category": "PHYSICS",
   "subcategory": "Динамика",
   "description": "Рассчитывает силу трения скольжения по коэффициенту трения и силе нормальной реакции опоры.",
-  "canonicalEquation": "F_f - mu * N",
-  "latexTemplate": "F_f = \\mu \\cdot N",
+  "canonicalEquation": "Ff - mu * N",
+  "latexTemplate": "Ff = \\mu \\cdot N",
   "variables": [
     {
-      "symbol": "F_f",
+      "symbol": "Ff",
       "name": "Сила трения",
       "description": "Сила противодействия движению тел.",
       "defaultUnitSymbol": "N",
       "supportedUnits": [
-        { "name": "Ньютоны", "symbol": "N", "factor": "1" },
-        { "name": "Килоньютоны", "symbol": "kN", "factor": "1000" }
+        {
+          "name": "Ньютоны",
+          "symbol": "N",
+          "scaleFactor": 1.0
+        },
+        {
+          "name": "Килоньютоны",
+          "symbol": "kN",
+          "scaleFactor": 1000.0
+        }
       ]
     },
     {
@@ -30,8 +38,17 @@
       "description": "Сила нормальной реакции опоры.",
       "defaultUnitSymbol": "N",
       "supportedUnits": [
-        { "name": "Ньютоны", "symbol": "N", "factor": "1" }
+        {
+          "name": "Ньютоны",
+          "symbol": "N",
+          "scaleFactor": 1.0
+        }
       ]
     }
-  ]
+  ],
+  "solvedEquations": {
+    "Ff": "mu * N",
+    "mu": "Ff / N",
+    "N": "Ff / mu"
+  }
 }

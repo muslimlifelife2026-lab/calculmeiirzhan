@@ -38,19 +38,19 @@ fun PhysicsPresetsSection(
 ) {
     val presets = remember {
         listOf(
-            PhysicsPreset("🏎️ Разгон авто", "velocity_kinematics", "v_f", mapOf("v_i" to "0", "a" to "5", "t" to "6"), "Разгон с 0 до скорости за 6 сек при a=5 м/с²"),
-            PhysicsPreset("📱 Падение яблока", "potential_energy", "Ep", mapOf("m" to "0.2", "g" to "9.81", "h" to "3"), "Энергия яблока 200г на высоте 3м"),
-            PhysicsPreset("🚗 Торможение", "force_newton", "F", mapOf("m" to "1500", "a" to "8"), "Сила для торможения авто 1.5т"),
-            PhysicsPreset("💧 Масса воды", "density", "m", mapOf("d" to "1000", "V" to "0.2"), "Масса 200 литров (0.2м³) воды"),
-            PhysicsPreset("💡 Закон Ома", "ohm_law", "I", mapOf("U" to "220", "R" to "44"), "Сила тока при R=44 Ом"),
-            PhysicsPreset("🏃‍♂️ Энергия бега", "kinetic_energy", "E_k", mapOf("m" to "70", "v" to "8"), "Кинетическая энергия человека 70кг при скорости 8м/с"),
-            PhysicsPreset("🏋️ Работа силы", "work_force", "A", mapOf("F" to "500", "s" to "20"), "Работа при перемещении груза силой 500Н на 20м")
+            PhysicsPreset("Разгон авто", "velocity_kinematics", "v_f", mapOf("v_i" to "0", "a" to "5", "t" to "6"), "Разгон с 0 до скорости за 6 сек при a=5 м/с²"),
+            PhysicsPreset("Падение яблока", "potential_energy", "Ep", mapOf("m" to "0.2", "g" to "9.81", "h" to "3"), "Энергия яблока 200г на высоте 3м"),
+            PhysicsPreset("Торможение", "force_newton", "F", mapOf("m" to "1500", "a" to "8"), "Сила для торможения авто 1.5т"),
+            PhysicsPreset("Масса воды", "density", "m", mapOf("d" to "1000", "V" to "0.2"), "Масса 200 литров (0.2м³) воды"),
+            PhysicsPreset("Закон Ома", "ohm_law", "I", mapOf("U" to "220", "R" to "44"), "Сила тока при R=44 Ом"),
+            PhysicsPreset("♂ Энергия бега", "kinetic_energy", "E_k", mapOf("m" to "70", "v" to "8"), "Кинетическая энергия человека 70кг при скорости 8м/с"),
+            PhysicsPreset("Работа силы", "work_force", "A", mapOf("F" to "500", "s" to "20"), "Работа при перемещении груза силой 500Н на 20м")
         )
     }
 
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Text(
-            text = "🚀 Примеры из жизни (1 клик):",
+            text = "Примеры из жизни (1 клик):",
             color = TextSecondary,
             fontSize = 11.sp,
             fontWeight = FontWeight.SemiBold

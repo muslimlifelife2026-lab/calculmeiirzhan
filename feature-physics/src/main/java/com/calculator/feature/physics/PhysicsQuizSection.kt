@@ -1,8 +1,11 @@
 package com.calculator.feature.physics
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -15,6 +18,7 @@ import com.calculator.core.ui.theme.TextPrimary
 import com.calculator.core.ui.theme.TextSecondary
 
 @Composable
+@OptIn(ExperimentalLayoutApi::class)
 fun PhysicsQuizSection(formulas: List<Formula>, modifier: Modifier = Modifier) {
     if (formulas.isEmpty()) {
         Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -23,10 +27,12 @@ fun PhysicsQuizSection(formulas: List<Formula>, modifier: Modifier = Modifier) {
         return
     }
 
-    var quizIndex by remember { mutableStateOf(0) }
+    var quizIndex by rememberSaveable { mutableIntStateOf(0) }
     val formula = formulas[quizIndex % formulas.size]
 
-    val cleanEquation = formula.canonicalEquation.replace(" ", "")
+    val exercise = formula.solvedEquations.entries.firstOrNull()
+    val cleanEquation = (exercise?.let { "${it.key}=${it.value}" }
+        ?: "${formula.canonicalEquation}=0").replace(" ", "")
     val originalTokens = remember(cleanEquation) {
         val tokens = mutableListOf<String>()
         var i = 0
@@ -63,12 +69,13 @@ fun PhysicsQuizSection(formulas: List<Formula>, modifier: Modifier = Modifier) {
     Column(
         modifier = modifier
             .fillMaxSize()
+            .verticalScroll(rememberScrollState())
             .padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         Text(
-            text = "Соберите формулу:",
+            text = if (exercise != null) "Соберите равенство для ${exercise.key}" else "Соберите уравнение, равное нулю",
             color = TextPrimary,
             fontSize = 18.sp,
             fontWeight = FontWeight.Bold
@@ -79,6 +86,11 @@ fun PhysicsQuizSection(formulas: List<Formula>, modifier: Modifier = Modifier) {
             fontSize = 14.sp,
             fontWeight = FontWeight.Medium
         )
+        Text(
+            text = "Расставьте все блоки в порядке записи формулы. Порядок множителей здесь тоже учитывается.",
+            color = TextSecondary,
+            fontSize = 12.sp
+        )
 
         // User Answer Box
         GlassCard(
@@ -86,12 +98,12 @@ fun PhysicsQuizSection(formulas: List<Formula>, modifier: Modifier = Modifier) {
                 .fillMaxWidth()
                 .heightIn(min = 60.dp)
         ) {
-            Row(
+            FlowRow(
                 modifier = Modifier
                     .padding(12.dp)
                     .fillMaxWidth(),
                 horizontalArrangement = Arrangement.Center,
-                verticalAlignment = Alignment.CenterVertically
+                verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 if (userAnswer.isEmpty()) {
                     Text("Нажимайте на блоки снизу...", color = TextSecondary, fontSize = 14.sp)
@@ -107,7 +119,7 @@ fun PhysicsQuizSection(formulas: List<Formula>, modifier: Modifier = Modifier) {
                             colors = ButtonDefaults.buttonColors(containerColor = com.calculator.core.ui.theme.AccentViolet),
                             modifier = Modifier.padding(horizontal = 2.dp)
                         ) {
-                            Text(token, color = Color.White)
+                            Text(token, color = com.calculator.core.ui.theme.Background)
                         }
                     }
                 }
@@ -115,7 +127,7 @@ fun PhysicsQuizSection(formulas: List<Formula>, modifier: Modifier = Modifier) {
         }
 
         // Available Options
-        Row(
+        FlowRow(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.Center
         ) {
@@ -155,10 +167,10 @@ fun PhysicsQuizSection(formulas: List<Formula>, modifier: Modifier = Modifier) {
                 onClick = {
                     if (userAnswer == originalTokens) {
                         isSuccess = true
-                        quizMessage = "🎉 Правильно! Отличная работа!"
+                        quizMessage = "Правильно! Отличная работа!"
                     } else {
                         isSuccess = false
-                        quizMessage = "❌ Неверно. Попробуйте еще раз!"
+                        quizMessage = "Неверно. Попробуйте еще раз!"
                     }
                 },
                 colors = ButtonDefaults.buttonColors(containerColor = com.calculator.core.ui.theme.AccentAmber)
@@ -170,7 +182,7 @@ fun PhysicsQuizSection(formulas: List<Formula>, modifier: Modifier = Modifier) {
         if (quizMessage.isNotEmpty()) {
             Text(
                 text = quizMessage,
-                color = if (isSuccess == true) Color(0xFF00FFB2) else MaterialTheme.colorScheme.error,
+                color = if (isSuccess == true) com.calculator.core.ui.theme.AccentPrimary else MaterialTheme.colorScheme.error,
                 fontWeight = FontWeight.Bold,
                 fontSize = 16.sp
             )
@@ -184,9 +196,9 @@ fun PhysicsQuizSection(formulas: List<Formula>, modifier: Modifier = Modifier) {
                     isSuccess = null
                     quizMessage = ""
                 },
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00FFB2))
+                colors = ButtonDefaults.buttonColors(containerColor = com.calculator.core.ui.theme.AccentPrimary)
             ) {
-                Text("Следующая формула ➡️", color = Color.Black, fontWeight = FontWeight.Bold)
+                Text("Следующая формула ➡", color = Color.Black, fontWeight = FontWeight.Bold)
             }
         }
     }

@@ -1,55 +1,67 @@
 package com.calculator.domain.model
 
+/** Element masses and electron configurations are bundled from PubChem's periodic-table CSV. */
 object PeriodicTable {
-    val elements: Map<String, Element> = listOf(
-        Element("H", "Hydrogen", 1, 1.008),
-        Element("He", "Helium", 2, 4.0026),
-        Element("Li", "Lithium", 3, 6.94),
-        Element("Be", "Beryllium", 4, 9.0122),
-        Element("B", "Boron", 5, 10.81),
-        Element("C", "Carbon", 6, 12.011),
-        Element("N", "Nitrogen", 7, 14.007),
-        Element("O", "Oxygen", 8, 15.999),
-        Element("F", "Fluorine", 9, 18.998),
-        Element("Ne", "Neon", 10, 20.180),
-        Element("Na", "Sodium", 11, 22.990),
-        Element("Mg", "Magnesium", 12, 24.305),
-        Element("Al", "Aluminum", 13, 26.982),
-        Element("Si", "Silicon", 14, 28.085),
-        Element("P", "Phosphorus", 15, 30.974),
-        Element("S", "Sulfur", 16, 32.06),
-        Element("Cl", "Chlorine", 17, 35.45),
-        Element("Ar", "Argon", 18, 39.95),
-        Element("K", "Potassium", 19, 39.098),
-        Element("Ca", "Calcium", 20, 40.078),
-        Element("Sc", "Scandium", 21, 44.956),
-        Element("Ti", "Titanium", 22, 47.867),
-        Element("V", "Vanadium", 23, 50.942),
-        Element("Cr", "Chromium", 24, 51.996),
-        Element("Mn", "Manganese", 25, 54.938),
-        Element("Fe", "Iron", 26, 55.845),
-        Element("Co", "Cobalt", 27, 58.933),
-        Element("Ni", "Nickel", 28, 58.693),
-        Element("Cu", "Copper", 29, 63.546),
-        Element("Zn", "Zinc", 30, 65.38),
-        Element("As", "Arsenic", 33, 74.922),
-        Element("Br", "Bromine", 35, 79.904),
-        Element("Kr", "Krypton", 36, 83.798),
-        Element("Rb", "Rubidium", 37, 85.468),
-        Element("Sr", "Strontium", 38, 87.62),
-        Element("Ag", "Silver", 47, 107.87),
-        Element("Sn", "Tin", 50, 118.71),
-        Element("I", "Iodine", 53, 126.90),
-        Element("Xe", "Xenon", 54, 131.29),
-        Element("Cs", "Cesium", 55, 132.91),
-        Element("Ba", "Barium", 56, 137.33),
-        Element("Pt", "Platinum", 78, 195.08),
-        Element("Au", "Gold", 79, 196.97),
-        Element("Hg", "Mercury", 80, 200.59),
-        Element("Pb", "Lead", 82, 207.2),
-    ).associateBy { it.symbol }
+    private val russianNames = ("""
+        Водород,Гелий,Литий,Бериллий,Бор,Углерод,Азот,Кислород,Фтор,Неон,
+        Натрий,Магний,Алюминий,Кремний,Фосфор,Сера,Хлор,Аргон,Калий,Кальций,
+        Скандий,Титан,Ванадий,Хром,Марганец,Железо,Кобальт,Никель,Медь,Цинк,
+        Галлий,Германий,Мышьяк,Селен,Бром,Криптон,Рубидий,Стронций,Иттрий,Цирконий,
+        Ниобий,Молибден,Технеций,Рутений,Родий,Палладий,Серебро,Кадмий,Индий,Олово,
+        Сурьма,Теллур,Иод,Ксенон,Цезий,Барий,Лантан,Церий,Празеодим,Неодим,
+        Прометий,Самарий,Европий,Гадолиний,Тербий,Диспрозий,Гольмий,Эрбий,Тулий,Иттербий,
+        Лютеций,Гафний,Тантал,Вольфрам,Рений,Осмий,Иридий,Платина,Золото,Ртуть,
+        Таллий,Свинец,Висмут,Полоний,Астат,Радон,Франций,Радий,Актиний,Торий,
+        Протактиний,Уран,Нептуний,Плутоний,Америций,Кюрий,Берклий,Калифорний,Эйнштейний,Фермий,
+        Менделевий,Нобелий,Лоуренсий,Резерфордий,Дубний,Сиборгий,Борий,Хассий,Мейтнерий,Дармштадтий,
+        Рентгений,Коперниций,Нихоний,Флеровий,Московий,Ливерморий,Теннессин,Оганесон
+    """).trimIndent().replace("\n", "").replace(" ", "").split(',')
+
+    val elements: Map<String, Element> by lazy {
+        val stream = requireNotNull(javaClass.classLoader.getResourceAsStream("elements/periodic_table.tsv")) {
+            "Periodic table resource is missing"
+        }
+        val entries = stream.bufferedReader(Charsets.UTF_8).useLines { lines ->
+            lines.filter { it.isNotBlank() && !it.startsWith('#') }.map { line ->
+                val fields = line.split('\t')
+                require(fields.size == 7) { "Malformed periodic table row: $line" }
+                val number = fields[0].toInt()
+                Element(
+                    symbol = fields[1], name = fields[2], atomicNumber = number,
+                    atomicMass = fields[3].toDouble(), nameRu = russianNames[number - 1],
+                    category = fields[6], period = when {
+                        number <= 2 -> 1; number <= 10 -> 2; number <= 18 -> 3
+                        number <= 36 -> 4; number <= 54 -> 5; number <= 86 -> 6; else -> 7
+                    },
+                    electronConfig = fields[4], electronegativity = fields[5].toDoubleOrNull() ?: 0.0
+                )
+            }.toList()
+        }
+        require(entries.size == 118 && entries.map { it.atomicNumber } == (1..118).toList()) {
+            "Periodic table must contain elements 1 through 118"
+        }
+        entries.associateBy { it.symbol }
+    }
 
     val allElements: List<Element> get() = elements.values.toList()
 
     fun getElement(symbol: String): Element? = elements[symbol]
+
+    /** Counts electrons by principal quantum number from the supplied configuration. */
+    fun shellDistribution(atomicNumber: Int): List<Int> {
+        val element = allElements.getOrNull(atomicNumber - 1) ?: return emptyList()
+        val counts = IntArray(7)
+        val config = element.electronConfig
+        val core = Regex("\\[([A-Za-z]+)]").find(config)?.groupValues?.get(1)
+        if (core != null) {
+            shellDistribution(getElement(core)?.atomicNumber ?: return emptyList()).forEachIndexed { index, count ->
+                counts[index] += count
+            }
+        }
+        Regex("(\\d+)[spdfg](\\d+)").findAll(config).forEach { match ->
+            val shell = match.groupValues[1].toInt()
+            if (shell in 1..7) counts[shell - 1] += match.groupValues[2].toInt()
+        }
+        return if (counts.sum() == atomicNumber) counts.toList().dropLastWhile { it == 0 } else emptyList()
+    }
 }

@@ -10,6 +10,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.produceState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -21,6 +23,9 @@ import androidx.compose.ui.unit.sp
 import com.calculator.core.ui.components.GlassCard
 import com.calculator.core.ui.theme.*
 import com.calculator.engine.solver.ChemistrySolver
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.withContext
 
 @Composable
 fun BalancerSection(
@@ -29,11 +34,11 @@ fun BalancerSection(
     reactionPresets: List<ReactionPreset>,
     modifier: Modifier = Modifier
 ) {
-    val balanceResult = remember(equationInput) {
+    val balanceResult by produceState<String?>(initialValue = null, equationInput) {
+        value = null
         if (equationInput.isNotBlank()) {
-            ChemistrySolver.balanceReaction(equationInput)
-        } else {
-            null
+            delay(250)
+            value = withContext(Dispatchers.Default) { ChemistrySolver.balanceReaction(equationInput) }
         }
     }
 
@@ -44,7 +49,7 @@ fun BalancerSection(
         // 1-Tap Reaction Presets Row
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(
-                text = "🔥 Примеры реакций (1 тап):",
+                text = "Примеры реакций (1 тап):",
                 color = TextSecondary,
                 fontSize = 11.sp,
                 fontWeight = FontWeight.SemiBold
@@ -167,8 +172,8 @@ fun BalancerSection(
             }
         }
 
-        if (balanceResult != null) {
-            val isSuccess = balanceResult.contains("=")
+        balanceResult?.let { result ->
+            val isSuccess = result.contains("=")
             if (isSuccess) {
                 GlassCard(modifier = Modifier.fillMaxWidth()) {
                     Column(
@@ -185,7 +190,7 @@ fun BalancerSection(
                         )
 
                         Text(
-                            text = balanceResult,
+                            text = result,
                             color = Color.White,
                             fontSize = 20.sp,
                             fontWeight = FontWeight.Bold,
@@ -204,7 +209,7 @@ fun BalancerSection(
             } else {
                 GlassCard(modifier = Modifier.fillMaxWidth()) {
                     Text(
-                        text = balanceResult,
+                        text = result,
                         color = MaterialTheme.colorScheme.error,
                         fontSize = 13.sp,
                         fontWeight = FontWeight.SemiBold

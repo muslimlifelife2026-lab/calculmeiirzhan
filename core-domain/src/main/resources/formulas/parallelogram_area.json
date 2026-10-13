@@ -1,7 +1,7 @@
 {
   "id": "parallelogram_area",
   "name": "Площадь параллелограмма",
-  "category": "Геометрия",
+  "category": "GEOMETRY",
   "subcategory": "2D Фигуры",
   "description": "Рассчитывает площадь параллелограмма по длине его стороны основания и высоте к ней.",
   "canonicalEquation": "S - b * h",
@@ -13,8 +13,16 @@
       "description": "Общая площадь параллелограмма.",
       "defaultUnitSymbol": "m^2",
       "supportedUnits": [
-        { "name": "Квадратные метры", "symbol": "m^2", "factor": "1" },
-        { "name": "Квадратные сантиметры", "symbol": "cm^2", "factor": "0.0001" }
+        {
+          "name": "Квадратные метры",
+          "symbol": "m^2",
+          "scaleFactor": 1.0
+        },
+        {
+          "name": "Квадратные сантиметры",
+          "symbol": "cm^2",
+          "scaleFactor": 0.0001
+        }
       ]
     },
     {
@@ -23,8 +31,16 @@
       "description": "Сторона основания.",
       "defaultUnitSymbol": "m",
       "supportedUnits": [
-        { "name": "Метры", "symbol": "m", "factor": "1" },
-        { "name": "Сантиметры", "symbol": "cm", "factor": "0.01" }
+        {
+          "name": "Метры",
+          "symbol": "m",
+          "scaleFactor": 1.0
+        },
+        {
+          "name": "Сантиметры",
+          "symbol": "cm",
+          "scaleFactor": 0.01
+        }
       ]
     },
     {
@@ -33,9 +49,22 @@
       "description": "Высота, опущенная на основание.",
       "defaultUnitSymbol": "m",
       "supportedUnits": [
-        { "name": "Метры", "symbol": "m", "factor": "1" },
-        { "name": "Сантиметры", "symbol": "cm", "factor": "0.01" }
+        {
+          "name": "Метры",
+          "symbol": "m",
+          "scaleFactor": 1.0
+        },
+        {
+          "name": "Сантиметры",
+          "symbol": "cm",
+          "scaleFactor": 0.01
+        }
       ]
     }
-  ]
+  ],
+  "solvedEquations": {
+    "S": "b * h",
+    "b": "S / h",
+    "h": "S / b"
+  }
 }

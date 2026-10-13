@@ -46,8 +46,8 @@ fun Stereometry3DCanvas(
     dimC: Float = 10f,
     autoRotate: Boolean = false
 ) {
-    var rotX by remember { mutableFloatStateOf(0.45f) } // Initial pitch
-    var rotY by remember { mutableFloatStateOf(0.75f) } // Initial yaw
+    var rotX by androidx.compose.runtime.saveable.rememberSaveable { mutableFloatStateOf(0.45f) }
+    var rotY by androidx.compose.runtime.saveable.rememberSaveable { mutableFloatStateOf(0.75f) }
 
     LaunchedEffect(autoRotate) {
         if (autoRotate) {
@@ -67,7 +67,7 @@ fun Stereometry3DCanvas(
             .fillMaxWidth()
             .height(240.dp)
             .clip(RoundedCornerShape(18.dp))
-            .background(Color(0xFF08090C)) // Pure Obsidian Minimalist Canvas
+            .background(Color(0xFF161719)) // Pure Obsidian Minimalist Canvas
             .border(1.dp, SurfaceBorder, RoundedCornerShape(18.dp))
             .pointerInput(Unit) {
                 detectDragGestures { change, dragAmount ->
@@ -111,7 +111,7 @@ fun Stereometry3DCanvas(
                 val p1 = project(Point3D(step, floorY, -gridSize))
                 val p2 = project(Point3D(step, floorY, gridSize))
                 drawLine(
-                    color = Color(0xFF38BDF8).copy(alpha = 0.14f),
+                    color = Color(0xFFB9C6D6).copy(alpha = 0.14f),
                     start = p1.offset,
                     end = p2.offset,
                     strokeWidth = 1f
@@ -119,7 +119,7 @@ fun Stereometry3DCanvas(
                 val p3 = project(Point3D(-gridSize, floorY, step))
                 val p4 = project(Point3D(gridSize, floorY, step))
                 drawLine(
-                    color = Color(0xFF38BDF8).copy(alpha = 0.14f),
+                    color = Color(0xFFB9C6D6).copy(alpha = 0.14f),
                     start = p3.offset,
                     end = p4.offset,
                     strokeWidth = 1f
@@ -161,7 +161,7 @@ fun Stereometry3DCanvas(
 
                     // Render Vertex points
                     projected.forEach { pt ->
-                        drawCircle(color = Color(0xFF38BDF8), radius = 3.5.dp.toPx(), center = pt.offset)
+                        drawCircle(color = Color(0xFFB9C6D6), radius = 3.5.dp.toPx(), center = pt.offset)
                     }
                 }
 
@@ -198,7 +198,7 @@ fun Stereometry3DCanvas(
                         }
 
                         drawPath(pathBack, color = Color(0xFF334155), style = Stroke(width = 1f, pathEffect = PathEffect.dashPathEffect(floatArrayOf(4f, 4f), 0f)))
-                        drawPath(pathFront, color = Color(0xFF38BDF8).copy(alpha = 0.8f), style = Stroke(width = 2f))
+                        drawPath(pathFront, color = Color(0xFFB9C6D6).copy(alpha = 0.8f), style = Stroke(width = 2f))
                     }
 
                     // Equator highlighted ring
@@ -211,7 +211,7 @@ fun Stereometry3DCanvas(
                     drawPath(eqPath, color = Color.White, style = Stroke(width = 2.5f))
 
                     // Outer Glow Silhouette
-                    drawCircle(color = Color(0xFF38BDF8).copy(alpha = 0.15f), radius = r * baseScale, center = Offset(cx, cy))
+                    drawCircle(color = Color(0xFFB9C6D6).copy(alpha = 0.15f), radius = r * baseScale, center = Offset(cx, cy))
                 }
 
                 Shape3DType.CYLINDER -> {
@@ -252,7 +252,7 @@ fun Stereometry3DCanvas(
                         val isFront = (topPt.z + botPt.z) >= 0
 
                         drawLine(
-                            color = if (isFront) Color(0xFF38BDF8) else Color(0xFF1E293B),
+                            color = if (isFront) Color(0xFFB9C6D6) else Color(0xFF1E293B),
                             start = topPt.offset,
                             end = botPt.offset,
                             strokeWidth = if (isFront) 2f else 1f,
@@ -287,7 +287,7 @@ fun Stereometry3DCanvas(
                         val isFront = pt.z >= 0
 
                         drawLine(
-                            color = if (isFront) Color(0xFF38BDF8) else Color(0xFF1E293B),
+                            color = if (isFront) Color(0xFFB9C6D6) else Color(0xFF1E293B),
                             start = apex.offset,
                             end = pt.offset,
                             strokeWidth = if (isFront) 2f else 1f,
@@ -329,13 +329,13 @@ fun Stereometry3DCanvas(
                     base.forEach { pt ->
                         val isFront = pt.z >= 0
                         drawLine(
-                            color = if (isFront) Color(0xFF38BDF8) else Color(0xFF1E293B),
+                            color = if (isFront) Color(0xFFB9C6D6) else Color(0xFF1E293B),
                             start = apex.offset,
                             end = pt.offset,
                             strokeWidth = if (isFront) 2.5f else 1.2f,
                             pathEffect = if (!isFront) PathEffect.dashPathEffect(floatArrayOf(5f, 5f), 0f) else null
                         )
-                        drawCircle(color = Color(0xFF38BDF8), radius = 3.dp.toPx(), center = pt.offset)
+                        drawCircle(color = Color(0xFFB9C6D6), radius = 3.dp.toPx(), center = pt.offset)
                     }
 
                     // Apex Point
@@ -355,8 +355,8 @@ fun Stereometry3DCanvas(
                 .padding(horizontal = 8.dp, vertical = 4.dp)
         ) {
             Text(
-                text = "🔄 Вращение 360° (тяните пальцем)",
-                color = Color(0xFF38BDF8),
+                text = "Вращение 360° (тяните пальцем)",
+                color = Color(0xFFB9C6D6),
                 fontSize = 11.sp,
                 fontWeight = FontWeight.Bold
             )

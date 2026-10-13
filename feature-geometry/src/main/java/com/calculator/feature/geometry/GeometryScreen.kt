@@ -34,9 +34,6 @@ import com.calculator.domain.model.Formula
 import com.calculator.domain.model.Variable
 import com.calculator.core.ui.components.GlassCard
 import com.calculator.core.ui.components.VariableInput
-import com.calculator.core.ui.components.PremiumOverlay
-import com.calculator.core.ui.components.PremiumTimerBadge
-import com.calculator.core.ui.premium.PremiumManager
 import com.calculator.core.ui.theme.*
 import com.calculator.core.ui.R
 import kotlin.math.PI
@@ -48,10 +45,7 @@ fun GeometryScreen(
     modifier: Modifier = Modifier,
     viewModel: GeometryViewModel = viewModel()
 ) {
-    val context = LocalContext.current
     val keyboardController = LocalSoftwareKeyboardController.current
-    val premiumManager = remember { PremiumManager(context) }
-    var isPremiumActive by remember { mutableStateOf(premiumManager.isPremiumActive()) }
 
     var selectedModeTab by rememberSaveable { mutableIntStateOf(0) } // 0: 2D Planimetry, 1: 3D Stereometry
 
@@ -68,13 +62,13 @@ fun GeometryScreen(
     val listState = rememberLazyListState()
 
     // 3D State
-    var selected3DShape by remember { mutableStateOf(Shape3DType.CUBE) }
-    var dimRadius by remember { mutableFloatStateOf(5.0f) }
-    var dimHeight by remember { mutableFloatStateOf(10.0f) }
-    var dimSideA by remember { mutableFloatStateOf(6.0f) }
-    var dimSideB by remember { mutableFloatStateOf(8.0f) }
-    var dimSideC by remember { mutableFloatStateOf(10.0f) }
-    var autoRotate3D by remember { mutableStateOf(false) }
+    var selected3DShape by rememberSaveable { mutableStateOf(Shape3DType.CUBE) }
+    var dimRadius by rememberSaveable { mutableFloatStateOf(5.0f) }
+    var dimHeight by rememberSaveable { mutableFloatStateOf(10.0f) }
+    var dimSideA by rememberSaveable { mutableFloatStateOf(6.0f) }
+    var dimSideB by rememberSaveable { mutableFloatStateOf(8.0f) }
+    var dimSideC by rememberSaveable { mutableFloatStateOf(10.0f) }
+    var autoRotate3D by rememberSaveable { mutableStateOf(false) }
 
     LaunchedEffect(selectedFormula) {
         showSteps = false
@@ -94,31 +88,12 @@ fun GeometryScreen(
             .padding(horizontal = 12.dp, vertical = 6.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        // Mode Selector: 2D vs 3D Tabs
-        ScrollableTabRow(
-            selectedTabIndex = selectedModeTab,
-            containerColor = Color.Transparent,
-            contentColor = Color.White,
-            edgePadding = 0.dp,
-            indicator = { tabPositions ->
-                if (selectedModeTab < tabPositions.size) {
-                    TabRowDefaults.SecondaryIndicator(
-                        modifier = Modifier.tabIndicatorOffset(tabPositions[selectedModeTab]),
-                        color = Color.White
-                    )
-                }
-            },
+        com.calculator.core.ui.components.GlassTabs(
+            tabs = listOf("2D Планиметрия", "3D Стереометрия"),
+            selectedIndex = selectedModeTab,
+            onSelect = { selectedModeTab = it },
             modifier = Modifier.padding(bottom = 4.dp)
-        ) {
-            val tabs = listOf("📐 2D Планиметрия", "🧊 3D Стереометрия (360°)")
-            tabs.forEachIndexed { index, title ->
-                Tab(
-                    selected = selectedModeTab == index,
-                    onClick = { selectedModeTab = index },
-                    text = { Text(title, fontWeight = if (selectedModeTab == index) FontWeight.Bold else FontWeight.Normal, fontSize = 13.sp) }
-                )
-            }
-        }
+        )
 
         if (selectedModeTab == 1) {
             // ─── 3D STEREOMETRY MODE (100% Functional & Bug-Free) ──────────────
@@ -214,17 +189,17 @@ fun GeometryScreen(
                     }
                     Column {
                         Text("Полная площадь (S):", color = TextSecondary, fontSize = 11.sp)
-                        Text(String.format("%.2f ед²", area3D), color = Color(0xFF38BDF8), fontSize = 16.sp, fontWeight = FontWeight.Bold, fontFamily = MonospaceFontFamily)
+                        Text(String.format("%.2f ед²", area3D), color = Color(0xFFB9C6D6), fontSize = 16.sp, fontWeight = FontWeight.Bold, fontFamily = MonospaceFontFamily)
                     }
                     Box(
                         modifier = Modifier
                             .clip(RoundedCornerShape(10.dp))
-                            .background(if (autoRotate3D) Color(0xFF38BDF8).copy(alpha = 0.2f) else SurfaceElevated)
-                            .border(1.dp, if (autoRotate3D) Color(0xFF38BDF8) else SurfaceBorder, RoundedCornerShape(10.dp))
+                            .background(if (autoRotate3D) Color(0xFFB9C6D6).copy(alpha = 0.2f) else SurfaceElevated)
+                            .border(1.dp, if (autoRotate3D) Color(0xFFB9C6D6) else SurfaceBorder, RoundedCornerShape(10.dp))
                             .clickable { autoRotate3D = !autoRotate3D }
                             .padding(horizontal = 8.dp, vertical = 6.dp)
                     ) {
-                        Text(if (autoRotate3D) "⏸ Пауза" else "▶ Авто", color = if (autoRotate3D) Color(0xFF38BDF8) else Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        Text(if (autoRotate3D) "⏸ Пауза"else "▶ Авто", color = if (autoRotate3D) Color(0xFFB9C6D6) else Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                     }
                 }
 
@@ -389,7 +364,7 @@ fun GeometryScreen(
                             modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text("🎯 Что ищем:", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                            Text("Что ищем:", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold)
                             Spacer(modifier = Modifier.width(8.dp))
                             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                 formula.variables.forEach { variable ->
@@ -434,14 +409,14 @@ fun GeometryScreen(
                             },
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = Color.White,
-                                contentColor = Color(0xFF08090C)
+                                contentColor = Color(0xFF161719)
                             ),
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(50.dp),
                             shape = RoundedCornerShape(12.dp)
                         ) {
-                            Text("Рассчитать ⚡", color = Color(0xFF08090C), fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                            Text("Рассчитать ", color = Color(0xFF161719), fontSize = 16.sp, fontWeight = FontWeight.Bold)
                         }
                     }
 
@@ -452,22 +427,22 @@ fun GeometryScreen(
                                 GlassCard(
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .border(1.dp, Color(0xFF38BDF8).copy(alpha = 0.5f), RoundedCornerShape(16.dp)),
+                                        .border(1.dp, Color(0xFFB9C6D6).copy(alpha = 0.5f), RoundedCornerShape(16.dp)),
                                     cornerRadius = 16.dp
                                 ) {
                                     Column(modifier = Modifier.padding(14.dp)) {
                                         Row(verticalAlignment = Alignment.CenterVertically) {
-                                            Text("ОТВЕТ", color = Color(0xFF38BDF8), fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+                                            Text("ОТВЕТ", color = Color(0xFFB9C6D6), fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
                                             Spacer(modifier = Modifier.width(8.dp))
                                             Box(
                                                 modifier = Modifier
                                                     .clip(RoundedCornerShape(6.dp))
-                                                    .background(Color(0xFF38BDF8).copy(alpha = 0.15f))
+                                                    .background(Color(0xFFB9C6D6).copy(alpha = 0.15f))
                                                     .padding(horizontal = 6.dp, vertical = 2.dp)
                                             ) {
                                                 Text(
                                                     text = "СИ: ${result.unitSymbol}".trim(),
-                                                    color = Color(0xFF38BDF8),
+                                                    color = Color(0xFFB9C6D6),
                                                     fontSize = 9.sp,
                                                     fontWeight = FontWeight.Bold
                                                 )
@@ -475,7 +450,7 @@ fun GeometryScreen(
                                         }
                                         Spacer(modifier = Modifier.height(4.dp))
                                         Text(
-                                            text = "${result.solvedSymbol} = ${String.format(java.util.Locale.US, "%.4f", result.value).trimEnd('0').trimEnd('.')} ${result.unitSymbol}".trim(),
+                                            text = "${result.solvedSymbol} = ${com.calculator.core.ui.utils.NumberFormatter.formatResult(result)} ${result.unitSymbol}".trim(),
                                             color = Color.White,
                                             fontSize = 22.sp,
                                             fontWeight = FontWeight.Bold

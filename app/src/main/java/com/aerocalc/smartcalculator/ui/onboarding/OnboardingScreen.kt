@@ -2,142 +2,59 @@ package com.aerocalc.smartcalculator.ui.onboarding
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.pager.HorizontalPager
-import androidx.compose.foundation.pager.rememberPagerState
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Calculate
+import androidx.compose.material.icons.rounded.GridView
+import androidx.compose.material.icons.rounded.History
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.calculator.core.ui.components.GlassSurface
 import com.calculator.core.ui.theme.*
-import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun OnboardingScreen(
-    onFinish: () -> Unit
-) {
-    val pagerState = rememberPagerState(pageCount = { 3 })
-    val coroutineScope = rememberCoroutineScope()
-
-    val slides = listOf(
-        OnboardingSlide("📐", "6 разделов науки", "Калькулятор, Физика, Химия, Геометрия, Графики и История — всё в одном приложении"),
-        OnboardingSlide("📷", "Умный сканер", "Наведи камеру на формулу — мы решим её за тебя с пошаговым объяснением"),
-        OnboardingSlide("🧊", "3D и PDF", "Вращай геометрические фигуры пальцем. Экспортируй решения в PDF одним нажатием")
-    )
-
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color(0xFF08090C))
-    ) {
+fun OnboardingScreen(onFinish: () -> Unit) {
+    AeroCalcTheme {
         Column(
-            modifier = Modifier.fillMaxSize(),
-            horizontalAlignment = Alignment.CenterHorizontally
+            Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color(0xFF36383D), Background)))
+                .safeDrawingPadding().verticalScroll(rememberScrollState()).padding(28.dp),
+            verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                contentAlignment = Alignment.TopEnd
-            ) {
-                TextButton(onClick = onFinish) {
-                    Text("Пропустить", color = TextMuted)
+            Text("AeroCalc", color = TextSecondary, fontSize = 18.sp, modifier = Modifier.padding(top = 24.dp))
+            Text("Сложные задачи.\nПонятные решения.", color = TextPrimary, fontSize = 34.sp, lineHeight = 40.sp, fontWeight = FontWeight.SemiBold)
+            Text("Начните с обычного примера. Всё остальное — в инструментах.", color = TextSecondary, fontSize = 17.sp, lineHeight = 25.sp)
+            GlassSurface(Modifier.fillMaxWidth()) {
+                Column(Modifier.fillMaxWidth().padding(26.dp), horizontalAlignment = Alignment.End) {
+                    Text("12 × 8", color = TextSecondary, fontSize = 22.sp)
+                    Text("96", color = TextPrimary, fontSize = 56.sp, fontWeight = FontWeight.Light)
                 }
             }
-
-            HorizontalPager(
-                state = pagerState,
-                modifier = Modifier.weight(1f)
-            ) { page ->
-                val slide = slides[page]
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(32.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    Text(
-                        text = slide.emoji,
-                        fontSize = 100.sp,
-                        modifier = Modifier.padding(bottom = 32.dp)
-                    )
-                    Text(
-                        text = slide.title,
-                        color = TextPrimary,
-                        fontSize = 24.sp,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(bottom = 16.dp),
-                        textAlign = TextAlign.Center
-                    )
-                    Text(
-                        text = slide.description,
-                        color = TextSecondary,
-                        fontSize = 16.sp,
-                        textAlign = TextAlign.Center,
-                        lineHeight = 24.sp
-                    )
-                }
-            }
-
-            // Page indicators
-            Row(
-                modifier = Modifier
-                    .padding(vertical = 32.dp)
-                    .fillMaxWidth(),
-                horizontalArrangement = Arrangement.Center
-            ) {
-                repeat(3) { index ->
-                    val isSelected = pagerState.currentPage == index
-                    Box(
-                        modifier = Modifier
-                            .padding(horizontal = 4.dp)
-                            .size(if (isSelected) 10.dp else 8.dp)
-                            .clip(CircleShape)
-                    .background(if (isSelected) AccentPrimary else SurfaceCard)
-                    )
-                }
-            }
-
-            Button(
-                onClick = {
-                    if (pagerState.currentPage < 2) {
-                        coroutineScope.launch {
-                            pagerState.animateScrollToPage(pagerState.currentPage + 1)
-                        }
-                    } else {
-                        onFinish()
-                    }
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 32.dp, vertical = 32.dp)
-                    .height(56.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = AccentPrimary),
-                shape = RoundedCornerShape(16.dp)
-            ) {
-                Text(
-                    text = if (pagerState.currentPage == 2) "Начать" else "Далее",
-                    color = Background,
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold
-                )
+            WelcomeRow(Icons.Rounded.Calculate, "Считайте сразу", "Обычные и научные вычисления в одном месте.")
+            WelcomeRow(Icons.Rounded.GridView, "Находите нужный инструмент", "Формулы, графики, геометрия, химия и единицы.")
+            WelcomeRow(Icons.Rounded.History, "Возвращайтесь к ответам", "Завершённые расчёты сохраняются в истории.")
+            Button(onClick = onFinish, modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)) {
+                Text("Начать", fontSize = 17.sp, fontWeight = FontWeight.SemiBold)
             }
         }
     }
 }
 
-data class OnboardingSlide(
-    val emoji: String,
-    val title: String,
-    val description: String
-)
+@Composable
+private fun WelcomeRow(icon: ImageVector, title: String, description: String) {
+    Row(horizontalArrangement = Arrangement.spacedBy(16.dp), verticalAlignment = Alignment.Top) {
+        Icon(icon, null, tint = AccentSecondary, modifier = Modifier.padding(top = 3.dp).size(25.dp))
+        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(title, color = TextPrimary, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+            Text(description, color = TextSecondary, fontSize = 14.sp, lineHeight = 20.sp)
+        }
+    }
+}

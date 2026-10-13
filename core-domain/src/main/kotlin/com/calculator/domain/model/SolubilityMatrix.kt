@@ -4,7 +4,8 @@ enum class SolubilityStatus(val code: String, val title: String, val hexColor: L
     SOLUBLE("Р", "Растворимо", 0xFF10B981),        // Emerald Green
     INSOLUBLE("Н", "Нерастворимо", 0xFFEF4444),      // Crimson Red
     SLIGHTLY_SOLUBLE("М", "Малорастворимо", 0xFFF59E0B), // Amber Yellow
-    DECOMPOSES("—", "Разлагается водой", 0xFF6B7280)    // Muted Gray
+    DECOMPOSES("—", "Разлагается водой", 0xFF6B7280),
+    UNKNOWN("?", "Нет проверенных данных", 0xFF94A3B8)
 }
 
 object SolubilityData {
@@ -116,6 +117,6 @@ object SolubilityData {
     )
 
     fun getStatus(cation: String, anion: String): SolubilityStatus {
-        return grid[cation to anion] ?: SolubilityStatus.SOLUBLE
+        return grid[cation to anion] ?: SolubilityStatus.UNKNOWN
     }
 }

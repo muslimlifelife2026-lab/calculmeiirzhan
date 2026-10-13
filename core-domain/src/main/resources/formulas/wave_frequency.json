@@ -1,7 +1,7 @@
 {
   "id": "wave_frequency",
   "name": "Частота волны",
-  "category": "Физика",
+  "category": "PHYSICS",
   "subcategory": "Оптика и волны",
   "description": "Связывает частоту волны, ее скорость распространения и длину волны.",
   "canonicalEquation": "f - v / lambda",
@@ -13,9 +13,21 @@
       "description": "Количество колебаний в секунду.",
       "defaultUnitSymbol": "Hz",
       "supportedUnits": [
-        { "name": "Герц", "symbol": "Hz", "factor": "1" },
-        { "name": "Килогерц", "symbol": "kHz", "factor": "1000" },
-        { "name": "Мегагерц", "symbol": "MHz", "factor": "1000000" }
+        {
+          "name": "Герц",
+          "symbol": "Hz",
+          "scaleFactor": 1.0
+        },
+        {
+          "name": "Килогерц",
+          "symbol": "kHz",
+          "scaleFactor": 1000.0
+        },
+        {
+          "name": "Мегагерц",
+          "symbol": "MHz",
+          "scaleFactor": 1000000.0
+        }
       ]
     },
     {
@@ -24,8 +36,16 @@
       "description": "Скорость распространения волны в среде.",
       "defaultUnitSymbol": "m/s",
       "supportedUnits": [
-        { "name": "Метры в секунду", "symbol": "m/s", "factor": "1" },
-        { "name": "Километры в час", "symbol": "km/h", "factor": "0.277777778" }
+        {
+          "name": "Метры в секунду",
+          "symbol": "m/s",
+          "scaleFactor": 1.0
+        },
+        {
+          "name": "Километры в час",
+          "symbol": "km/h",
+          "scaleFactor": 0.277777778
+        }
       ]
     },
     {
@@ -34,10 +54,27 @@
       "description": "Расстояние между соседними точками волны.",
       "defaultUnitSymbol": "m",
       "supportedUnits": [
-        { "name": "Метры", "symbol": "m", "factor": "1" },
-        { "name": "Миллиметры", "symbol": "mm", "factor": "0.001" },
-        { "name": "Нанометры", "symbol": "nm", "factor": "0.000000001" }
+        {
+          "name": "Метры",
+          "symbol": "m",
+          "scaleFactor": 1.0
+        },
+        {
+          "name": "Миллиметры",
+          "symbol": "mm",
+          "scaleFactor": 0.001
+        },
+        {
+          "name": "Нанометры",
+          "symbol": "nm",
+          "scaleFactor": 1e-09
+        }
       ]
     }
-  ]
+  ],
+  "solvedEquations": {
+    "f": "v / lambda",
+    "v": "f * lambda",
+    "lambda": "v / f"
+  }
 }

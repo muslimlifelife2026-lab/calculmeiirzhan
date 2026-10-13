@@ -1,7 +1,7 @@
 {
   "id": "gravity_accel",
   "name": "Гравитация планет",
-  "category": "Физика",
+  "category": "PHYSICS",
   "subcategory": "Астрофизика",
   "description": "Рассчитывает ускорение свободного падения на поверхности космического тела по его массе и радиусу.",
   "canonicalEquation": "g - (0.000000000066743 * M) / (R * R)",
@@ -13,7 +13,11 @@
       "description": "Сила тяжести на поверхности.",
       "defaultUnitSymbol": "m/s^2",
       "supportedUnits": [
-        { "name": "Метры в секунду в квадрате", "symbol": "m/s^2", "factor": "1" }
+        {
+          "name": "Метры в секунду в квадрате",
+          "symbol": "m/s^2",
+          "scaleFactor": 1.0
+        }
       ]
     },
     {
@@ -22,7 +26,11 @@
       "description": "Масса космического объекта в кг.",
       "defaultUnitSymbol": "kg",
       "supportedUnits": [
-        { "name": "Килограммы", "symbol": "kg", "factor": "1" }
+        {
+          "name": "Килограммы",
+          "symbol": "kg",
+          "scaleFactor": 1.0
+        }
       ]
     },
     {
@@ -31,9 +39,22 @@
       "description": "Радиус космического объекта в метрах.",
       "defaultUnitSymbol": "m",
       "supportedUnits": [
-        { "name": "Метры", "symbol": "m", "factor": "1" },
-        { "name": "Километры", "symbol": "km", "factor": "1000" }
+        {
+          "name": "Метры",
+          "symbol": "m",
+          "scaleFactor": 1.0
+        },
+        {
+          "name": "Километры",
+          "symbol": "km",
+          "scaleFactor": 1000.0
+        }
       ]
     }
-  ]
+  ],
+  "solvedEquations": {
+    "g": "0.000000000066743 * M / R^2",
+    "M": "g * R^2 / 0.000000000066743",
+    "R": "sqrt(0.000000000066743 * M / g)"
+  }
 }

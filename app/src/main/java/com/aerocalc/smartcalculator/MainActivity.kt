@@ -2,9 +2,11 @@ package com.aerocalc.smartcalculator
 
 import android.content.Context
 import android.os.Bundle
+import androidx.core.content.edit
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.SystemBarStyle
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -13,6 +15,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import com.aerocalc.smartcalculator.ui.main.MainScreen
 import com.aerocalc.smartcalculator.ui.onboarding.OnboardingScreen
+import com.aerocalc.smartcalculator.ui.onboarding.AdAgeGroup
+import com.aerocalc.smartcalculator.ui.onboarding.AgeGroupScreen
+import com.aerocalc.smartcalculator.ads.AdsController
 
 class MainActivity : ComponentActivity() {
   override fun onCreate(savedInstanceState: Bundle?) {
@@ -20,21 +25,46 @@ class MainActivity : ComponentActivity() {
 
     val sharedPrefs = getSharedPreferences("aerocalc_prefs", Context.MODE_PRIVATE)
     val isFirstLaunch = !sharedPrefs.getBoolean("onboarding_completed", false)
+    val savedAgeGroup = sharedPrefs.getString("ad_age_group", null)
+        ?.let { runCatching { AdAgeGroup.valueOf(it) }.getOrNull() }
+    val ads = AdsController(this, BuildConfig.ADMOB_APP_ID)
+    if (savedAgeGroup != null && savedAgeGroup != AdAgeGroup.UNDER_13) {
+      ads.start(savedAgeGroup == AdAgeGroup.TEEN)
+    }
 
-    enableEdgeToEdge()
     setContent {
       var showOnboarding by remember { mutableStateOf(isFirstLaunch) }
+      var ageGroup by remember { mutableStateOf(savedAgeGroup) }
 
-      if (showOnboarding) {
+      if (ageGroup == null) {
+        AgeGroupScreen(onSelect = { selected ->
+          sharedPrefs.edit { putString("ad_age_group", selected.name) }
+          ageGroup = selected
+          if (selected != AdAgeGroup.UNDER_13) ads.start(selected == AdAgeGroup.TEEN)
+        })
+      } else if (showOnboarding) {
         OnboardingScreen(
           onFinish = {
-            sharedPrefs.edit().putBoolean("onboarding_completed", true).apply()
+            sharedPrefs.edit { putBoolean("onboarding_completed", true) }
             showOnboarding = false
           }
         )
       } else {
-        MainScreen(modifier = Modifier.fillMaxSize())
+        MainScreen(
+          modifier = Modifier.fillMaxSize(),
+          adsReady = ads.ready,
+          privacyOptionsRequired = ads.privacyOptionsRequired,
+          onPrivacyOptions = ads::showPrivacyOptions,
+          onChangeAgeGroup = {
+            sharedPrefs.edit { remove("ad_age_group") }
+            recreate()
+          }
+        )
       }
     }
+    enableEdgeToEdge(
+      statusBarStyle = SystemBarStyle.dark(android.graphics.Color.TRANSPARENT),
+      navigationBarStyle = SystemBarStyle.dark(android.graphics.Color.TRANSPARENT)
+    )
   }
 }

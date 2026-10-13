@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -29,8 +30,8 @@ import kotlinx.coroutines.isActive
 fun ProjectileSimulator(
     modifier: Modifier = Modifier
 ) {
-    var initialVelocity by remember { mutableFloatStateOf(35f) } // v0 in m/s
-    var launchAngleDeg by remember { mutableFloatStateOf(45f) }   // alpha in deg
+    var initialVelocity by rememberSaveable { mutableFloatStateOf(35f) } // v0 in m/s
+    var launchAngleDeg by rememberSaveable { mutableFloatStateOf(45f) }   // alpha in deg
     var isSimulating by remember { mutableStateOf(false) }
 
     val planets = listOf(
@@ -38,7 +39,8 @@ fun ProjectileSimulator(
         PlanetGravity("Луна", 1.62f),
         PlanetGravity("Марс", 3.71f)
     )
-    var selectedPlanet by remember { mutableStateOf(planets[0]) }
+    var selectedPlanetName by rememberSaveable { mutableStateOf(planets[0].name) }
+    val selectedPlanet = planets.firstOrNull { it.name == selectedPlanetName } ?: planets[0]
 
     var animTime by remember { mutableFloatStateOf(0f) }
 
@@ -89,11 +91,11 @@ fun ProjectileSimulator(
             }
             Column {
                 Text("Высота H_max", color = TextSecondary, fontSize = 11.sp)
-                Text(String.format("%.1f м", maxHeight), color = Color(0xFFF59E0B), fontSize = 14.sp, fontWeight = FontWeight.Bold, fontFamily = MonospaceFontFamily)
+                Text(String.format("%.1f м", maxHeight), color = Color(0xFFD0C3AD), fontSize = 14.sp, fontWeight = FontWeight.Bold, fontFamily = MonospaceFontFamily)
             }
             Column {
                 Text("Время t_полёта", color = TextSecondary, fontSize = 11.sp)
-                Text(String.format("%.2f с", totalFlightTime), color = Color(0xFF38BDF8), fontSize = 14.sp, fontWeight = FontWeight.Bold, fontFamily = MonospaceFontFamily)
+                Text(String.format("%.2f с", totalFlightTime), color = Color(0xFFB9C6D6), fontSize = 14.sp, fontWeight = FontWeight.Bold, fontFamily = MonospaceFontFamily)
             }
             Button(
                 onClick = {
@@ -104,7 +106,7 @@ fun ProjectileSimulator(
                 shape = RoundedCornerShape(10.dp),
                 modifier = Modifier.height(32.dp)
             ) {
-                Text("Запуск 🚀", color = Background, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                Text("Запуск ", color = Background, fontSize = 11.sp, fontWeight = FontWeight.Bold)
             }
         }
 
@@ -114,7 +116,7 @@ fun ProjectileSimulator(
                 .fillMaxWidth()
                 .weight(1f)
                 .clip(RoundedCornerShape(18.dp))
-                .background(Color(0xFF08090C))
+                .background(Color(0xFF161719))
                 .border(1.dp, SurfaceBorder, RoundedCornerShape(18.dp))
         ) {
             Canvas(modifier = Modifier.fillMaxSize()) {
@@ -164,7 +166,7 @@ fun ProjectileSimulator(
 
                 drawPath(
                     path = curvePath,
-                    color = Color(0xFF38BDF8).copy(alpha = 0.4f),
+                    color = Color(0xFFB9C6D6).copy(alpha = 0.4f),
                     style = Stroke(width = 2f, pathEffect = PathEffect.dashPathEffect(floatArrayOf(6f, 6f), 0f))
                 )
 
@@ -177,16 +179,16 @@ fun ProjectileSimulator(
                 val projScreenY = originY - currentMathY * scaleY
 
                 // Render Projectile
-                drawCircle(color = Color(0xFFF59E0B).copy(alpha = 0.4f), radius = 12.dp.toPx(), center = Offset(projScreenX, projScreenY))
+                drawCircle(color = Color(0xFFD0C3AD).copy(alpha = 0.4f), radius = 12.dp.toPx(), center = Offset(projScreenX, projScreenY))
                 drawCircle(color = Color.White, radius = 6.dp.toPx(), center = Offset(projScreenX, projScreenY))
 
                 // Landing Target Indicator
                 val targetScreenX = originX + maxRange * scaleX
-                drawCircle(color = Color(0xFF10B981), radius = 4.dp.toPx(), center = Offset(targetScreenX, originY))
+                drawCircle(color = Color(0xFFACC4B0), radius = 4.dp.toPx(), center = Offset(targetScreenX, originY))
                 drawText(
                     textMeasurer = textMeasurer,
-                    text = AnnotatedString("🎯 ${String.format("%.1fм", maxRange)}"),
-                    style = TextStyle(color = Color(0xFF10B981), fontSize = 10.sp, fontWeight = FontWeight.Bold),
+                    text = AnnotatedString(" ${String.format("%.1fм", maxRange)}"),
+                    style = TextStyle(color = Color(0xFFACC4B0), fontSize = 10.sp, fontWeight = FontWeight.Bold),
                     topLeft = Offset(targetScreenX - 25f, originY + 6f)
                 )
             }
@@ -217,7 +219,7 @@ fun ProjectileSimulator(
                             .background(if (isSelected) Color.White else SurfaceElevated)
                             .border(1.dp, if (isSelected) Color.White else SurfaceBorder, RoundedCornerShape(12.dp))
                             .clickable {
-                                selectedPlanet = planet
+                                selectedPlanetName = planet.name
                                 animTime = 0f
                             }
                             .padding(horizontal = 8.dp, vertical = 3.dp)
@@ -260,7 +262,7 @@ fun ProjectileSimulator(
                     onValueChange = { initialVelocity = it; animTime = 0f },
                     valueRange = 10f..80f,
                     modifier = Modifier.weight(1f).padding(horizontal = 8.dp),
-                    colors = SliderDefaults.colors(thumbColor = Color(0xFFF59E0B), activeTrackColor = Color(0xFFF59E0B))
+                    colors = SliderDefaults.colors(thumbColor = Color(0xFFD0C3AD), activeTrackColor = Color(0xFFD0C3AD))
                 )
             }
         }

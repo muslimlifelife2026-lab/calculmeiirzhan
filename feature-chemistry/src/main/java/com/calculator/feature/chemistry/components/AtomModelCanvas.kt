@@ -26,38 +26,11 @@ import com.calculator.domain.model.PeriodicTable
 import kotlinx.coroutines.isActive
 
 object ElectronShellCalculator {
-    // Standard Bohr orbital shell distribution for elements 1-118
-    fun getShellDistribution(atomicNumber: Int): List<Int> {
-        val maxPerShell = listOf(2, 8, 18, 32, 32, 18, 8)
-        val shells = mutableListOf<Int>()
-        var remaining = atomicNumber
-
-        for (max in maxPerShell) {
-            if (remaining <= 0) break
-            val count = Math.min(remaining, max)
-            shells.add(count)
-            remaining -= count
-        }
-        return shells
-    }
+    fun getShellDistribution(atomicNumber: Int): List<Int> = PeriodicTable.shellDistribution(atomicNumber)
 
     fun getQuantumNotation(atomicNumber: Int): String {
-        return when (atomicNumber) {
-            1 -> "1s¹"
-            2 -> "1s²"
-            6 -> "[He] 2s² 2p²"
-            7 -> "[He] 2s² 2p³"
-            8 -> "[He] 2s² 2p⁴"
-            11 -> "[Ne] 3s¹"
-            17 -> "[Ne] 3s² 3p⁵"
-            26 -> "[Ar] 3d⁶ 4s²"
-            29 -> "[Ar] 3d¹⁰ 4s¹"
-            79 -> "[Xe] 4f¹⁴ 5d¹⁰ 6s¹"
-            else -> {
-                val shells = getShellDistribution(atomicNumber)
-                "Электроны по слоям: " + shells.joinToString(", ")
-            }
-        }
+        return PeriodicTable.allElements.getOrNull(atomicNumber - 1)?.electronConfig
+            ?.takeIf { it.isNotBlank() } ?: "Конфигурация не указана"
     }
 }
 
@@ -108,7 +81,7 @@ fun AtomModelCanvas(
         ) {
             Column {
                 Text("${element.name} (${element.symbol})", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold)
-                Text(quantumNotation, color = Color(0xFF38BDF8), fontSize = 12.sp, fontFamily = MonospaceFontFamily)
+                Text(quantumNotation, color = Color(0xFFB9C6D6), fontSize = 12.sp, fontFamily = MonospaceFontFamily)
             }
             Column(horizontalAlignment = Alignment.End) {
                 Text("Z = ${element.atomicNumber}", color = TextSecondary, fontSize = 11.sp)
@@ -122,7 +95,7 @@ fun AtomModelCanvas(
                 .fillMaxWidth()
                 .weight(1f)
                 .clip(RoundedCornerShape(18.dp))
-                .background(Color(0xFF08090C))
+                .background(Color(0xFF161719))
                 .border(1.dp, SurfaceBorder, RoundedCornerShape(18.dp))
         ) {
             Canvas(modifier = Modifier.fillMaxSize()) {
@@ -166,7 +139,7 @@ fun AtomModelCanvas(
 
                     // Orbital Ring
                     drawCircle(
-                        color = Color(0xFF38BDF8).copy(alpha = 0.25f),
+                        color = Color(0xFFB9C6D6).copy(alpha = 0.25f),
                         radius = shellRadius,
                         center = center,
                         style = Stroke(width = 1.2f, pathEffect = PathEffect.dashPathEffect(floatArrayOf(6f, 6f), 0f))
@@ -191,12 +164,12 @@ fun AtomModelCanvas(
 
                         // Glowing Electron Dot
                         drawCircle(
-                            color = Color(0xFF38BDF8).copy(alpha = 0.45f),
+                            color = Color(0xFFB9C6D6).copy(alpha = 0.45f),
                             radius = 6.dp.toPx(),
                             center = Offset(electronX, electronY)
                         )
                         drawCircle(
-                            color = Color(0xFF38BDF8),
+                            color = Color(0xFFB9C6D6),
                             radius = 3.dp.toPx(),
                             center = Offset(electronX, electronY)
                         )

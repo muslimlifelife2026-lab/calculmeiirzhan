@@ -15,7 +15,7 @@ import androidx.compose.ui.graphics.graphicsLayer
  * 21st.dev / iOS inspired kinetic spring bounce effect for clickable elements.
  */
 fun Modifier.bounceClick(
-    scaleDown: Float = 0.92f,
+    scaleDown: Float = 0.98f,
     onClick: (() -> Unit)? = null
 ): Modifier = composed {
     val interactionSource = remember { MutableInteractionSource() }
@@ -23,7 +23,7 @@ fun Modifier.bounceClick(
 
     val scale by animateFloatAsState(
         targetValue = if (isPressed) scaleDown else 1f,
-        animationSpec = spring(dampingRatio = 0.6f, stiffness = 500f),
+        animationSpec = spring(dampingRatio = 1f, stiffness = 600f),
         label = "bounceScale"
     )
 

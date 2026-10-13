@@ -12,6 +12,8 @@ import kotlinx.coroutines.suspendCancellableCoroutine
 class MathOcrEngine {
     private val recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
 
+    fun close() = recognizer.close()
+
     @androidx.annotation.OptIn(androidx.camera.core.ExperimentalGetImage::class)
     suspend fun processImage(imageProxy: ImageProxy): String? = suspendCancellableCoroutine { continuation ->
         val buffer = imageProxy.planes[0].buffer
@@ -61,29 +63,11 @@ class MathOcrEngine {
     }
 
     private fun cleanMathText(rawText: String): String {
-        // Remove line breaks and extra spaces
-        var cleaned = rawText.replace("\n", "").replace("\r", "").replace(" ", "")
-        
-        // Common OCR mistakes for math
-        cleaned = cleaned.replace("O", "0")
-        cleaned = cleaned.replace("o", "0")
-        cleaned = cleaned.replace("l", "1")
-        cleaned = cleaned.replace("I", "1")
-        cleaned = cleaned.replace("Z", "2").replace("z", "2")
-        cleaned = cleaned.replace("S", "5").replace("s", "5")
-        cleaned = cleaned.replace("B", "8")
-        cleaned = cleaned.replace("g", "9").replace("q", "9")
-        cleaned = cleaned.replace("A", "4")
-        cleaned = cleaned.replace("t", "+")
-        cleaned = cleaned.replace("x", "*")
-        cleaned = cleaned.replace("X", "*")
-        cleaned = cleaned.replace("÷", "/")
-        cleaned = cleaned.replace(":", "/")
-        cleaned = cleaned.replace(",", ".")
-        cleaned = cleaned.replace("=", "") // we don't want the equals sign in the expression to evaluate
-
-        // Keep only digits and math operators
-        val regex = Regex("[^0-9+\\-*/().^]")
-        return cleaned.replace(regex, "")
+        val lines = rawText.lines().map { it.trim() }.filter { it.isNotEmpty() }
+        if (lines.size != 1) return ""
+        val expression = lines.single().substringBefore('=').trim()
+            .replace("×", "*").replace("÷", "/").replace("−", "-").replace(',', '.')
+        if (expression.isEmpty() || !expression.matches(Regex("[0-9A-Za-zπ+\\-*/().^%\\s]+"))) return ""
+        return expression
     }
 }

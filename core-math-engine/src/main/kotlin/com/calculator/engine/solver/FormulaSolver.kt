@@ -9,7 +9,6 @@ import com.calculator.domain.utils.UnitConverter
 import com.calculator.engine.parser.MathParser
 import java.math.BigDecimal
 import java.math.MathContext
-import java.math.RoundingMode
 
 object FormulaSolver {
 
@@ -116,7 +115,7 @@ object FormulaSolver {
                 SolutionStep(
                     order = stepOrder++,
                     description = "Получаем финальный результат в единицах [${finalUnit?.symbol ?: targetVariable.defaultUnitSymbol}]:",
-                    equationLatex = "$targetSymbol = ${finalValue.setScale(6, RoundingMode.HALF_UP).stripTrailingZeros().toPlainString()} \\text{ ${finalUnit?.symbol ?: targetVariable.defaultUnitSymbol}}"
+                    equationLatex = "$targetSymbol = ${finalValue.stripTrailingZeros().toPlainString()} \\text{ ${finalUnit?.symbol ?: targetVariable.defaultUnitSymbol}}"
                 )
             )
 
@@ -124,6 +123,7 @@ object FormulaSolver {
                 success = true,
                 solvedSymbol = targetSymbol,
                 value = finalValue.toDouble(),
+                exactValue = finalValue.stripTrailingZeros().toPlainString(),
                 unitSymbol = finalUnit?.symbol ?: targetVariable.defaultUnitSymbol,
                 steps = steps
             )
@@ -136,78 +136,67 @@ object FormulaSolver {
         }
     }
 
-    /**
-     * Solves the canonical equation f(target) = 0 numerically using Brent's Method.
-     */
+    /** Locates a sign-changing interval, then bisects it with residual verification. */
     private fun solveNumerically(
         formula: Formula,
         siInputs: Map<String, BigDecimal>,
         targetSymbol: String
     ): BigDecimal {
-        // Define f(x) where x is the target variable value
+        val tokens = MathParser.tokenize(formula.canonicalEquation)
+        val rpn = MathParser.shuntingYard(tokens)
         val f = { x: BigDecimal ->
             val evalInputs = siInputs.toMutableMap()
             evalInputs[targetSymbol] = x
-            val tokens = MathParser.tokenize(formula.canonicalEquation)
-            val rpn = MathParser.shuntingYard(tokens)
             MathParser.evaluateRPN(rpn, evalInputs, mc.precision)
         }
-
-        // Brent's root finding method
-        var a = BigDecimal("-1e6") // Initial bracket lower bound
-        var b = BigDecimal("1e6")  // Initial bracket upper bound
-        
-        // Find opposite signs bracket
-        var fa = f(a)
-        var fb = f(b)
-
-        if (fa.signum() == fb.signum()) {
-            // Expand search interval if signs are same
-            for (i in 1..10) {
-                a = a.multiply(BigDecimal("10"))
-                b = b.multiply(BigDecimal("10"))
-                fa = f(a)
-                fb = f(b)
-                if (fa.signum() != fb.signum()) break
-            }
-            if (fa.signum() == fb.signum()) {
-                throw ArithmeticException("Численный метод: Не удалось локализовать корень уравнения.")
-            }
+        val zero = BigDecimal.ZERO
+        val fZero = f(zero)
+        if (fZero.signum() == 0) return zero
+        val samples = mutableListOf(zero)
+        var magnitude = BigDecimal.ONE
+        repeat(31) {
+            samples += magnitude
+            magnitude = magnitude.multiply(BigDecimal(2))
         }
-
-        var c = a
-        var fc = fa
-        var d = b - a
-        var e = d
-
-        val tolerance = BigDecimal("1e-15")
-
-        for (i in 1..100) {
-            if (fb.abs() < fa.abs()) {
-                a = b; b = c; c = a
-                fa = fb; fb = fc; fc = fa
-            }
-
-            val m = (c - b).multiply(BigDecimal("0.5"))
-            if ((c - b).abs() < tolerance || fb.compareTo(BigDecimal.ZERO) == 0) {
-                return b
-            }
-
-            if (fa.abs() >= tolerance && fb.abs() >= tolerance && fa != fc && fb != fc) {
-                // Inverse quadratic interpolation
-                val s = a - b
-                val t = c - b
-                val p = s * fa * fc * (fb - fa) - t * fb * fa * (fc - fb)
-                val q = (fa - fb) * (fb - fc) * (fc - fa)
-                // Evaluate bounds
-                // ... Simplification for numeric stability in BigDecimal ...
-            }
-
-            // Fallback: Bisection method
-            b = b + m
-            fb = f(b)
+        magnitude = BigDecimal.ONE
+        repeat(31) {
+            samples += magnitude.negate()
+            magnitude = magnitude.multiply(BigDecimal(2))
         }
-
-        return b
+        var previousX = samples.first()
+        var previousY = fZero
+        for ((index, x) in samples.withIndex().drop(1)) {
+            if (index == 32) {
+                previousX = zero
+                previousY = fZero
+            }
+            val y = f(x)
+            if (y.signum() == 0) return x
+            if (y.signum() != previousY.signum()) {
+                var low = previousX.min(x)
+                var high = previousX.max(x)
+                var lowY = f(low)
+                val residualLimit = previousY.abs().max(y.abs()).max(BigDecimal.ONE)
+                    .multiply(BigDecimal("1e-20"), mc)
+                repeat(180) {
+                    val mid = low.add(high, mc).divide(BigDecimal(2), mc)
+                    if (mid == low || mid == high) {
+                        val best = if (f(low).abs() <= f(high).abs()) low else high
+                        if (f(best).abs() <= residualLimit) return best
+                        throw ArithmeticException("Численный метод не достиг нужной точности")
+                    }
+                    val midY = f(mid)
+                    if (midY.abs() <= residualLimit) return mid
+                    if (midY.signum() == lowY.signum()) {
+                        low = mid
+                        lowY = midY
+                    } else high = mid
+                }
+                throw ArithmeticException("Численный метод не сошёлся")
+            }
+            previousX = x
+            previousY = y
+        }
+        throw ArithmeticException("Не удалось локализовать действительный корень")
     }
 }

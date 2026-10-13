@@ -4,6 +4,7 @@ import ch.obermuhlner.math.big.BigDecimalMath
 import java.math.BigDecimal
 import java.math.MathContext
 import java.math.RoundingMode
+import java.math.BigInteger
 import java.util.Stack
 
 object MathParser {
@@ -14,7 +15,8 @@ object MathParser {
         "*" to MathToken.Operator("*", 3),
         "/" to MathToken.Operator("/", 3),
         "^" to MathToken.Operator("^", 4, MathToken.Assoc.RIGHT),
-        "u-" to MathToken.Operator("u-", 5, MathToken.Assoc.RIGHT)
+        "u-" to MathToken.Operator("u-", 4, MathToken.Assoc.RIGHT),
+        "%" to MathToken.Operator("%", 5)
     )
 
     private val FUNCTIONS = setOf(
@@ -41,6 +43,14 @@ object MathParser {
                     while (i < len && (expression[i].isDigit() || expression[i] == '.')) {
                         i++
                     }
+                    if (i < len && expression[i] in "eE") {
+                        var exponentEnd = i + 1
+                        if (exponentEnd < len && expression[exponentEnd] in "+-") exponentEnd++
+                        if (exponentEnd < len && expression[exponentEnd].isDigit()) {
+                            i = exponentEnd + 1
+                            while (i < len && expression[i].isDigit()) i++
+                        }
+                    }
                     tokens.add(MathToken.Number(BigDecimal(expression.substring(start, i))))
                 }
                 c == '(' -> {
@@ -55,13 +65,17 @@ object MathParser {
                     tokens.add(MathToken.Comma)
                     i++
                 }
+                c == '%' -> {
+                    tokens.add(OPERATORS.getValue("%"))
+                    i++
+                }
                 isOperatorChar(c) -> {
                     val opStr = c.toString()
                     // Determine if unary minus
                     if (opStr == "-") {
                         val prev = tokens.lastOrNull()
                         val isUnary = prev == null || 
-                                      prev is MathToken.Operator || 
+                                      (prev is MathToken.Operator && prev.symbol != "%") ||
                                       prev == MathToken.LeftParenthesis || 
                                       prev == MathToken.Comma
                         if (isUnary) {
@@ -100,7 +114,16 @@ object MathParser {
                 }
             }
         }
-        return tokens
+        val withProducts = mutableListOf<MathToken>()
+        for (token in tokens) {
+            val previous = withProducts.lastOrNull()
+            if ((previous is MathToken.Number || previous is MathToken.Variable || previous == MathToken.RightParenthesis) &&
+                (token == MathToken.LeftParenthesis || token is MathToken.Func || token is MathToken.Variable)) {
+                withProducts.add(OPERATORS.getValue("*"))
+            }
+            withProducts.add(token)
+        }
+        return withProducts
     }
 
     fun shuntingYard(tokens: List<MathToken>): List<MathToken> {
@@ -189,44 +212,69 @@ object MathParser {
         isDegrees: Boolean = false
     ): Pair<BigDecimal, List<MathStep>> {
         val stack = Stack<BigDecimal>()
+        val percentFlags = Stack<Boolean>()
         val mc = MathContext(precision, RoundingMode.HALF_UP)
         val steps = mutableListOf<MathStep>()
 
         // Formatter to clean up intermediate trailing decimals
-        fun formatVal(v: BigDecimal): String = v.setScale(6, RoundingMode.HALF_UP)
-            .stripTrailingZeros()
-            .toPlainString()
+        fun formatVal(v: BigDecimal): String {
+            val compact = v.stripTrailingZeros()
+            return if (compact.signum() != 0 && (compact.precision() - compact.scale() > 12 || compact.scale() > 6))
+                compact.toString() else compact.toPlainString()
+        }
 
         for (token in rpn) {
             when (token) {
                 is MathToken.Number -> {
                     stack.push(token.value)
+                    percentFlags.push(false)
                 }
                 is MathToken.Variable -> {
                     val value = variables[token.symbol] 
                         ?: throw IllegalArgumentException("Variable not initialized: ${token.symbol}")
                     stack.push(value)
+                    percentFlags.push(false)
                 }
                 is MathToken.Operator -> {
-                    if (token.symbol == "u-") {
+                    if (token.symbol == "%") {
+                        if (stack.isEmpty()) throw IllegalArgumentException("Для процента нужно число")
+                        val a = stack.pop()
+                        percentFlags.pop()
+                        val res = a.divide(BigDecimal(100), mc)
+                        stack.push(res)
+                        percentFlags.push(true)
+                        steps.add(MathStep("Находим процент от числа", "${formatVal(a)}% = ${formatVal(res)}"))
+                    } else if (token.symbol == "u-") {
                         if (stack.size < 1) throw IllegalArgumentException("Empty stack for unary minus")
                         val a = stack.pop()
+                        val wasPercent = percentFlags.pop()
                         val res = a.negate()
                         stack.push(res)
+                        percentFlags.push(wasPercent)
                         steps.add(MathStep("Смена знака числа (${formatVal(a)}) на противоположный", "-(${formatVal(a)}) = ${formatVal(res)}"))
                     } else {
                         if (stack.size < 2) throw IllegalArgumentException("Insufficient operands for binary operator ${token.symbol}")
                         val b = stack.pop()
                         val a = stack.pop()
+                        val bIsPercent = percentFlags.pop()
+                        percentFlags.pop()
                         val result = when (token.symbol) {
                             "+" -> {
-                                val res = a.add(b, mc)
-                                steps.add(MathStep("Складываем ${formatVal(a)} и ${formatVal(b)}", "${formatVal(a)} + ${formatVal(b)} = ${formatVal(res)}"))
+                                val addend = if (bIsPercent) a.multiply(b, mc) else b
+                                val res = a.add(addend, mc)
+                                steps.add(MathStep(
+                                    if (bIsPercent) "Прибавляем процент от ${formatVal(a)}" else "Складываем ${formatVal(a)} и ${formatVal(b)}",
+                                    "${formatVal(a)} + ${formatVal(addend)} = ${formatVal(res)}"
+                                ))
                                 res
                             }
                             "-" -> {
-                                val res = a.subtract(b, mc)
-                                steps.add(MathStep("Вычитаем ${formatVal(b)} из ${formatVal(a)}", "${formatVal(a)} - ${formatVal(b)} = ${formatVal(res)}"))
+                                val subtrahend = if (bIsPercent) a.multiply(b, mc) else b
+                                val res = a.subtract(subtrahend, mc)
+                                steps.add(MathStep(
+                                    if (bIsPercent) "Вычитаем процент от ${formatVal(a)}" else "Вычитаем ${formatVal(b)} из ${formatVal(a)}",
+                                    "${formatVal(a)} - ${formatVal(subtrahend)} = ${formatVal(res)}"
+                                ))
                                 res
                             }
                             "*" -> {
@@ -248,11 +296,13 @@ object MathParser {
                             else -> throw IllegalArgumentException("Unsupported operator: ${token.symbol}")
                         }
                         stack.push(result)
+                        percentFlags.push(false)
                     }
                 }
                 is MathToken.Func -> {
                     if (stack.isEmpty()) throw IllegalArgumentException("Empty stack for function ${token.name}")
                     val a = stack.pop()
+                    percentFlags.pop()
                     val trigAngle = if (isDegrees && (token.name in setOf("sin", "cos", "tan"))) {
                         a.multiply(BigDecimalMath.pi(mc), mc).divide(BigDecimal(180), mc)
                     } else a
@@ -344,6 +394,7 @@ object MathParser {
                         else -> throw IllegalArgumentException("Unsupported function: ${token.name}")
                     }
                     stack.push(result)
+                    percentFlags.push(false)
                 }
                 else -> {
                     throw IllegalArgumentException("Unsupported RPN token: $token")
@@ -364,8 +415,8 @@ object MathParser {
             throw IllegalArgumentException("Факториал определен только для целых неотрицательных чисел")
         }
         var result = BigDecimal.ONE
+        if (integerPart > BigInteger.valueOf(5000)) throw IllegalArgumentException("Значение слишком велико для факториала")
         val limit = integerPart.toLong()
-        if (limit > 5000) throw IllegalArgumentException("Значение слишком велико для факториала")
         for (i in 2..limit) {
             result = result.multiply(BigDecimal(i), mc)
         }
