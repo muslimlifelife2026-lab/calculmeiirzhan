@@ -193,6 +193,10 @@ fun MolarMassSection(
                             fontFamily = FontFamily.Monospace
                         )
 
+                        if (massResult.elementCounts.keys.any { it.atomicMassType == com.calculator.domain.model.AtomicMassType.REPRESENTATIVE_ISOTOPE_MASS }) {
+                            Text("Для элементов без стандартной атомной массы использована масса выбранного изотопа из PubChem. Результат зависит от изотопного состава.",
+                                color = TextSecondary, fontSize = 11.sp)
+                        }
                         HorizontalDivider(color = SurfaceBorder)
 
                         Text(

@@ -79,7 +79,7 @@ fun ChemistryScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(Background)
+
             .padding(horizontal = 12.dp, vertical = 6.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
@@ -152,7 +152,15 @@ fun ChemistryScreen(
                         AtomModelCanvas(element = elem)
                     }
                     HorizontalDivider(color = SurfaceBorder)
-                    Text("• Атомная масса: ${elem.atomicMass} г/моль", color = Color.White, fontSize = 13.sp)
+                    val standardMass = elem.atomicMassType == com.calculator.domain.model.AtomicMassType.STANDARD_ATOMIC_WEIGHT
+                    val massLabel = if (standardMass) "Относительная атомная масса" else "Масса выбранного изотопа"
+                    val uncertainty = elem.atomicMassUncertainty?.let { " ± $it" }.orEmpty()
+                    Text("• $massLabel: ${elem.atomicMass}$uncertainty${if (standardMass) "" else " а.е.м."}", color = Color.White, fontSize = 13.sp)
+                    Text("• Электроотрицательность (Полинг): ${elem.electronegativity?.toString() ?: "нет данных"}", color = TextSecondary, fontSize = 12.sp)
+                    Text("Источник массы: ${elem.atomicMassSource}", color = TextSecondary, fontSize = 11.sp)
+                    if (!standardMass) {
+                        Text("Стандартная атомная масса не установлена. Расчёт использует массу выбранного изотопа из справочника, а не природной смеси.", color = TextSecondary, fontSize = 11.sp)
+                    }
                 }
             },
             confirmButton = {

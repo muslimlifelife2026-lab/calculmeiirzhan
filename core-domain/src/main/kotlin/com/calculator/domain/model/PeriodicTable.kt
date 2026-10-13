@@ -1,6 +1,6 @@
 package com.calculator.domain.model
 
-/** Element masses and electron configurations are bundled from PubChem's periodic-table CSV. */
+/** CIAAW 2024 standard weights; PubChem configurations and explicitly labelled isotope masses. */
 object PeriodicTable {
     private val russianNames = ("""
         Водород,Гелий,Литий,Бериллий,Бор,Углерод,Азот,Кислород,Фтор,Неон,
@@ -24,7 +24,7 @@ object PeriodicTable {
         val entries = stream.bufferedReader(Charsets.UTF_8).useLines { lines ->
             lines.filter { it.isNotBlank() && !it.startsWith('#') }.map { line ->
                 val fields = line.split('\t')
-                require(fields.size == 7) { "Malformed periodic table row: $line" }
+                require(fields.size == 9) { "Malformed periodic table row: $line" }
                 val number = fields[0].toInt()
                 Element(
                     symbol = fields[1], name = fields[2], atomicNumber = number,
@@ -33,7 +33,9 @@ object PeriodicTable {
                         number <= 2 -> 1; number <= 10 -> 2; number <= 18 -> 3
                         number <= 36 -> 4; number <= 54 -> 5; number <= 86 -> 6; else -> 7
                     },
-                    electronConfig = fields[4], electronegativity = fields[5].toDoubleOrNull() ?: 0.0
+                    electronConfig = fields[4], electronegativity = fields[5].toDoubleOrNull(),
+                    atomicMassUncertainty = fields[7].toDoubleOrNull(),
+                    atomicMassType = AtomicMassType.valueOf(fields[8])
                 )
             }.toList()
         }

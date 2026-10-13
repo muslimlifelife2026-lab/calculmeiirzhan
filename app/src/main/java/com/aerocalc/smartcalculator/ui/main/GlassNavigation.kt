@@ -47,7 +47,7 @@ fun GlassNavigation(
             val itemWidth = (maxWidth - gap * (items.size - 1)) / items.size
             val indicatorX by animateDpAsState(
                 (itemWidth + gap) * selected.coerceIn(0, items.lastIndex),
-                animationSpec = spring(dampingRatio = 0.82f, stiffness = 420f),
+                animationSpec = spring(dampingRatio = 0.86f, stiffness = 380f),
                 label = "glassTabPosition"
             )
             Box(Modifier.fillMaxWidth().drawBehind {
@@ -55,7 +55,7 @@ fun GlassNavigation(
                 val indicatorSize = Size(itemWidth.toPx(), size.height)
                 val corners = CornerRadius(27.dp.toPx())
                 drawRoundRect(
-                    brush = Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.23f), Color.White.copy(alpha = 0.10f))),
+                    brush = Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.20f), Color.White.copy(alpha = 0.07f))),
                     topLeft = topLeft, size = indicatorSize, cornerRadius = corners
                 )
                 drawRoundRect(

@@ -84,7 +84,7 @@ fun GeometryScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(Background)
+
             .padding(horizontal = 12.dp, vertical = 6.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {

@@ -28,10 +28,6 @@ class MainActivity : ComponentActivity() {
     val savedAgeGroup = sharedPrefs.getString("ad_age_group", null)
         ?.let { runCatching { AdAgeGroup.valueOf(it) }.getOrNull() }
     val ads = AdsController(this, BuildConfig.ADMOB_APP_ID)
-    if (savedAgeGroup != null && savedAgeGroup != AdAgeGroup.UNDER_13) {
-      ads.start(savedAgeGroup == AdAgeGroup.TEEN)
-    }
-
     setContent {
       var showOnboarding by remember { mutableStateOf(isFirstLaunch) }
       var ageGroup by remember { mutableStateOf(savedAgeGroup) }
@@ -55,6 +51,7 @@ class MainActivity : ComponentActivity() {
           adsReady = ads.ready,
           privacyOptionsRequired = ads.privacyOptionsRequired,
           onPrivacyOptions = ads::showPrivacyOptions,
+          onLearningActivityCompleted = ads::onLearningActivityCompleted,
           onChangeAgeGroup = {
             sharedPrefs.edit { remove("ad_age_group") }
             recreate()
@@ -66,5 +63,9 @@ class MainActivity : ComponentActivity() {
       statusBarStyle = SystemBarStyle.dark(android.graphics.Color.TRANSPARENT),
       navigationBarStyle = SystemBarStyle.dark(android.graphics.Color.TRANSPARENT)
     )
+    // Consent/ads may access the activity window. Install its content first.
+    if (savedAgeGroup != null && savedAgeGroup != AdAgeGroup.UNDER_13) {
+      ads.start(savedAgeGroup == AdAgeGroup.TEEN)
+    }
   }
 }

@@ -29,7 +29,7 @@ fun BannerSlot(modifier: Modifier = Modifier) {
     val adView = remember(context) { AdView(context) }
     var loaded by remember(adView) { mutableStateOf(false) }
 
-    Box(modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+    Box(modifier.fillMaxWidth().height(68.dp), contentAlignment = Alignment.Center) {
         LaunchedEffect(adView, preview) {
             if (!preview) {
                 adView.loadAd(

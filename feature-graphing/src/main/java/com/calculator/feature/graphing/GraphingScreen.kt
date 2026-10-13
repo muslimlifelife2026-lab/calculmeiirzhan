@@ -20,12 +20,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.calculator.core.ui.theme.*
-import com.calculator.engine.solver.GraphEvaluator
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -58,25 +60,7 @@ fun GraphingScreen(
 
     // Auto-detect any unknown variable parameters across all active expressions
     val detectedParams = remember(expressions, mode) {
-        val list = mutableListOf<String>()
-        val exclude = when (mode) {
-            GraphMode.CARTESIAN -> setOf("x", "pi", "e")
-            GraphMode.POLAR -> setOf("theta", "th", "pi", "e")
-            GraphMode.PARAMETRIC -> setOf("t", "pi", "e")
-        }
-        for (expr in expressions) {
-            try {
-                if (expr.isNotBlank()) {
-                    val ev = GraphEvaluator(expr)
-                    ev.extractParameters(exclude).forEach { p ->
-                        if (p !in list) list.add(p)
-                    }
-                }
-            } catch (e: Exception) {
-                // Ignore parse errors while typing
-            }
-        }
-        list
+        GraphParameters.discover(expressions, mode)
     }
     LaunchedEffect(detectedParams) {
         val missing = detectedParams.filterNot { it in paramValues }
@@ -93,7 +77,6 @@ fun GraphingScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(Background)
             .padding(horizontal = 12.dp, vertical = 4.dp),
         verticalArrangement = Arrangement.spacedBy(6.dp)
     ) {
@@ -343,11 +326,13 @@ fun GraphingScreen(
                     verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
                     Text(
-                        text = "Интерактивные коэффициенты (Sliders):",
+                        text = "Параметры функции",
                         color = Color(0xFF94A3B8),
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold
                     )
+                    Text("Изменяйте коэффициенты — график и таблица обновятся.",
+                        color = TextSecondary, fontSize = 11.sp)
                     detectedParams.forEach { paramName ->
                         val currentVal = paramValues[paramName] ?: 1.0
                         Row(
@@ -360,16 +345,17 @@ fun GraphingScreen(
                                 color = Color.White,
                                 fontSize = 12.sp,
                                 fontFamily = FontFamily.Monospace,
-                                modifier = Modifier.width(62.dp)
+                                modifier = Modifier.width(62.dp).testTag("graph_value_$paramName")
                             )
                             Slider(
                                 value = currentVal.toFloat(),
                                 onValueChange = { newVal ->
-                                    paramValues = paramValues + (paramName to newVal.toDouble())
+                                    paramValues = paramValues + (paramName to GraphParameters.sliderValue(newVal))
                                 },
                                 valueRange = -5f..5f,
                                 steps = 99,
-                                modifier = Modifier.weight(1f),
+                                modifier = Modifier.weight(1f).testTag("graph_param_$paramName")
+                                    .semantics { contentDescription = "Параметр $paramName" },
                                 colors = SliderDefaults.colors(
                                     thumbColor = Color(0xFFB9C6D6),
                                     activeTrackColor = Color(0xFFB9C6D6),
@@ -421,6 +407,7 @@ fun GraphingScreen(
             onSelectPreset = { preset ->
                 mode = preset.mode
                 expressions = preset.expressions
+                paramValues = paramValues + preset.initialParameters
             },
             onDismiss = { showPresetsSheet = false }
         )

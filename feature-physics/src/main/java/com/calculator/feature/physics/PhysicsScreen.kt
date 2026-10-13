@@ -16,6 +16,7 @@ import com.calculator.core.ui.components.GlassTabs
 import com.calculator.core.ui.theme.Background
 import com.calculator.feature.physics.simulators.PendulumSimulator
 import com.calculator.feature.physics.simulators.ProjectileSimulator
+import com.calculator.feature.physics.simulators.NewtonSimulator
 
 @Composable
 fun PhysicsScreen(
@@ -30,7 +31,7 @@ fun PhysicsScreen(
     val targetSymbol by viewModel.targetVariableSymbol.collectAsState()
     val calculationResult by viewModel.calculationResult.collectAsState()
 
-    var selectedPhysicsTab by rememberSaveable { mutableIntStateOf(initialTab) } // 0: Formulas, 1: Pendulum, 2: Projectile, 3: Quiz
+    var selectedPhysicsTab by rememberSaveable { mutableIntStateOf(initialTab) } // Keep practice at index 3 for learning navigation.
     val listState = rememberLazyListState()
 
     LaunchedEffect(calculationResult) {
@@ -43,11 +44,11 @@ fun PhysicsScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(Background)
+
             .padding(horizontal = 12.dp, vertical = 6.dp)
     ) {
         GlassTabs(
-            tabs = listOf("Формулы", "Маятник", "Баллистика", "Тренажёр"),
+            tabs = listOf("Формулы", "Маятник", "Баллистика", "Тренажёр", "Сила и движение"),
             selectedIndex = selectedPhysicsTab,
             onSelect = { selectedPhysicsTab = it },
             modifier = Modifier.padding(bottom = 8.dp)
@@ -63,6 +64,7 @@ fun PhysicsScreen(
             3 -> {
                 PhysicsQuizSection(formulas = formulas)
             }
+            4 -> NewtonSimulator()
             else -> {
                 PhysicsFormulasSection(
                     formulas = formulas,

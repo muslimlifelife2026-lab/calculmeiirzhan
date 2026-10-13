@@ -23,7 +23,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.calculator.core.ui.theme.*
-import kotlinx.coroutines.isActive
+import com.calculator.domain.simulation.IdealProjectileMotion
 
 @OptIn(ExperimentalTextApi::class)
 @Composable
@@ -35,30 +35,33 @@ fun ProjectileSimulator(
     var isSimulating by remember { mutableStateOf(false) }
 
     val planets = listOf(
-        PlanetGravity("Земля", 9.81f),
-        PlanetGravity("Луна", 1.62f),
-        PlanetGravity("Марс", 3.71f)
+        PlanetGravity("Земля", 9.81),
+        PlanetGravity("Луна", 1.62),
+        PlanetGravity("Марс", 3.71)
     )
     var selectedPlanetName by rememberSaveable { mutableStateOf(planets[0].name) }
     val selectedPlanet = planets.firstOrNull { it.name == selectedPlanetName } ?: planets[0]
 
-    var animTime by remember { mutableFloatStateOf(0f) }
+    var animTime by rememberSaveable { mutableDoubleStateOf(0.0) }
 
     val g = selectedPlanet.g
-    val alphaRad = Math.toRadians(launchAngleDeg.toDouble()).toFloat()
+    val alphaRad = Math.toRadians(launchAngleDeg.toDouble())
+    val motion = remember(initialVelocity, launchAngleDeg, selectedPlanetName) {
+        IdealProjectileMotion(initialVelocity.toDouble(), alphaRad, g.toDouble())
+    }
 
-    val totalFlightTime = (2 * initialVelocity * Math.sin(alphaRad.toDouble()) / g).toFloat()
-    val maxHeight = (Math.pow(initialVelocity * Math.sin(alphaRad.toDouble()), 2.0) / (2 * g)).toFloat()
-    val maxRange = (Math.pow(initialVelocity.toDouble(), 2.0) * Math.sin(2 * alphaRad.toDouble()) / g).toFloat()
+    val totalFlightTime = motion.flightTimeSeconds
+    val maxHeight = motion.maximumHeightMeters.toFloat()
+    val maxRange = motion.rangeMeters.toFloat()
 
-    LaunchedEffect(isSimulating) {
+    LaunchedEffect(isSimulating, motion) {
         if (isSimulating) {
-            animTime = 0f
-            var lastNanos = System.nanoTime()
-            while (isActive && animTime < totalFlightTime) {
+            var lastNanos: Long? = null
+            while (isSimulating && animTime < totalFlightTime) {
                 withFrameNanos { frameNanos ->
-                    val dt = ((frameNanos - lastNanos) / 1_000_000_000f).coerceIn(0.001f, 0.05f) * 1.5f // Slight speedup for fun
-                    animTime += dt
+                    lastNanos?.let { previous ->
+                        animTime = (animTime + (frameNanos - previous) / 1_000_000_000.0).coerceAtMost(totalFlightTime)
+                    }
                     lastNanos = frameNanos
                 }
             }
@@ -99,8 +102,10 @@ fun ProjectileSimulator(
             }
             Button(
                 onClick = {
+                    animTime = 0.0
                     isSimulating = true
                 },
+                enabled = !isSimulating,
                 colors = ButtonDefaults.buttonColors(containerColor = AccentPrimary),
                 contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
                 shape = RoundedCornerShape(10.dp),
@@ -154,9 +159,10 @@ fun ProjectileSimulator(
                 val curvePath = Path()
                 val steps = 80
                 for (i in 0..steps) {
-                    val t = totalFlightTime * (i.toFloat() / steps)
-                    val mathX = (initialVelocity * Math.cos(alphaRad.toDouble()) * t).toFloat()
-                    val mathY = (initialVelocity * Math.sin(alphaRad.toDouble()) * t - 0.5f * g * t * t).toFloat()
+                    val t = totalFlightTime * (i.toDouble() / steps)
+                    val point = motion.stateAt(t)
+                    val mathX = point.horizontalMeters.toFloat()
+                    val mathY = point.heightMeters.toFloat()
 
                     val sx = originX + mathX * scaleX
                     val sy = originY - mathY * scaleY
@@ -171,9 +177,10 @@ fun ProjectileSimulator(
                 )
 
                 // Current projectile position
-                val currentT = animTime.coerceIn(0f, totalFlightTime)
-                val currentMathX = (initialVelocity * Math.cos(alphaRad.toDouble()) * currentT).toFloat()
-                val currentMathY = (initialVelocity * Math.sin(alphaRad.toDouble()) * currentT - 0.5f * g * currentT * currentT).toFloat().coerceAtLeast(0f)
+                val currentT = animTime.coerceIn(0.0, totalFlightTime)
+                val currentState = motion.stateAt(currentT)
+                val currentMathX = currentState.horizontalMeters.toFloat()
+                val currentMathY = currentState.heightMeters.toFloat()
 
                 val projScreenX = originX + currentMathX * scaleX
                 val projScreenY = originY - currentMathY * scaleY
@@ -220,7 +227,8 @@ fun ProjectileSimulator(
                             .border(1.dp, if (isSelected) Color.White else SurfaceBorder, RoundedCornerShape(12.dp))
                             .clickable {
                                 selectedPlanetName = planet.name
-                                animTime = 0f
+                                animTime = 0.0
+                                isSimulating = false
                             }
                             .padding(horizontal = 8.dp, vertical = 3.dp)
                     ) {
@@ -243,7 +251,7 @@ fun ProjectileSimulator(
                 Text("Угол α: ${launchAngleDeg.toInt()}°", color = Color.White, fontSize = 12.sp)
                 Slider(
                     value = launchAngleDeg,
-                    onValueChange = { launchAngleDeg = it; animTime = 0f },
+                    onValueChange = { launchAngleDeg = it; animTime = 0.0; isSimulating = false },
                     valueRange = 10f..85f,
                     modifier = Modifier.weight(1f).padding(horizontal = 8.dp),
                     colors = SliderDefaults.colors(thumbColor = Color.White, activeTrackColor = Color.White)
@@ -259,12 +267,14 @@ fun ProjectileSimulator(
                 Text("Скорость v₀: ${initialVelocity.toInt()} м/с", color = Color.White, fontSize = 12.sp)
                 Slider(
                     value = initialVelocity,
-                    onValueChange = { initialVelocity = it; animTime = 0f },
+                    onValueChange = { initialVelocity = it; animTime = 0.0; isSimulating = false },
                     valueRange = 10f..80f,
                     modifier = Modifier.weight(1f).padding(horizontal = 8.dp),
                     colors = SliderDefaults.colors(thumbColor = Color(0xFFD0C3AD), activeTrackColor = Color(0xFFD0C3AD))
                 )
             }
+            Text("Идеальный бросок: сопротивления воздуха нет, g постоянно; старт и приземление на одной высоте. Время 1×: ${String.format("%.2f", animTime)} с. Масштабы осей подбираются независимо.",
+                color = TextSecondary, fontSize = 11.sp)
         }
     }
 }

@@ -3,9 +3,11 @@ package com.aerocalc.smartcalculator.ui.main
 import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.semantics.SemanticsActions
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
+import java.util.Locale
 
 class MainScreenTest {
     @get:Rule val rule = createAndroidComposeRule<ComponentActivity>()
@@ -74,11 +76,48 @@ class MainScreenTest {
 
     @Test fun learningLessonsAndPhysicsPracticeAreReachable() {
         rule.onNodeWithText("Обучение").performClick()
+        rule.onNodeWithTag("learning_list").performScrollToNode(hasText("Порядок действий"))
         rule.onNodeWithText("Порядок действий").performClick()
         rule.onNodeWithText("Сначала умножьте", substring = true).assertExists()
-        rule.onNodeWithText("Тренажёр по физике").performScrollTo().performClick()
+        rule.onNodeWithTag("learning_list").performScrollToNode(hasText("Тренажёр по физике"))
+        rule.onNodeWithText("Тренажёр по физике").performClick()
         rule.onAllNodesWithText("Тренажёр").onFirst().assertExists()
         rule.onNodeWithContentDescription("Вернуться к обучению").performClick()
+        rule.onNodeWithTag("learning_list").performScrollToNode(hasText("Порядок действий"))
         rule.onNodeWithText("Порядок действий").assertExists()
+    }
+
+    @Test fun graphParametersRemainEditableAfterReturningFromAnotherTab() {
+        rule.onNodeWithText("Инструменты").performClick()
+        rule.onNodeWithText("Графики").performClick()
+        rule.onNodeWithText("Библиотека").performClick()
+        rule.onNodeWithText("Параметры a и b").performClick()
+        rule.onNodeWithTag("graph_param_a").performSemanticsAction(SemanticsActions.SetProgress) { it(2f) }
+        rule.onNodeWithTag("graph_value_a").assertTextContains("2", substring = true)
+        rule.onNodeWithText("Калькулятор").performClick()
+        rule.onNodeWithText("Инструменты").performClick()
+        rule.onNodeWithText("Графики").performClick()
+        rule.onNodeWithTag("graph_value_a").assertTextContains("2", substring = true)
+        rule.onNodeWithTag("graph_param_b").assertExists()
+    }
+
+    @Test fun newtonExperimentIsReachableAndUsesTheSelectedForce() {
+        rule.onNodeWithText("Инструменты").performClick()
+        rule.onNodeWithText("Физика").performClick()
+        rule.onNodeWithText("Сила и движение").performScrollTo().performClick()
+        rule.onNodeWithText("a = F / m").assertExists()
+        rule.onNodeWithContentDescription("Равнодействующая сила в ньютонах").performSemanticsAction(SemanticsActions.SetProgress) { it(0f) }
+        rule.onNodeWithText("a = ${String.format(Locale.getDefault(), "%.2f", 0.0)} Н /", substring = true).assertExists()
+    }
+
+    @Test fun absoluteTemperatureRejectsBelowZeroInsteadOfShowingAFalseNumber() {
+        rule.onNodeWithText("Инструменты").performClick()
+        rule.onNodeWithText("Конвертер").performClick()
+        rule.onNodeWithText("Температура").performClick()
+        rule.onNodeWithContentDescription("Очистить").performClick()
+        rule.onNodeWithText("±").performClick()
+        for (key in listOf("2", "7", "3", ".", "1", "6")) rule.onNodeWithText(key).performClick()
+        rule.onNodeWithText("Температура ниже абсолютного нуля").assertExists()
+        rule.onNodeWithText("—").assertExists()
     }
 }

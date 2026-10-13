@@ -15,6 +15,7 @@ import com.google.android.ump.ConsentRequestParameters
 import com.google.android.ump.UserMessagingPlatform
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import com.aerocalc.smartcalculator.BuildConfig
 
 class AdsController(private val activity: ComponentActivity, private val appId: String) {
     var ready by mutableStateOf(false)
@@ -24,6 +25,11 @@ class AdsController(private val activity: ComponentActivity, private val appId: 
     private val consent = UserMessagingPlatform.getConsentInformation(activity)
     private var initializationStarted = false
     private var isTeen = false
+    private val interstitial = LearningInterstitial(activity, BuildConfig.ADMOB_INTERSTITIAL_UNIT_ID) {
+        ready && consent.canRequestAds()
+    }
+
+    fun onLearningActivityCompleted() = interstitial.onActivityCompleted()
 
     fun start(isTeen: Boolean) {
         this.isTeen = isTeen
@@ -66,9 +72,15 @@ class AdsController(private val activity: ComponentActivity, private val appId: 
                 MobileAds.initialize(
                     activity,
                     InitializationConfig.Builder(appId).setRequestConfiguration(requestConfig).build()
-                ) { }
+                ) {
+                    activity.runOnUiThread {
+                        if (!activity.isDestroyed) {
+                            ready = true
+                            interstitial.preload()
+                        }
+                    }
+                }
                 MobileAds.setRequestConfiguration(requestConfig)
-                activity.runOnUiThread { ready = true }
             } catch (error: Exception) {
                 Log.e("AeroCalcAds", "SDK initialization failed", error)
             }

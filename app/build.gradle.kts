@@ -20,6 +20,7 @@ android {
 
     val productionAppId = providers.gradleProperty("ADMOB_APP_ID").orElse("").get()
     val productionBannerId = providers.gradleProperty("ADMOB_BANNER_UNIT_ID").orElse("").get()
+    val productionInterstitialId = providers.gradleProperty("ADMOB_INTERSTITIAL_UNIT_ID").orElse("").get()
 
     signingConfigs {
         create("release") {
@@ -35,11 +36,13 @@ android {
             manifestPlaceholders["admobAppId"] = "ca-app-pub-3940256099942544~3347511713"
             buildConfigField("String", "ADMOB_APP_ID", "\"ca-app-pub-3940256099942544~3347511713\"")
             buildConfigField("String", "ADMOB_BANNER_UNIT_ID", "\"ca-app-pub-3940256099942544/9214589741\"")
+            buildConfigField("String", "ADMOB_INTERSTITIAL_UNIT_ID", "\"ca-app-pub-3940256099942544/1033173712\"")
         }
         release {
             manifestPlaceholders["admobAppId"] = productionAppId
             buildConfigField("String", "ADMOB_APP_ID", "\"$productionAppId\"")
             buildConfigField("String", "ADMOB_BANNER_UNIT_ID", "\"$productionBannerId\"")
+            buildConfigField("String", "ADMOB_INTERSTITIAL_UNIT_ID", "\"$productionInterstitialId\"")
             isMinifyEnabled = true
             isShrinkResources = true
             signingConfig = signingConfigs.getByName("release")
@@ -67,12 +70,14 @@ android {
 tasks.register("verifyReleaseConfiguration") {
     inputs.property("appId", providers.gradleProperty("ADMOB_APP_ID").orElse(""))
     inputs.property("bannerId", providers.gradleProperty("ADMOB_BANNER_UNIT_ID").orElse(""))
+    inputs.property("interstitialId", providers.gradleProperty("ADMOB_INTERSTITIAL_UNIT_ID").orElse(""))
     inputs.property("hasStorePassword", providers.gradleProperty("RELEASE_STORE_PASSWORD").map { it.isNotBlank() }.orElse(false))
     inputs.property("hasKeyPassword", providers.gradleProperty("RELEASE_KEY_PASSWORD").map { it.isNotBlank() }.orElse(false))
     inputs.property("hasKeystore", releaseStorePath.map { it.isNotBlank() && file(it).isFile })
     doLast {
         val appId = inputs.properties.getValue("appId").toString()
         val bannerId = inputs.properties.getValue("bannerId").toString()
+        val interstitialId = inputs.properties.getValue("interstitialId").toString()
         require(Regex("ca-app-pub-\\d{16}~\\d{10}").matches(appId) &&
             appId != "ca-app-pub-3940256099942544~3347511713") {
             "Set a real ADMOB_APP_ID Gradle property before release."
@@ -80,6 +85,10 @@ tasks.register("verifyReleaseConfiguration") {
         require(Regex("ca-app-pub-\\d{16}/\\d{10}").matches(bannerId) &&
             bannerId != "ca-app-pub-3940256099942544/9214589741") {
             "Set a real ADMOB_BANNER_UNIT_ID Gradle property before release."
+        }
+        require(interstitialId.isBlank() || (Regex("ca-app-pub-\\d{16}/\\d{10}").matches(interstitialId) &&
+            interstitialId != "ca-app-pub-3940256099942544/1033173712")) {
+            "Use a real ADMOB_INTERSTITIAL_UNIT_ID for release, or leave it blank to disable interstitials."
         }
         require(inputs.properties["hasKeystore"] == true &&
             inputs.properties["hasStorePassword"] == true &&

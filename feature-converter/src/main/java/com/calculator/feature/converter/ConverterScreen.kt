@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
@@ -27,7 +28,7 @@ import com.calculator.core.ui.components.GlassCard
 import com.calculator.core.ui.components.MathKeyboard
 import com.calculator.core.ui.components.bounceClick
 import com.calculator.core.ui.theme.*
-import java.util.Locale
+import java.math.MathContext
 
 @Composable
 fun ConverterScreen(
@@ -43,16 +44,19 @@ fun ConverterScreen(
     val toUnit = units[toIndex.coerceIn(units.indices)]
     
     var inputValue by rememberSaveable { mutableStateOf("1") }
+    var temperatureDifference by rememberSaveable { mutableStateOf(false) }
     
-    val resultValue = remember(inputValue, fromUnit, toUnit) {
-        val value = inputValue.toDoubleOrNull() ?: 0.0
-        UnitConverter.convert(value, fromUnit, toUnit, selectedCategory)
+    val conversion = remember(inputValue, fromUnit, toUnit, temperatureDifference) {
+        runCatching {
+            val value = inputValue.toBigDecimalOrNull()
+                ?: throw IllegalArgumentException("Завершите ввод числа")
+            UnitConverter.convert(value, fromUnit, toUnit, selectedCategory, temperatureDifference)
+        }
     }
 
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(Background)
             .padding(12.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
@@ -81,6 +85,13 @@ fun ConverterScreen(
                         fontSize = 13.sp
                     )
                 }
+            }
+        }
+
+        if (selectedCategory == ConversionCategory.TEMPERATURE) {
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Text("Изменение температуры (ΔT)", color = TextPrimary, fontSize = 13.sp, modifier = Modifier.weight(1f))
+                Switch(checked = temperatureDifference, onCheckedChange = { temperatureDifference = it })
             }
         }
 
@@ -126,11 +137,22 @@ fun ConverterScreen(
             // TO field (Result with Glowing Border)
             ConversionField(
                 label = "РЕЗУЛЬТАТ",
-                value = com.calculator.core.ui.utils.NumberFormatter.formatResult(resultValue),
+                value = conversion.getOrNull()?.let {
+                    com.calculator.core.ui.utils.NumberFormatter.formatExact(it.round(MathContext(14)))
+                } ?: "—",
                 unit = toUnit,
                 units = units,
                 onUnitSelected = { toIndex = units.indexOf(it) },
                 isResult = true
+            )
+            conversion.exceptionOrNull()?.let {
+                Text(it.message ?: "Проверьте введённое число", color = ErrorRed, fontSize = 13.sp)
+            }
+            Text(
+                if (selectedCategory == ConversionCategory.TEMPERATURE && temperatureDifference)
+                    "ΔT — изменение, без смещения шкалы: 1 °C = 1 K = 1,8 °F."
+                else "Расчёт: до 34 значащих цифр. Показ: до 14. Точность измерения зависит от исходных данных.",
+                color = TextMuted, fontSize = 12.sp, lineHeight = 17.sp
             )
         }
 
@@ -148,6 +170,7 @@ fun ConverterScreen(
                     else -> if (key.all { it.isDigit() }) { if (inputValue == "0") key else inputValue + key } else inputValue
                 }
                 if (inputValue.isEmpty()) inputValue = "0"
+                inputValue = inputValue.take(48)
             },
             showVariables = false
         )
@@ -196,6 +219,7 @@ fun ConversionField(
                     fontSize = 28.sp,
                     fontWeight = FontWeight.Bold,
                     maxLines = 1,
+                    modifier = Modifier.horizontalScroll(rememberScrollState()),
                     fontFamily = MonospaceFontFamily
                 )
             }

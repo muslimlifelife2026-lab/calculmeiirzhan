@@ -85,7 +85,8 @@ fun AtomModelCanvas(
             }
             Column(horizontalAlignment = Alignment.End) {
                 Text("Z = ${element.atomicNumber}", color = TextSecondary, fontSize = 11.sp)
-                Text("A = ${element.atomicMass}", color = TextSecondary, fontSize = 11.sp)
+                val massLabel = if (element.atomicMassType == com.calculator.domain.model.AtomicMassType.STANDARD_ATOMIC_WEIGHT) "Aᵣ" else "m (а.е.м.)"
+                Text("$massLabel = ${element.atomicMass}", color = TextSecondary, fontSize = 11.sp)
             }
         }
 

@@ -24,7 +24,8 @@ data class GraphPreset(
     val category: String,
     val description: String,
     val expressions: List<String>,
-    val mode: GraphMode = GraphMode.CARTESIAN
+    val mode: GraphMode = GraphMode.CARTESIAN,
+    val initialParameters: Map<String, Double> = emptyMap()
 )
 
 enum class GraphMode(val title: String) {
@@ -34,6 +35,13 @@ enum class GraphMode(val title: String) {
 }
 
 val PRESET_LIBRARY = listOf(
+    GraphPreset(
+        title = "Параметры a и b",
+        category = "Интерактивные графики",
+        description = "Меняйте наклон a и сдвиг b прямой y = ax + b; сравните её с параболой",
+        expressions = listOf("a*x+b", "x^2"),
+        initialParameters = mapOf("a" to 1.0, "b" to 0.0)
+    ),
     // ─── Calculus & Algebra Classics ───
     GraphPreset(
         title = "Распределение Гаусса (Колокол)",

@@ -22,9 +22,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.calculator.core.ui.theme.*
-import kotlinx.coroutines.isActive
+import com.calculator.domain.simulation.DampedSmallAnglePendulum
 
-data class PlanetGravity(val name: String, val g: Float)
+data class PlanetGravity(val name: String, val g: Double)
 
 @OptIn(ExperimentalTextApi::class)
 @Composable
@@ -32,51 +32,42 @@ fun PendulumSimulator(
     modifier: Modifier = Modifier
 ) {
     var lengthMeters by rememberSaveable { mutableFloatStateOf(1.0f) }
-    var initialAngleDeg by rememberSaveable { mutableFloatStateOf(30f) }
-    var damping by rememberSaveable { mutableFloatStateOf(0.02f) }
+    var initialAngleDeg by rememberSaveable { mutableFloatStateOf(10f) }
     var isRunning by rememberSaveable { mutableStateOf(true) }
 
     val planets = listOf(
-        PlanetGravity("Земля", 9.81f),
-        PlanetGravity("Луна", 1.62f),
-        PlanetGravity("Марс", 3.71f),
-        PlanetGravity("Юпитер", 24.79f)
+        PlanetGravity("Земля", 9.81),
+        PlanetGravity("Луна", 1.62),
+        PlanetGravity("Марс", 3.71),
+        PlanetGravity("Юпитер", 24.79)
     )
     var selectedPlanetName by rememberSaveable { mutableStateOf(planets[0].name) }
     val selectedPlanet = planets.first { it.name == selectedPlanetName }
 
-    var timeSeconds by rememberSaveable { mutableFloatStateOf(0f) }
+    var timeSeconds by rememberSaveable { mutableDoubleStateOf(0.0) }
+    val effectiveAngleDeg = initialAngleDeg.coerceIn(5f, 15f)
+    val motion = remember(lengthMeters, selectedPlanetName, effectiveAngleDeg) {
+        DampedSmallAnglePendulum(lengthMeters.toDouble(), selectedPlanet.g.toDouble(), Math.toRadians(effectiveAngleDeg.toDouble()))
+    }
 
-    LaunchedEffect(isRunning) {
-        var lastFrameTime = System.nanoTime()
-        while (isActive) {
-            withFrameNanos { frameTime ->
-                if (isRunning) {
-                    val dt = ((frameTime - lastFrameTime) / 1_000_000_000f).coerceIn(0.001f, 0.05f)
-                    timeSeconds += dt
+    LaunchedEffect(isRunning, motion) {
+        if (isRunning) {
+            var lastFrameTime: Long? = null
+            while (isRunning) {
+                withFrameNanos { frameTime ->
+                    lastFrameTime?.let { previous -> timeSeconds += (frameTime - previous) / 1_000_000_000.0 }
+                    lastFrameTime = frameTime
                 }
-                lastFrameTime = frameTime
             }
         }
     }
 
     // Physics calculations
-    val omega = Math.sqrt((selectedPlanet.g / lengthMeters).toDouble()).toFloat()
-    val periodT = (2 * Math.PI / omega).toFloat()
-    val frequencyHz = 1f / periodT
-
-    val thetaRad = (Math.toRadians(initialAngleDeg.toDouble()) *
-            Math.exp((-damping * timeSeconds).toDouble()) *
-            Math.cos((omega * timeSeconds).toDouble())).toFloat()
-
-    val amplitude = Math.toRadians(initialAngleDeg.toDouble())
-    val decay = Math.exp((-damping * timeSeconds).toDouble())
-    val phase = (omega * timeSeconds).toDouble()
-    val currentSpeed = (lengthMeters * amplitude * decay *
-        Math.abs(-damping * Math.cos(phase) - omega * Math.sin(phase))).toFloat()
-    val maxSpeed = (lengthMeters * amplitude * decay * Math.hypot(damping.toDouble(), omega.toDouble())).toFloat()
-    val kineticFraction = if (maxSpeed > 0) (currentSpeed / maxSpeed).coerceIn(0f, 1f) else 0f
-    val potentialFraction = (1f - kineticFraction).coerceIn(0f, 1f)
+    val periodT = motion.periodSeconds
+    val frequencyHz = 1.0 / periodT
+    val state = motion.stateAt(timeSeconds)
+    val thetaRad = state.angleRadians
+    val currentSpeed = state.speedMetersPerSecond
 
     val textMeasurer = rememberTextMeasurer()
 
@@ -111,7 +102,7 @@ fun PendulumSimulator(
             }
             Button(
                 onClick = {
-                    timeSeconds = 0f
+                    timeSeconds = 0.0
                     isRunning = !isRunning
                 },
                 colors = ButtonDefaults.buttonColors(containerColor = if (isRunning) SurfaceElevated else AccentPrimary),
@@ -213,7 +204,7 @@ fun PendulumSimulator(
                             .border(1.dp, if (isSelected) Color.White else SurfaceBorder, RoundedCornerShape(12.dp))
                             .clickable {
                                 selectedPlanetName = planet.name
-                                timeSeconds = 0f
+                                timeSeconds = 0.0
                             }
                             .padding(horizontal = 8.dp, vertical = 3.dp)
                     ) {
@@ -236,7 +227,7 @@ fun PendulumSimulator(
                 Text("Длина L: ${String.format("%.2f м", lengthMeters)}", color = Color.White, fontSize = 12.sp)
                 Slider(
                     value = lengthMeters,
-                    onValueChange = { lengthMeters = it; timeSeconds = 0f },
+                    onValueChange = { lengthMeters = it; timeSeconds = 0.0 },
                     valueRange = 0.2f..3.0f,
                     modifier = Modifier.weight(1f).padding(horizontal = 8.dp),
                     colors = SliderDefaults.colors(thumbColor = Color.White, activeTrackColor = Color.White)
@@ -249,15 +240,17 @@ fun PendulumSimulator(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Text("Угол θ₀: ${initialAngleDeg.toInt()}°", color = Color.White, fontSize = 12.sp)
+                Text("Угол θ₀: ${effectiveAngleDeg.toInt()}°", color = Color.White, fontSize = 12.sp)
                 Slider(
-                    value = initialAngleDeg,
-                    onValueChange = { initialAngleDeg = it; timeSeconds = 0f },
-                    valueRange = 5f..60f,
+                    value = effectiveAngleDeg,
+                    onValueChange = { initialAngleDeg = it; timeSeconds = 0.0 },
+                    valueRange = 5f..15f,
                     modifier = Modifier.weight(1f).padding(horizontal = 8.dp),
                     colors = SliderDefaults.colors(thumbColor = Color(0xFFB9C6D6), activeTrackColor = Color(0xFFB9C6D6))
                 )
             }
+            Text("Модель малых углов (до 15°), θ₀ отпускается без толчка. Постоянное g, линейное затухание β = 0,02 с⁻¹; время 1×. Большие углы эта модель не описывает.",
+                color = TextSecondary, fontSize = 11.sp)
         }
     }
 }

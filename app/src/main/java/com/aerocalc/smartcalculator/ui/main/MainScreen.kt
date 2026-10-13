@@ -10,7 +10,6 @@ import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.togetherWith
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
@@ -24,8 +23,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
+import com.calculator.core.ui.components.GlassBackdropHost
 import androidx.compose.ui.unit.dp
 import com.calculator.core.ui.theme.*
 import com.calculator.feature.calculator.CalculatorScreen
@@ -43,6 +41,7 @@ fun MainScreen(
     adsReady: Boolean = false,
     privacyOptionsRequired: Boolean = false,
     onPrivacyOptions: () -> Unit = {},
+    onLearningActivityCompleted: () -> Unit = {},
     onChangeAgeGroup: () -> Unit = {}
 ) {
     var tab by rememberSaveable { mutableIntStateOf(0) }
@@ -55,14 +54,9 @@ fun MainScreen(
     BackHandler(enabled = tab != 0 && (tab != 1 || tool == null) && (tab != 2 || !learningPractice)) { tab = 0 }
 
     AeroCalcTheme {
-        Box(
-            modifier.fillMaxSize().background(
-                Brush.verticalGradient(listOf(Color(0xFF29333D), Color(0xFF1B222A), Background, Color(0xFF10151A)))
-            ),
-            contentAlignment = Alignment.TopCenter
-        ) {
+        GlassBackdropHost(modifier.fillMaxSize()) {
             Column(
-                Modifier.widthIn(max = 900.dp).fillMaxSize()
+                Modifier.align(Alignment.TopCenter).widthIn(max = 900.dp).fillMaxSize()
                     .statusBarsPadding().navigationBarsPadding().imePadding()
             ) {
                 if ((tab == 1 && tool != null) || (tab == 2 && learningPractice)) {
@@ -97,7 +91,8 @@ fun MainScreen(
                             "history" -> HistoryScreen()
                             "learning" -> LearningScreen(
                                 onOpenPhysicsPractice = { learningPractice = true },
-                                onOpenConverter = { tab = 1; toolId = "converter" }
+                                onOpenConverter = { tab = 1; toolId = "converter" },
+                                onLearningActivityCompleted = onLearningActivityCompleted
                             )
                             "physics_practice" -> PhysicsScreen(initialTab = 3)
                             "physics" -> PhysicsScreen()

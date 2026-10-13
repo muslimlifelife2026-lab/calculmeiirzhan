@@ -117,7 +117,7 @@ fun HistoryScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(Background)
+
             .padding(horizontal = 16.dp)
     ) {
         Spacer(Modifier.height(20.dp))
