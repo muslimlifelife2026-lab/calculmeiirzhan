@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -28,17 +29,26 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.layer.drawLayer
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.graphics.rememberGraphicsLayer
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInRoot
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import kotlin.math.ceil
+import kotlin.math.floor
+import kotlinx.coroutines.CancellationException
 
 private class GlassBackdropState {
     var size by mutableStateOf(Size.Zero)
     var origin by mutableStateOf(Offset.Zero)
+    var scene by mutableStateOf(GlassScene(Size.Zero))
+    var images by mutableStateOf<List<ImageBitmap>>(emptyList())
 }
 
 private val LocalGlassBackdrop = staticCompositionLocalOf<GlassBackdropState?> { null }
@@ -46,13 +56,51 @@ private val LocalGlassBackdrop = staticCompositionLocalOf<GlassBackdropState?> {
 /** One original, static scene shared by the background and every glass viewport. */
 @Composable
 fun GlassBackdropHost(modifier: Modifier = Modifier, content: @Composable BoxScope.() -> Unit) {
+    // Three shared blur levels replace an offscreen blur pass for every key/card.
+    // Half-resolution textures keep the shared cache bounded to 3/4 of a screen.
+    val soft = rememberGraphicsLayer()
+    val medium = rememberGraphicsLayer()
+    val strong = rememberGraphicsLayer()
     val state = remember { GlassBackdropState() }
+    val density = LocalDensity.current
+    val direction = LocalLayoutDirection.current
+    val extent = state.size
+    LaunchedEffect(extent, density, direction) {
+        state.images = emptyList()
+        if (extent.width > 0f && extent.height > 0f) {
+            val scene = state.scene
+            try {
+                val images = listOf(soft, medium, strong).mapIndexed { index, shared ->
+                    val radius = with(density) { listOf(6.dp, 12.dp, 16.dp)[index].toPx() } * 0.5f
+                    shared.renderEffect = if (Build.VERSION.SDK_INT >= 31) BlurEffect(radius, radius, TileMode.Clamp) else null
+                    shared.record(
+                        density = density,
+                        layoutDirection = direction,
+                        size = IntSize(ceil(extent.width * 0.5f).toInt(), ceil(extent.height * 0.5f).toInt())
+                    ) { scale(0.5f, 0.5f, pivot = Offset.Zero) { scene.draw(this) } }
+                    // A RenderNode reference alone can replay a full-screen blur for
+                    // each consumer. Rasterize once, then sample immutable pixels.
+                    shared.toImageBitmap()
+                }
+                state.images = images
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (failure: RuntimeException) {
+                // Unsupported graphics capture must leave a usable, sharp crop.
+                Log.w("AeroCalcGlass", "Background cache unavailable; keeping scene crop", failure)
+            }
+        }
+    }
     CompositionLocalProvider(LocalGlassBackdrop provides state) {
         Box(modifier.onGloballyPositioned {
-            state.size = Size(it.size.width.toFloat(), it.size.height.toFloat())
+            val nextSize = Size(it.size.width.toFloat(), it.size.height.toFloat())
+            if (state.size != nextSize) {
+                state.size = nextSize
+                state.scene = GlassScene(nextSize)
+            }
             state.origin = it.positionInRoot()
         }.drawWithCache {
-            val scene = GlassScene(size)
+            val scene = state.scene
             onDrawBehind { scene.draw(this) }
         }, content = content)
     }
@@ -60,43 +108,70 @@ fun GlassBackdropHost(modifier: Modifier = Modifier, content: @Composable BoxSco
 
 /**
  * Samples only the host's procedural background, never text or sibling content.
- * API 33+ also refracts that background near the rounded edge. API 31–32 blurs
- * it in a separate layer. Older devices retain an unblurred crop of the scene.
+ * Blur is shared at three cached resolutions (6, 12 and 16 dp). API 33+ also
+ * refracts that background near the rounded edge. Older devices retain a crop.
  */
-fun Modifier.glassBackdrop(blurRadius: Dp = 16.dp, cornerRadius: Dp = 28.dp): Modifier = composed {
+fun Modifier.glassBackdrop(blurRadius: Dp = 16.dp, cornerRadius: Dp = 28.dp, refract: Boolean = true): Modifier = composed {
     val host = LocalGlassBackdrop.current
     if (host == null) return@composed this
-    val layer = rememberGraphicsLayer()
     // Keep API 33 classes out of the compatibility implementation's signatures.
-    val refraction = remember { if (Build.VERSION.SDK_INT >= 33) Api33EdgeRefraction.createOrNull() else null }
+    val refraction = remember(refract) { if (refract && Build.VERSION.SDK_INT >= 33) Api33EdgeRefraction.createOrNull() else null }
+    val layer = if (refraction != null) rememberGraphicsLayer() else null
     var origin by remember { mutableStateOf(Offset.Zero) }
     this.onGloballyPositioned { origin = it.positionInRoot() }
         .drawWithCache {
             val globalSize = host.size
             val relativeOrigin = origin - host.origin
-            val radius = if (Build.VERSION.SDK_INT >= 31) blurRadius.toPx() else 0f
-            // Extra source pixels prevent transparent fringes around the blurred viewport.
-            val margin = ceil(radius * 2f)
-            val scene = GlassScene(globalSize)
-            val blur = if (radius > 0f) BlurEffect(radius, radius, TileMode.Clamp) else null
-            layer.renderEffect = refraction?.effect(
-                size, margin, cornerRadius.toPx(), 4.dp.toPx(), radius
-            ) ?: blur
-            if (globalSize.width > 0f && globalSize.height > 0f) {
-                layer.record(
-                    density = this,
-                    layoutDirection = layoutDirection,
-                    size = IntSize(ceil(size.width + margin * 2f).toInt(), ceil(size.height + margin * 2f).toInt())
-                ) {
-                    translate(margin - relativeOrigin.x, margin - relativeOrigin.y) { scene.draw(this) }
+            val image = host.images.getOrNull(when {
+                blurRadius <= 8.dp -> 0
+                blurRadius <= 14.dp -> 1
+                else -> 2
+            })
+            val scene = host.scene
+            if (layer == null) {
+                // Small keys already have rounded highlights and a contact glow.
+                // Sample the cached glass directly without an offscreen shader per key.
+                onDrawBehind {
+                    if (image != null) drawBackdropCrop(image, relativeOrigin)
+                    else translate(-relativeOrigin.x, -relativeOrigin.y) { scene.draw(this) }
                 }
-            }
-            onDrawBehind {
+            } else {
+                // Blur is already cached by the host; only edge refraction needs a margin.
+                val margin = ceil(4.dp.toPx() * 2f)
+                layer.renderEffect = refraction?.effect(
+                    size, margin, cornerRadius.toPx(), 4.dp.toPx(), 0f
+                )
                 if (globalSize.width > 0f && globalSize.height > 0f) {
-                    translate(-margin, -margin) { drawLayer(layer) }
+                    layer.record(
+                        density = this,
+                        layoutDirection = layoutDirection,
+                        size = IntSize(ceil(size.width + margin * 2f).toInt(), ceil(size.height + margin * 2f).toInt())
+                    ) {
+                        val sourceOrigin = relativeOrigin - Offset(margin, margin)
+                        if (image != null) drawBackdropCrop(image, sourceOrigin)
+                        else translate(-sourceOrigin.x, -sourceOrigin.y) { scene.draw(this) }
+                    }
+                }
+                onDrawBehind {
+                    if (globalSize.width > 0f && globalSize.height > 0f) {
+                        translate(-margin, -margin) { drawLayer(layer) }
+                    }
                 }
             }
         }
+}
+
+/** Draw only the visible source pixels, rather than a screen-sized image for every key. */
+private fun DrawScope.drawBackdropCrop(image: ImageBitmap, origin: Offset) {
+    val left = floor(origin.x * 0.5f).toInt().coerceIn(0, image.width)
+    val top = floor(origin.y * 0.5f).toInt().coerceIn(0, image.height)
+    val right = ceil((origin.x + size.width) * 0.5f).toInt().coerceIn(left, image.width)
+    val bottom = ceil((origin.y + size.height) * 0.5f).toInt().coerceIn(top, image.height)
+    if (right == left || bottom == top) return
+    translate(left * 2f - origin.x, top * 2f - origin.y) {
+        drawImage(image, srcOffset = IntOffset(left, top), srcSize = IntSize(right - left, bottom - top),
+            dstSize = IntSize((right - left) * 2, (bottom - top) * 2))
+    }
 }
 
 private interface EdgeRefraction {

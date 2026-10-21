@@ -157,7 +157,7 @@ private fun KeyboardKey(key: String, modifier: Modifier, small: Boolean = false,
     }
     Box(
         modifier.graphicsLayer { scaleX = scale; scaleY = scale; translationY = if (pressed) 1.dp.toPx() else 0f }
-            .clip(shape).then(if (equal) Modifier else Modifier.glassBackdrop(6.dp, cornerRadius)).background(fill)
+            .clip(shape).then(if (equal) Modifier else Modifier.glassBackdrop(6.dp, cornerRadius, refract = false)).background(fill)
             .background(Brush.verticalGradient(listOf(Color.White.copy(alpha = if (operator) 0.11f else 0.08f), Color.Transparent, Color.Black.copy(alpha = 0.08f))))
             .drawWithCache {
                 val contact = if (pressPosition.x.isFinite() && pressPosition.y.isFinite()) pressPosition else Offset(size.width / 2f, size.height / 2f)

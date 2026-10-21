@@ -65,6 +65,7 @@ fun CalculatorScreen(modifier: Modifier = Modifier, viewModel: CalculatorViewMod
     val display: @Composable (Modifier) -> Unit = { displayModifier ->
         CalculatorDisplay(
             expression = shownExpression, result = shownResult, error = error, degrees = degrees,
+            isResultFinal = completedResult != null,
             hasSteps = steps.isNotEmpty(),
             onAngle = {
                 completedExpression = null; completedResult = null

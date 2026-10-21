@@ -26,7 +26,7 @@
   ],
   "android": {
     "device": "Android 14 / test_emulator",
-    "distinct_scenarios": 25,
+    "distinct_scenarios": 27,
     "results": {
       "com.aerocalc.smartcalculator.ui.main.CompactAccessibilityTest.scientificKeyboardHasReachableKeysWithLargeTextOnShortScreen": "passed",
       "com.aerocalc.smartcalculator.ui.main.CompactAccessibilityTest.oldestAgeChoiceRemainsReachableWithLargeTextOnShortScreen": "passed",
@@ -52,9 +52,11 @@
       "com.aerocalc.smartcalculator.ui.main.ScienceWorkspaceTest.sensorRecordingStopsWhenActivityLeavesForeground": "passed",
       "com.aerocalc.smartcalculator.ui.main.ScienceWorkspaceTest.geometryConstructsMeasuredSegmentFromExactCoordinates": "passed",
       "com.aerocalc.smartcalculator.ui.main.ScienceWorkspaceTest.moleculePresetProducesFormulaAndSurvivesLeavingWorkspace": "passed",
-      "com.aerocalc.smartcalculator.ui.main.CompactAccessibilityTest.plainTextOnTransparentDarkThemeHasReadableContrast": "passed"
+      "com.aerocalc.smartcalculator.ui.main.CompactAccessibilityTest.plainTextOnTransparentDarkThemeHasReadableContrast": "passed",
+      "com.aerocalc.smartcalculator.ui.main.CompactAccessibilityTest.selectedControlsAndContainerRolesHaveReadableContrast": "passed",
+      "com.aerocalc.smartcalculator.ui.main.CompactAccessibilityTest.typingPreviewDoesNotResizeOrMoveTheEnteredNumber": "passed"
     },
-    "note": "Full run: 23 functional scenarios passed; screenshot capture backend failed. Corrected capture and theme contrast were then checked in the successful targeted 4-test run. Results are the union of those runs, not a single full 25-test run."
+    "note": "Union of the original runs and subsequent UI feedback checks, not one full run. UI feedback: 16-test run passed before the last copy/viewport changes; final targeted 6-test run passed including contrast, stable number/copy bounds, accessibility and design navigation."
   },
   "release_smoke": {
     "passed": true,
@@ -76,13 +78,22 @@
   "artifacts": [
     {
       "file": "AeroCalc-1.2.0.apk",
-      "bytes": 72394174,
-      "sha256": "306C7A1ABD2CC93B8EB5F2A003243F3134981C7988420A8F66E9DDD5034945D2"
+      "bytes": 72394222,
+      "sha256": "095FE1BA3162563A0C0545B88B5B3946EBB47960063436B577322D76C7D116DB"
     },
     {
       "file": "AeroCalc-1.2.0-play.aab",
-      "bytes": 48233227,
-      "sha256": "42253863060CBB89C1C951E9F2D6C1C5A9D0669D2D54E309C77E8133F1AFB83A"
+      "bytes": 48239802,
+      "sha256": "FFB1CFC4DE8BE6E6C870BE5FD011CF1DC164D0830D4FE0D8CFBE5207F2C2BB41"
     }
-  ]
+  ],
+  "ui_feedback_fix": {
+    "stable_60fps_confirmed": false,
+    "release_vital_lint": "passed",
+    "physical_phone_tested": false,
+    "failures": 0,
+    "final_android_tests": 6,
+    "report": "audit/UI_FEEDBACK_2026-10-21.md",
+    "debug_and_release_builds": "passed"
+  }
 }

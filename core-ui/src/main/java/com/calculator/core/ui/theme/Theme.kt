@@ -10,9 +10,13 @@ import androidx.compose.ui.graphics.Color
 private val DarkColorScheme = darkColorScheme(
     primary           = AccentViolet,
     primaryContainer  = AccentVioletLight,
+    onPrimaryContainer = Background,
     secondary         = AccentAmber,
     secondaryContainer = AccentAmberLight,
+    onSecondaryContainer = Background,
     tertiary          = AccentCyan,
+    tertiaryContainer = SurfaceElevated,
+    onTertiaryContainer = TextPrimary,
     background        = Background,
     surface           = SurfaceCard,
     surfaceVariant    = SurfaceElevated,
@@ -24,7 +28,8 @@ private val DarkColorScheme = darkColorScheme(
     onSurfaceVariant  = TextSecondary,
     error             = ErrorRed,
     onError           = Background,
-    outline           = TextMuted
+    outline           = TextMuted,
+    outlineVariant    = TextMuted.copy(alpha = 0.65f)
 )
 
 @Composable

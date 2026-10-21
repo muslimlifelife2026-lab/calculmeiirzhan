@@ -18,6 +18,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -29,6 +30,7 @@ import com.calculator.core.ui.utils.ErrorLocalizer
 fun CalculatorDisplay(
     expression: String, result: String, error: String, degrees: Boolean, hasSteps: Boolean,
     onAngle: () -> Unit, onScanner: () -> Unit, onHistory: () -> Unit, onSteps: () -> Unit,
+    isResultFinal: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -46,29 +48,46 @@ fun CalculatorDisplay(
                 }
             }
             Spacer(Modifier.weight(1f))
-            if (result.isNotBlank()) GlassToolbarButton(Icons.Rounded.ContentCopy, "Скопировать результат", onClick = {
-                (context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager).setPrimaryClip(ClipData.newPlainText("Результат", result))
-                android.widget.Toast.makeText(context, "Результат скопирован", android.widget.Toast.LENGTH_SHORT).show()
+            GlassToolbarButton(Icons.Rounded.ContentCopy,
+                if (isResultFinal) "Скопировать результат" else "Скопировать выражение", onClick = {
+                val copyValue = (if (isResultFinal) result else expression).ifBlank { "0" }
+                (context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager).setPrimaryClip(ClipData.newPlainText("AeroCalc", copyValue))
+                android.widget.Toast.makeText(context, "Скопировано", android.widget.Toast.LENGTH_SHORT).show()
             })
         }
         Column(Modifier.fillMaxWidth().padding(vertical = 4.dp), horizontalAlignment = Alignment.End) {
             Text(
                 text = expression.ifBlank { "0" },
-                color = if (result.isBlank()) TextPrimary else TextSecondary,
-                fontSize = if (result.isBlank()) 52.sp else 24.sp,
+                color = if (isResultFinal) TextSecondary else TextPrimary,
+                fontSize = if (isResultFinal) 24.sp else 52.sp,
+                lineHeight = if (isResultFinal) 32.sp else 60.sp,
+                style = MaterialTheme.typography.bodyLarge.copy(fontFeatureSettings = "tnum"),
                 fontWeight = FontWeight.Light,
                 maxLines = 1,
-                modifier = Modifier.horizontalScroll(rememberScrollState())
+                modifier = Modifier.testTag("calculator_expression").horizontalScroll(rememberScrollState())
             )
-            if (result.isNotBlank()) Text(
-                text = result, color = TextPrimary, fontSize = 52.sp, fontWeight = FontWeight.Light,
+            // Reserve the preview line even while its debounced calculation is pending.
+            Text(
+                text = if (!isResultFinal && result == expression) "" else result,
+                color = if (isResultFinal) TextPrimary else TextSecondary,
+                fontSize = if (isResultFinal) 52.sp else 24.sp,
+                lineHeight = if (isResultFinal) 60.sp else 32.sp,
+                style = MaterialTheme.typography.bodyLarge.copy(fontFeatureSettings = "tnum"),
+                fontWeight = FontWeight.Light,
                 maxLines = 1, modifier = Modifier.horizontalScroll(rememberScrollState())
             )
-            if (error.isNotBlank()) Text(ErrorLocalizer.localize(error), color = ErrorRed, fontSize = 14.sp)
-            if (expression.isBlank()) Text("Посчитайте или отсканируйте пример", color = TextMuted, fontSize = 13.sp, modifier = Modifier.padding(top = 8.dp))
-            if (hasSteps) TextButton(onClick = onSteps) {
-                Text("Как получен ответ", color = TextSecondary, fontSize = 13.sp)
-                Icon(Icons.Rounded.KeyboardArrowRight, null, tint = TextSecondary, modifier = Modifier.size(18.dp))
+            Text(
+                when { error.isNotBlank() -> ErrorLocalizer.localize(error)
+                    expression.isBlank() -> "Посчитайте или отсканируйте пример"
+                    else -> "" },
+                color = if (error.isNotBlank()) ErrorRed else TextMuted,
+                fontSize = 13.sp, lineHeight = 20.sp, minLines = 2
+            )
+            Box(Modifier.heightIn(min = 48.dp)) {
+                if (hasSteps) TextButton(onClick = onSteps) {
+                    Text("Как получен ответ", color = TextSecondary, fontSize = 13.sp)
+                    Icon(Icons.Rounded.KeyboardArrowRight, null, tint = TextSecondary, modifier = Modifier.size(18.dp))
+                }
             }
         }
     }
