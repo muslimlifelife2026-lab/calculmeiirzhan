@@ -3,6 +3,8 @@ package com.aerocalc.smartcalculator.ui.main
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.selection.selectable
@@ -16,6 +18,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.Button
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.RadioButton
+import androidx.compose.material3.FilterChip
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
@@ -24,6 +27,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -35,6 +41,7 @@ import com.aerocalc.smartcalculator.learning.LearningProgressRepository
 import com.aerocalc.smartcalculator.learning.PracticeAttempt
 import com.aerocalc.smartcalculator.learning.PracticeQuestion
 import java.util.Calendar
+import kotlinx.coroutines.launch
 
 private data class Lesson(val title: String, val example: String, val explanation: String)
 
@@ -58,17 +65,24 @@ fun LearningScreen(
     val dailyQuestion = LearningPractice.dailyQuestion(LearningPractice.localEpochDay(Calendar.getInstance()))
     val activeQuestion = LearningPractice.find(progress.activeAttempt?.questionId)
     val nextQuestion = LearningPractice.nextQuestion(progress)
+    var selectedTopic by rememberSaveable { mutableStateOf(LearningPractice.topics.first()) }
+    val reviewQuestion = LearningPractice.questions.firstOrNull { it.id in progress.reviewIds }
+    val listState = rememberLazyListState()
+    val scope = rememberCoroutineScope()
     fun update(updated: LearningProgress) {
         repository.save(updated)
         progress = updated
     }
     fun open(question: PracticeQuestion) {
-        if (progress.activeAttempt?.questionId != question.id) {
-            update(progress.copy(activeAttempt = PracticeAttempt(question.id)))
+        update(progress.start(question))
+        scope.launch {
+            withFrameNanos { }
+            listState.animateScrollToItem(2)
         }
     }
     LazyColumn(
         modifier.fillMaxSize().testTag("learning_list"),
+        state = listState,
         contentPadding = PaddingValues(horizontal = 20.dp, vertical = 16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
@@ -95,8 +109,8 @@ fun LearningScreen(
                     if (nextQuestion != null && activeQuestion == null && nextQuestion.id != dailyQuestion.id) {
                         OutlinedButton(onClick = { open(nextQuestion) }) { Text("Продолжить обучение") }
                     }
-                    if (nextQuestion == null) {
-                        Text("Все задания пройдены. Можно повторить задание дня или открыть урок ниже.", color = TextSecondary,
+                    if (progress.completedIds.size == LearningPractice.questions.size) {
+                        Text("Базовый курс пройден. Закрепляйте знания в любой теме: повторения доступны без ограничения.", color = TextSecondary,
                             style = MaterialTheme.typography.bodyMedium)
                     }
                 }
@@ -108,10 +122,10 @@ fun LearningScreen(
                     question = activeQuestion,
                     attempt = progress.activeAttempt!!,
                     onSelect = { index ->
-                        progress.activeAttempt?.let { update(progress.copy(activeAttempt = it.select(index, activeQuestion))) }
+                        progress.activeAttempt?.let { update(progress.updateAttempt(it.select(index, activeQuestion), activeQuestion)) }
                     },
                     onCheck = {
-                        progress.activeAttempt?.let { update(progress.copy(activeAttempt = it.check(activeQuestion))) }
+                        progress.activeAttempt?.let { update(progress.updateAttempt(it.check(activeQuestion), activeQuestion)) }
                     },
                     onComplete = {
                         // A deliberate completion is the only event that can trigger a natural ad break.
@@ -122,6 +136,47 @@ fun LearningScreen(
                         }
                     }
                 )
+            }
+        }
+        if (reviewQuestion != null) {
+            item {
+                GlassCard(Modifier.fillMaxWidth()) {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text("Повторить сложное · ${progress.reviewIds.size}", color = TextPrimary,
+                            style = MaterialTheme.typography.titleMedium)
+                        Text("Здесь остаются задания, в которых была ошибка. Решите их верно ещё раз после завершения, чтобы закрепить материал.",
+                            color = TextSecondary, style = MaterialTheme.typography.bodyMedium)
+                        OutlinedButton(onClick = { open(reviewQuestion) }) { Text("Разобрать ошибки") }
+                    }
+                }
+            }
+        }
+        item {
+            Text("Практика по темам", color = TextPrimary, style = MaterialTheme.typography.titleLarge,
+                modifier = Modifier.padding(top = 8.dp))
+        }
+        item {
+            LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                items(LearningPractice.topics, key = { it }) { topic ->
+                    FilterChip(selected = selectedTopic == topic, onClick = { selectedTopic = topic },
+                        label = { Text(topic) }, modifier = Modifier.heightIn(min = 48.dp))
+                }
+            }
+        }
+        items(LearningPractice.questions.filter { it.topic == selectedTopic }, key = { "catalog-${it.id}" }) { question ->
+            GlassCard(Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp))
+                .clickable(role = Role.Button, onClickLabel = "Открыть задание") { open(question) }) {
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text(question.prompt, color = TextPrimary, style = MaterialTheme.typography.bodyMedium)
+                    val status = when {
+                        question.id == activeQuestion?.id -> "Открыто выше"
+                        question.id in progress.drafts -> "Продолжить сохранённый ответ"
+                        question.id in progress.reviewIds -> "Нужно повторить"
+                        question.id in progress.completedIds -> "Решено · повторить"
+                        else -> "Начать задание"
+                    }
+                    Text(status, color = AccentSecondary, style = MaterialTheme.typography.labelLarge)
+                }
             }
         }
         item {
@@ -192,7 +247,8 @@ private fun PracticeCard(
             }
             if (attempt.checked) {
                 Text(if (attempt.canComplete(question)) "Верно" else "Пока неверно. Прочитайте объяснение и попробуйте ещё раз.",
-                    color = TextPrimary, fontWeight = FontWeight.SemiBold)
+                    color = TextPrimary, fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite })
                 Text(question.explanation, color = TextSecondary, style = MaterialTheme.typography.bodyMedium)
             }
             if (attempt.canComplete(question)) {

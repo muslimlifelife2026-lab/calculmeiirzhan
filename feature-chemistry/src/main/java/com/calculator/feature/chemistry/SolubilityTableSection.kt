@@ -9,10 +9,15 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.Text
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -28,6 +33,7 @@ fun SolubilityTableSection(
     val cations = SolubilityData.cations
     val anions = SolubilityData.anions
     val horizontalScrollState = rememberScrollState()
+    val cellSize = (52 * LocalDensity.current.fontScale.coerceAtLeast(1f)).dp
 
     Column(
         modifier = modifier.fillMaxWidth(),
@@ -36,13 +42,13 @@ fun SolubilityTableSection(
         Text(
             text = "Таблица растворимости",
             color = Color.White,
-            fontSize = 16.sp,
-            fontWeight = FontWeight.Bold
+            style = MaterialTheme.typography.headlineMedium,
+            fontWeight = FontWeight.SemiBold
         )
         Text(
-            text = "Нажмите на ячейку. ? — нет проверенных данных",
+            text = "Прокрутите таблицу и выберите пару ионов. ? — нет проверенных данных.",
             color = TextSecondary,
-            fontSize = 11.sp
+            style = MaterialTheme.typography.bodyMedium
         )
 
         Box(
@@ -55,7 +61,7 @@ fun SolubilityTableSection(
                 Row {
                     Box(
                         modifier = Modifier
-                            .size(44.dp)
+                            .size(cellSize)
                             .background(Color(0x22FFFFFF)),
                         contentAlignment = Alignment.Center
                     ) {
@@ -64,12 +70,12 @@ fun SolubilityTableSection(
                     anions.forEach { anion ->
                         Box(
                             modifier = Modifier
-                                .size(44.dp)
+                                .size(cellSize)
                                 .background(Color(0x1AFFFFFF))
                                 .border(0.5.dp, Color(0x22FFFFFF)),
                             contentAlignment = Alignment.Center
                         ) {
-                            Text(anion, color = AccentCyan, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                            Text(anion, color = TextPrimary, fontSize = 12.sp, fontWeight = FontWeight.Medium)
                         }
                     }
                 }
@@ -81,25 +87,26 @@ fun SolubilityTableSection(
                             // Left Cation Header
                             Box(
                                 modifier = Modifier
-                                    .size(44.dp)
+                                    .size(cellSize)
                                     .background(Color(0x1AFFFFFF))
                                     .border(0.5.dp, Color(0x22FFFFFF)),
                                 contentAlignment = Alignment.Center
                             ) {
-                                Text(cation, color = com.calculator.core.ui.theme.AccentAmber, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                Text(cation, color = TextPrimary, fontSize = 12.sp, fontWeight = FontWeight.Medium)
                             }
 
                             // Status cells
                             anions.forEach { anion ->
                                 val status = SolubilityData.getStatus(cation, anion)
-                                val badgeBg = Color(status.hexColor).copy(alpha = 0.85f)
+                                val badgeBg = Color(status.hexColor).copy(alpha = 0.22f)
 
                                 Box(
                                     modifier = Modifier
-                                        .size(44.dp)
+                                        .size(cellSize)
                                         .background(badgeBg)
                                         .border(0.5.dp, Color(0x33FFFFFF))
-                                        .clickable { onPairClick(cation to anion) },
+                                        .clickable(role = Role.Button) { onPairClick(cation to anion) }
+                                        .semantics { contentDescription = "$cation и $anion: ${status.title}" },
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Text(

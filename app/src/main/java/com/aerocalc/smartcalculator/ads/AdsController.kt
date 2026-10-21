@@ -24,6 +24,7 @@ class AdsController(private val activity: ComponentActivity, private val appId: 
         private set
     private val consent = UserMessagingPlatform.getConsentInformation(activity)
     private var initializationStarted = false
+    private val consentState = AdConsentState()
     private var isTeen = false
     private val interstitial = LearningInterstitial(activity, BuildConfig.ADMOB_INTERSTITIAL_UNIT_ID) {
         ready && consent.canRequestAds()
@@ -53,15 +54,27 @@ class AdsController(private val activity: ComponentActivity, private val appId: 
     }
 
     fun showPrivacyOptions() {
-        if (privacyOptionsRequired) {
+        if (privacyOptionsRequired && !consentState.changing && !activity.isDestroyed) {
+            consentState.changing = true
+            ready = false
+            interstitial.invalidateConsent()
             UserMessagingPlatform.showPrivacyOptionsForm(activity) { error ->
                 if (error != null) Log.w("AeroCalcAds", "Privacy options: ${error.message}")
+                consentState.changing = false
+                initializeIfAllowed()
             }
         }
     }
 
     private fun initializeIfAllowed() {
-        if (!consent.canRequestAds() || initializationStarted) return
+        if (activity.isDestroyed) return
+        consentState.allowed = consent.canRequestAds()
+        privacyOptionsRequired = consent.privacyOptionsRequirementStatus ==
+            ConsentInformation.PrivacyOptionsRequirementStatus.REQUIRED
+        ready = consentState.ready
+        if (!ready) interstitial.invalidateConsent()
+        if (ready) interstitial.preload()
+        if (!consentState.allowed || consentState.changing || initializationStarted) return
         initializationStarted = true
         activity.lifecycleScope.launch(Dispatchers.IO) {
             try {
@@ -75,14 +88,16 @@ class AdsController(private val activity: ComponentActivity, private val appId: 
                 ) {
                     activity.runOnUiThread {
                         if (!activity.isDestroyed) {
-                            ready = true
-                            interstitial.preload()
+                            // An old activity must not overwrite the age settings after recreation.
+                            MobileAds.setRequestConfiguration(requestConfig)
+                            consentState.sdkInitialized = true
+                            initializeIfAllowed()
                         }
                     }
                 }
-                MobileAds.setRequestConfiguration(requestConfig)
             } catch (error: Exception) {
                 Log.e("AeroCalcAds", "SDK initialization failed", error)
+                activity.runOnUiThread { initializationStarted = false; ready = false }
             }
         }
     }

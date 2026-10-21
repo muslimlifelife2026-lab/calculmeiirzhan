@@ -27,6 +27,7 @@ import com.calculator.core.ui.components.GlassBackdropHost
 import androidx.compose.ui.unit.dp
 import com.calculator.core.ui.theme.*
 import com.calculator.feature.calculator.CalculatorScreen
+import com.calculator.feature.calculator.AlgebraScreen
 import com.calculator.feature.chemistry.ChemistryScreen
 import com.calculator.feature.converter.ConverterScreen
 import com.calculator.feature.geometry.GeometryScreen
@@ -88,6 +89,7 @@ fun MainScreen(
                         holder.SaveableStateProvider(visibleRoute) {
                         when (visibleRoute) {
                             "calculator" -> CalculatorScreen()
+                            "algebra" -> AlgebraScreen()
                             "history" -> HistoryScreen()
                             "learning" -> LearningScreen(
                                 onOpenPhysicsPractice = { learningPractice = true },
@@ -115,12 +117,13 @@ fun MainScreen(
                     enter = fadeIn(tween(180)) + expandVertically(tween(220)),
                     exit = fadeOut(tween(120)) + shrinkVertically(tween(180))
                 ) {
-                    BannerSlot(Modifier.padding(horizontal = 16.dp))
+                    // Remove the native view immediately on consent change, even during exit animation.
+                    if (adsReady) BannerSlot(Modifier.padding(horizontal = 16.dp))
                 }
                 GlassNavigation(
                     selected = tab,
                     items = listOf(
-                        NavigationItem("Калькулятор", Icons.Rounded.Calculate),
+                        NavigationItem("Расчёт", Icons.Rounded.Calculate),
                         NavigationItem("Инструменты", Icons.Rounded.GridView),
                         NavigationItem("Обучение", Icons.Rounded.AutoStories),
                         NavigationItem("История", Icons.Rounded.History)

@@ -6,6 +6,8 @@ import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import com.aerocalc.smartcalculator.learning.LearningPractice
 import com.aerocalc.smartcalculator.learning.LearningProgressRepository
+import com.aerocalc.smartcalculator.learning.LearningProgress
+import com.aerocalc.smartcalculator.learning.PracticeAttempt
 import org.junit.Assert.*
 import org.junit.Rule
 import org.junit.Test
@@ -13,6 +15,20 @@ import java.util.Calendar
 
 class LearningPracticeUiTest {
     @get:Rule val rule = createAndroidComposeRule<ComponentActivity>()
+
+    @Test fun repositoryRestoresActiveAndPausedAnswersAndReviewAfterRecreation() {
+        rule.activity.getSharedPreferences("learning_progress", Context.MODE_PRIVATE).edit().clear().commit()
+        val first = LearningPractice.questions.first()
+        val second = LearningPractice.questions[1]
+        val firstAnswer = PracticeAttempt(first.id).select(0, first).check(first)
+        val progress = LearningProgress().updateAttempt(firstAnswer, first).start(second)
+            .updateAttempt(PracticeAttempt(second.id).select(1, second), second)
+        LearningProgressRepository(rule.activity).save(progress)
+        val restored = LearningProgressRepository(rule.activity).load()
+        assertEquals(progress, restored)
+        assertEquals(firstAnswer, restored.start(first).activeAttempt)
+        assertTrue(first.id in restored.reviewIds)
+    }
 
     @Test fun wrongAnswerCannotCompleteAndCorrectCompletionPersistsWithoutRepeatingTheAdEvent() {
         rule.activity.getSharedPreferences("learning_progress", Context.MODE_PRIVATE).edit().clear().commit()

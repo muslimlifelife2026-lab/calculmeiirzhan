@@ -24,6 +24,7 @@ import androidx.compose.ui.text.*
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.calculator.core.ui.utils.NumberFormatter
 import com.calculator.engine.solver.GraphEvaluator
 import kotlinx.coroutines.launch
 import kotlin.math.*
@@ -38,6 +39,7 @@ data class CriticalPoint(
 )
 
 private data class GraphSampleKey(val index: Int, val min: Double, val max: Double, val count: Int)
+private data class GraphCursor(val x: Double, val y: Double)
 
 @OptIn(ExperimentalTextApi::class)
 @Composable
@@ -65,8 +67,13 @@ fun GraphCanvas(
     val animOffsetX = remember { Animatable(savedOffsetX) }
     val animOffsetY = remember { Animatable(savedOffsetY) }
 
-    var activePoint by remember { mutableStateOf<Offset?>(null) }
+    var activePoint by remember { mutableStateOf<GraphCursor?>(null) }
     var lastHapticPoint by remember { mutableStateOf<Double?>(null) }
+
+    LaunchedEffect(expressions, params, mode) {
+        activePoint = null
+        lastHapticPoint = null
+    }
 
     LaunchedEffect(resetTrigger) {
         if (resetTrigger > 0) {
@@ -126,13 +133,13 @@ fun GraphCanvas(
                     if (primaryEvaluator != null && mode == GraphMode.CARTESIAN) {
                         val mathY = primaryEvaluator.evaluate(mathX.toDouble(), params)
                         if (!mathY.isNaN() && !mathY.isInfinite()) {
-                            activePoint = Offset(mathX, mathY.toFloat())
+                            activePoint = GraphCursor(mathX.toDouble(), mathY)
                         } else {
                             activePoint = null
                         }
                     } else {
                         val mathY = (originY - pressOffset.y) / pixelsPerUnit
-                        activePoint = Offset(mathX, mathY)
+                        activePoint = GraphCursor(mathX.toDouble(), mathY.toDouble())
                     }
                 }
             }
@@ -148,7 +155,9 @@ fun GraphCanvas(
                         if (primaryEvaluator != null && mode == GraphMode.CARTESIAN) {
                             val mathY = primaryEvaluator.evaluate(mathX.toDouble(), params)
                             if (!mathY.isNaN() && !mathY.isInfinite()) {
-                                activePoint = Offset(mathX, mathY.toFloat())
+                                activePoint = GraphCursor(mathX.toDouble(), mathY)
+                            } else {
+                                activePoint = null
                             }
                         }
                     },
@@ -162,7 +171,9 @@ fun GraphCanvas(
                         if (primaryEvaluator != null && mode == GraphMode.CARTESIAN) {
                             val mathY = primaryEvaluator.evaluate(mathX.toDouble(), params)
                             if (!mathY.isNaN() && !mathY.isInfinite()) {
-                                activePoint = Offset(mathX, mathY.toFloat())
+                                activePoint = GraphCursor(mathX.toDouble(), mathY)
+                            } else {
+                                activePoint = null
                             }
                         }
                     }
@@ -314,7 +325,7 @@ fun GraphCanvas(
         if (showIntegral && mode == GraphMode.CARTESIAN && primaryEvaluator != null) {
             val a = min(integralA, integralB)
             val b = max(integralA, integralB)
-            val integralVal = primaryEvaluator.evaluateIntegral(a, b, params)
+            val integralVal = primaryEvaluator.evaluateIntegral(integralA, integralB, params)
 
             val polyPath = Path()
             val numSteps = 120
@@ -336,7 +347,7 @@ fun GraphCanvas(
             polyPath.close()
 
             // Draw Area Gradient
-            drawPath(
+            if (integralVal.isFinite()) drawPath(
                 path = polyPath,
                 brush = Brush.verticalGradient(
                     colors = listOf(Color(0xFFB9C6D6).copy(alpha = 0.35f), Color(0xFFB9C6D6).copy(alpha = 0.05f)),
@@ -362,13 +373,15 @@ fun GraphCanvas(
             )
 
             // Integral Result Badge
-            val intLabel = String.format("∫[%.1f, %.1f] = %.3f", a, b, integralVal)
+            val intLabel = "∫[${NumberFormatter.formatCompact(integralA)}, ${NumberFormatter.formatCompact(integralB)}] " +
+                if (integralVal.isFinite()) "≈ ${NumberFormatter.formatCompact(integralVal)}" else "не определён"
             val intLayout = textMeasurer.measure(
                 text = AnnotatedString(intLabel),
                 style = TextStyle(color = Color(0xFFB9C6D6), fontSize = 11.sp, fontWeight = FontWeight.Bold)
             )
-            val badgeX = ((startScreenX + endScreenX) / 2 - intLayout.size.width / 2).coerceIn(10f, width - intLayout.size.width - 20f)
-            val badgeY = (originY - 40f).coerceIn(10f, height - 30f)
+            val badgeX = ((startScreenX + endScreenX) / 2 - intLayout.size.width / 2)
+                .coerceIn(10f, max(10f, width - intLayout.size.width - 20f))
+            val badgeY = (originY - 40f).coerceIn(10f, max(10f, height - 30f))
 
             drawRoundRect(
                 color = Color(0xDD0F172A),
@@ -538,17 +551,17 @@ fun GraphCanvas(
             val screenY = originY - (cp.y * pixelsPerUnit).toFloat()
 
             if (cp.isRoot) {
-                drawCircle(color = Color(0xFF06B6D4).copy(alpha = 0.35f), radius = 10.dp.toPx(), center = Offset(screenX, screenY))
-                drawCircle(color = Color(0xFF06B6D4), radius = 5.dp.toPx(), center = Offset(screenX, screenY))
+                drawCircle(color = Color(0xFFB9C6D6).copy(alpha = 0.22f), radius = 10.dp.toPx(), center = Offset(screenX, screenY))
+                drawCircle(color = Color(0xFFB9C6D6), radius = 5.dp.toPx(), center = Offset(screenX, screenY))
 
-                val rootLabel = String.format("x=%.2f", cp.x)
+                val rootLabel = "x≈${NumberFormatter.formatCompact(cp.x)}"
                 val textLayout = textMeasurer.measure(
                     text = AnnotatedString(rootLabel),
-                    style = TextStyle(color = Color(0xFF06B6D4), fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                    style = TextStyle(color = Color(0xFFB9C6D6), fontSize = 10.sp, fontWeight = FontWeight.Bold)
                 )
                 drawText(textLayoutResult = textLayout, topLeft = Offset(screenX - textLayout.size.width / 2, screenY + 12f))
             } else if (cp.isMax || cp.isMin) {
-                val extColor = if (cp.isMax) Color(0xFFD0C3AD) else Color(0xFFEC4899)
+                val extColor = if (cp.isMax) Color(0xFFD0C3AD) else Color(0xFFB9ADC8)
                 drawCircle(color = extColor.copy(alpha = 0.35f), radius = 9.dp.toPx(), center = Offset(screenX, screenY))
                 drawCircle(color = extColor, radius = 4.dp.toPx(), center = Offset(screenX, screenY))
 
@@ -564,7 +577,7 @@ fun GraphCanvas(
                 drawCircle(color = intColor.copy(alpha = 0.35f), radius = 11.dp.toPx(), center = Offset(screenX, screenY))
                 drawCircle(color = intColor, radius = 5.dp.toPx(), center = Offset(screenX, screenY))
 
-                val crossLabel = String.format("(%.2f, %.2f)", cp.x, cp.y)
+                val crossLabel = "≈ (${NumberFormatter.formatCompact(cp.x)}, ${NumberFormatter.formatCompact(cp.y)})"
                 val textLayout = textMeasurer.measure(
                     text = AnnotatedString(crossLabel),
                     style = TextStyle(color = intColor, fontSize = 9.sp, fontWeight = FontWeight.Bold)
@@ -575,12 +588,13 @@ fun GraphCanvas(
 
         // ─── 6. Active Touch / Drag Point Inspector & Tangent ─────────────────
         activePoint?.let { point ->
-            val screenX = originX + point.x * pixelsPerUnit
-            val screenY = originY - point.y * pixelsPerUnit
+            val screenX = originX + (point.x * pixelsPerUnit).toFloat()
+            val screenY = originY - (point.y * pixelsPerUnit).toFloat()
+            if (!screenX.isFinite() || !screenY.isFinite()) return@let
 
             // Tangent Line at Inspector Point
             if (showTangent && mode == GraphMode.CARTESIAN && primaryEvaluator != null) {
-                val derivative = primaryEvaluator.evaluateDerivative(point.x.toDouble(), params)
+                val derivative = primaryEvaluator.evaluateDerivative(point.x, params)
                 if (!derivative.isNaN() && !derivative.isInfinite()) {
                     val deltaX = 120.dp.toPx()
                     val tanStartX = screenX - deltaX
@@ -597,7 +611,7 @@ fun GraphCanvas(
                     )
 
                     // Derivative Badge
-                    val derivText = String.format("dy/dx = %.3f", derivative)
+                    val derivText = "dy/dx ≈ ${NumberFormatter.formatCompact(derivative)}"
                     val derivLayout = textMeasurer.measure(
                         text = AnnotatedString(derivText),
                         style = TextStyle(color = Color(0xFFD0C3AD), fontSize = 10.sp, fontWeight = FontWeight.Bold)
@@ -633,7 +647,7 @@ fun GraphCanvas(
             drawCircle(color = Color.White, radius = 5.dp.toPx(), center = Offset(screenX, screenY))
 
             // Floating Coordinate Badge
-            val tooltipText = String.format("x: %.3f\ny: %.3f", point.x, point.y)
+            val tooltipText = "x: ${NumberFormatter.formatCompact(point.x)}\ny: ${NumberFormatter.formatCompact(point.y)}"
             val textLayout = textMeasurer.measure(
                 text = AnnotatedString(tooltipText),
                 style = TextStyle(color = Color.Black, fontSize = 11.sp, fontWeight = FontWeight.Bold)

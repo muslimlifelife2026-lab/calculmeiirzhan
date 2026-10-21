@@ -118,7 +118,8 @@ object MathParser {
         for (token in tokens) {
             val previous = withProducts.lastOrNull()
             if ((previous is MathToken.Number || previous is MathToken.Variable || previous == MathToken.RightParenthesis) &&
-                (token == MathToken.LeftParenthesis || token is MathToken.Func || token is MathToken.Variable)) {
+                (token == MathToken.LeftParenthesis || token is MathToken.Func || token is MathToken.Variable ||
+                    (previous == MathToken.RightParenthesis && token is MathToken.Number))) {
                 withProducts.add(OPERATORS.getValue("*"))
             }
             withProducts.add(token)
@@ -127,6 +128,7 @@ object MathParser {
     }
 
     fun shuntingYard(tokens: List<MathToken>): List<MathToken> {
+        validateSyntax(tokens)
         val outputQueue = mutableListOf<MathToken>()
         val operatorStack = Stack<MathToken>()
 
@@ -191,6 +193,47 @@ object MathParser {
         }
 
         return outputQueue
+    }
+
+    /** Validate infix syntax before RPN can discard argument and operand boundaries. */
+    private fun validateSyntax(tokens: List<MathToken>) {
+        require(tokens.isNotEmpty()) { "Введите выражение" }
+        var needsOperand = true
+        var depth = 0
+        tokens.forEachIndexed { index, token ->
+            when (token) {
+                is MathToken.Number, is MathToken.Variable -> {
+                    require(needsOperand) { "Между числами нужен знак операции" }
+                    needsOperand = false
+                }
+                is MathToken.Func -> {
+                    require(needsOperand && tokens.getOrNull(index + 1) == MathToken.LeftParenthesis) {
+                        "Аргумент ${token.name} нужно записать в скобках"
+                    }
+                }
+                MathToken.LeftParenthesis -> {
+                    require(needsOperand) { "Перед скобкой нужен знак операции" }
+                    depth++
+                }
+                MathToken.RightParenthesis -> {
+                    require(!needsOperand && depth > 0) { "Пустые или несогласованные скобки" }
+                    depth--
+                }
+                is MathToken.Operator -> when (token.symbol) {
+                    "u-" -> require(needsOperand) { "Неверное положение знака минус" }
+                    "%" -> require(!needsOperand) { "Перед процентом нужно число" }
+                    else -> {
+                        require(!needsOperand) { "Перед ${token.symbol} нужно число или выражение" }
+                        needsOperand = true
+                    }
+                }
+                MathToken.Comma -> throw IllegalArgumentException(
+                    "Функции принимают один аргумент. Десятичные числа вводите через точку"
+                )
+            }
+        }
+        require(depth == 0) { "Не закрыты скобки" }
+        require(!needsOperand) { "Выражение не завершено" }
     }
 
     data class MathStep(val description: String, val expression: String)
@@ -304,7 +347,7 @@ object MathParser {
                     val a = stack.pop()
                     percentFlags.pop()
                     val trigAngle = if (isDegrees && (token.name in setOf("sin", "cos", "tan"))) {
-                        a.multiply(BigDecimalMath.pi(mc), mc).divide(BigDecimal(180), mc)
+                        a.remainder(BigDecimal(360)).multiply(BigDecimalMath.pi(mc), mc).divide(BigDecimal(180), mc)
                     } else a
 
                     val angleUnitStr = if (isDegrees && (token.name in setOf("sin", "cos", "tan"))) "°" else " рад"
@@ -321,6 +364,11 @@ object MathParser {
                             res
                         }
                         "tan" -> {
+                            val degreePole = isDegrees && a.remainder(BigDecimal(180)).abs().compareTo(BigDecimal(90)) == 0
+                            val cosine = BigDecimalMath.cos(trigAngle, mc)
+                            if (degreePole || cosine.abs() <= BigDecimal.ONE.scaleByPowerOfTen(-mc.precision + 2)) {
+                                throw ArithmeticException("Тангенс не определён при 90° + 180°·k (π/2 + π·k)")
+                            }
                             val res = BigDecimalMath.tan(trigAngle, mc)
                             steps.add(MathStep("Вычисляем тангенс от ${formatVal(a)}$angleUnitStr", "tan(${formatVal(a)}$angleUnitStr) = ${formatVal(res)}"))
                             res

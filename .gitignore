@@ -1,5 +1,6 @@
 *.iml
 .gradle
+.kotlin/
 /local.properties
 /.idea
 .DS_Store
@@ -19,6 +20,7 @@ local.properties
 *.aab
 /audit/*.log
 /audit/*.png
+/audit/design-previews/
 !/audit/play-store-icon.png
 /audit/AuditProbe.java
 /audit/run-probe.ps1

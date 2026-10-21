@@ -23,6 +23,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -43,7 +44,8 @@ fun GlassNavigation(
     val view = LocalView.current
     GlassSurface(modifier.fillMaxWidth(), radius = 32.dp) {
         BoxWithConstraints(Modifier.fillMaxWidth().padding(5.dp)) {
-            val gap = 4.dp
+            val gap = 2.dp
+            val largeType = LocalDensity.current.fontScale > 1.3f
             val itemWidth = (maxWidth - gap * (items.size - 1)) / items.size
             val indicatorX by animateDpAsState(
                 (itemWidth + gap) * selected.coerceIn(0, items.lastIndex),
@@ -76,14 +78,14 @@ fun GlassNavigation(
                                         onSelect(index)
                                     }
                                 })
-                                .padding(horizontal = 4.dp, vertical = 9.dp),
+                                .heightIn(min = 56.dp).padding(horizontal = 2.dp, vertical = 9.dp),
                             horizontalAlignment = Alignment.CenterHorizontally,
                             verticalArrangement = Arrangement.spacedBy(3.dp)
                         ) {
                             Icon(item.icon, null, tint = tint, modifier = Modifier.size(23.dp))
                             Text(item.title, color = tint,
                                 fontSize = 11.sp, fontWeight = if (active) FontWeight.SemiBold else FontWeight.Normal,
-                                maxLines = 1)
+                                maxLines = if (largeType) 2 else 1)
                         }
                     }
                 }

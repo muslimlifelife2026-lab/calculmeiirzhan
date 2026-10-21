@@ -2,6 +2,8 @@ package com.aerocalc.smartcalculator.ui.onboarding
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
@@ -25,7 +27,8 @@ fun AgeGroupScreen(onSelect: (AdAgeGroup) -> Unit) {
             Modifier.fillMaxSize()
                 .background(Brush.verticalGradient(listOf(SurfaceElevated, Background)))
                 .statusBarsPadding().navigationBarsPadding()
-                .padding(horizontal = 24.dp),
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 24.dp, vertical = 24.dp),
             verticalArrangement = Arrangement.Center
         ) {
             Text("Перед началом", color = TextPrimary, fontSize = 32.sp, fontWeight = FontWeight.Bold)

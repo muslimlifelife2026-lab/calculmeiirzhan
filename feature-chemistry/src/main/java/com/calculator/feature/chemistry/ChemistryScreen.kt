@@ -1,20 +1,29 @@
 package com.calculator.feature.chemistry
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
-import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.saveable.rememberSaveableStateHolder
+import com.calculator.core.ui.components.GlassCard
 import com.calculator.core.ui.theme.*
 import com.calculator.domain.model.Element
 import com.calculator.domain.model.SolubilityData
@@ -31,9 +40,11 @@ fun ChemistryScreen(
 ) {
     var formulaInput by rememberSaveable { mutableStateOf("H2SO4") }
     var equationInput by rememberSaveable { mutableStateOf("Fe + O2 -> Fe2O3") }
-    var selectedTab by rememberSaveable { mutableIntStateOf(0) } // 0: Mass, 1: Balancer, 2: Periodic Table, 3: Atom Model, 4: Solubility
+    var selectedTab by rememberSaveable { mutableIntStateOf(-1) }
+    val sectionState = rememberSaveableStateHolder()
     var selectedElement by remember { mutableStateOf<Element?>(null) }
     var selectedSolubilityPair by remember { mutableStateOf<Pair<String, String>?>(null) }
+    BackHandler(selectedTab >= 0 && selectedElement == null && selectedSolubilityPair == null) { selectedTab = -1 }
 
     val molarPresets = remember {
         listOf(
@@ -46,7 +57,7 @@ fun ChemistryScreen(
             ChemicalPreset("Спирт (Этанол)", "C2H5OH"),
             ChemicalPreset("Углекислый газ", "CO2"),
             ChemicalPreset("Перекись водорода", "H2O2"),
-            ChemicalPreset("Нашатырный спирт", "NH3"),
+            ChemicalPreset("Аммиак", "NH3"),
             ChemicalPreset("Соляная к-та", "HCl"),
             ChemicalPreset("Азотная к-та", "HNO3"),
             ChemicalPreset("Уксусная к-та", "CH3COOH"),
@@ -55,17 +66,17 @@ fun ChemistryScreen(
             ChemicalPreset("Сахар (Сахароза)", "C12H22O11"),
             ChemicalPreset("Аспирин", "C9H8O4"),
             ChemicalPreset("Калийная селитра", "KNO3"),
-            ChemicalPreset("Медный купорос", "CuSO4"),
+            ChemicalPreset("Сульфат меди(II)", "CuSO4"),
             ChemicalPreset("Гашеная известь", "Ca(OH)2"),
             ChemicalPreset("Озон", "O3"),
-            ChemicalPreset("Ржавчина", "Fe2O3")
+            ChemicalPreset("Оксид железа(III)", "Fe2O3")
         )
     }
 
     val reactionPresets = remember {
         listOf(
             ReactionPreset("Горение метана", "CH4 + O2 -> CO2 + H2O"),
-            ReactionPreset("Ржавление железа", "Fe + O2 -> Fe2O3"),
+            ReactionPreset("Образование оксида железа(III)", "Fe + O2 -> Fe2O3"),
             ReactionPreset("Электролиз воды", "H2O -> H2 + O2"),
             ReactionPreset("Сода + Кислота", "NaHCO3 + HCl -> NaCl + CO2 + H2O"),
             ReactionPreset("Фотосинтез", "CO2 + H2O -> C6H12O6 + O2"),
@@ -83,37 +94,39 @@ fun ChemistryScreen(
             .padding(horizontal = 12.dp, vertical = 6.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        com.calculator.core.ui.components.GlassTabs(
-            tabs = listOf("Молярная масса", "Балансировщик", "Таблица Менделеева", "Модель атома", "Растворимость"),
-            selectedIndex = selectedTab,
-            onSelect = { selectedTab = it },
-            modifier = Modifier.padding(bottom = 4.dp)
-        )
-
-        when (selectedTab) {
+        if (selectedTab >= 0) {
+            TextButton(onClick = { selectedTab = -1 }) { Text("‹  Разделы химии") }
+        }
+        Box(Modifier.weight(1f).fillMaxWidth()) {
+          sectionState.SaveableStateProvider(selectedTab) {
+           when (selectedTab) {
+            -1 -> ChemistryLibrary { selectedTab = it }
             0 -> MolarMassSection(
                 formulaInput = formulaInput,
                 onFormulaChange = { formulaInput = it },
                 molarPresets = molarPresets,
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.fillMaxSize()
             )
             1 -> BalancerSection(
                 equationInput = equationInput,
                 onEquationChange = { equationInput = it },
                 reactionPresets = reactionPresets,
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.fillMaxSize()
             )
             2 -> PeriodicTableSection(
                 onElementClick = { selectedElement = it },
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.fillMaxSize()
             )
             3 -> AtomModelSection(
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.fillMaxSize()
             )
             4 -> SolubilityTableSection(
                 onPairClick = { selectedSolubilityPair = it },
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.fillMaxSize()
             )
+            5 -> StructureEditorSection(Modifier.fillMaxSize())
+           }
+          }
         }
     }
 
@@ -141,7 +154,7 @@ fun ChemistryScreen(
             },
             text = {
                 Column(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState()),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Box(
@@ -230,5 +243,44 @@ fun ChemistryScreen(
             },
             containerColor = SurfaceCard
         )
+    }
+}
+
+private data class ChemistryDestination(val index: Int, val title: String, val detail: String, val mark: String)
+
+@Composable
+private fun ChemistryLibrary(onSelect: (Int) -> Unit) {
+    val sections = listOf(
+        ChemistryDestination(0, "Молярная масса", "Состав вещества и вклад каждого элемента", "M"),
+        ChemistryDestination(1, "Реакции", "Подберите коэффициенты химического уравнения", "⇄"),
+        ChemistryDestination(2, "Элементы", "Таблица Менделеева, свойства и атомные массы", "He"),
+        ChemistryDestination(3, "Модель атома", "Рассмотрите электронные оболочки и ядро", "e⁻"),
+        ChemistryDestination(4, "Растворимость", "Исследуйте сочетания ионов в воде", "aq"),
+        ChemistryDestination(5, "Структуры", "Соберите простую молекулу и сохраните MOL", "C–O")
+    )
+    LazyColumn(
+        modifier = Modifier.fillMaxSize().testTag("chemistry_library"),
+        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        item {
+            Column(Modifier.padding(bottom = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("Из чего состоит мир", style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.SemiBold)
+                Text("От отдельного атома — к веществам и реакциям.", color = TextSecondary, style = MaterialTheme.typography.bodyLarge)
+            }
+        }
+        items(sections, key = { it.index }) { section ->
+            GlassCard(Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp))
+                .clickable(role = Role.Button) { onSelect(section.index) }) {
+                Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                    Text(section.mark, style = MaterialTheme.typography.headlineSmall, color = TextSecondary,
+                        modifier = Modifier.width(44.dp).padding(top = 3.dp))
+                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text(section.title, style = MaterialTheme.typography.titleLarge)
+                        Text(section.detail, color = TextSecondary, style = MaterialTheme.typography.bodyMedium)
+                    }
+                }
+            }
+        }
     }
 }

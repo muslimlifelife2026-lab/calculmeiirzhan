@@ -195,7 +195,7 @@ fun HistoryScreen(
                 verticalArrangement = Arrangement.spacedBy(10.dp),
                 contentPadding = PaddingValues(bottom = 8.dp)
             ) {
-                itemsIndexed(historyItems) { index, item ->
+                itemsIndexed(historyItems, key = { _, item -> item.id }) { index, item ->
                     val accentColor = accentForCategory(item.formulaName)
 
                     var visible by remember { mutableStateOf(false) }
@@ -231,79 +231,25 @@ private fun HistoryCard(
     onExport: () -> Unit,
     onDelete: () -> Unit
 ) {
-    GlassCard(modifier = Modifier.fillMaxWidth()) {
-        Row(modifier = Modifier.fillMaxWidth()) {
-            // ── Colored left accent bar ─────────────────────────────────────
-            Box(
-                modifier = Modifier
-                    .width(4.dp)
-                    .height(72.dp)
-                    .clip(RoundedCornerShape(topStart = 4.dp, bottomStart = 4.dp))
-                    .background(
-                        Brush.verticalGradient(
-                            colors = listOf(accentColor, accentColor.copy(alpha = 0.3f))
-                        )
-                    )
-            )
-
-            Spacer(Modifier.width(12.dp))
-
-            // ── Content ─────────────────────────────────────────────────────
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 10.dp, horizontal = 4.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = item.formulaName,
-                        color = TextSecondary,
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Medium,
-                        letterSpacing = 0.5.sp
-                    )
-                    Spacer(Modifier.height(2.dp))
-                    Text(
-                        text = item.expression.ifBlank { item.solvedVariable },
-                        color = TextSecondary,
-                        fontSize = 13.sp,
-                        maxLines = 2
-                    )
-                    Spacer(Modifier.height(3.dp))
-                    Text(
-                        text = formatHistoryResult(item),
-                        color = accentColor,
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        fontFamily = FontFamily.Monospace
-                    )
-                    Spacer(Modifier.height(4.dp))
-                    Text(
-                        text = dateFormat.format(Date(item.timestamp)),
-                        color = TextMuted,
-                        fontSize = 10.sp
-                    )
+    GlassCard(Modifier.fillMaxWidth()) {
+        Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Text(item.formulaName, color = TextSecondary, style = MaterialTheme.typography.labelLarge)
+            androidx.compose.foundation.text.selection.SelectionContainer {
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text(item.expression.ifBlank { item.solvedVariable }, color = TextSecondary,
+                        style = MaterialTheme.typography.bodyLarge)
+                    Text(formatHistoryResult(item), color = TextPrimary, style = MaterialTheme.typography.headlineSmall)
                 }
-
-                Row(horizontalArrangement = Arrangement.spacedBy(0.dp)) {
-                    IconButton(onClick = onExport, modifier = Modifier.size(36.dp)) {
-                        Icon(
-                            imageVector = Icons.Rounded.PictureAsPdf,
-                            contentDescription = "Экспорт PDF",
-                            tint = AccentVioletLight,
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
-                    IconButton(onClick = onDelete, modifier = Modifier.size(36.dp)) {
-                        Icon(
-                            imageVector = Icons.Rounded.DeleteOutline,
-                            contentDescription = "Удалить",
-                            tint = ErrorRed.copy(alpha = 0.8f),
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
+            }
+            HorizontalDivider(color = SurfaceBorder)
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Text(dateFormat.format(Date(item.timestamp)), color = TextMuted,
+                    style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1f))
+                IconButton(onClick = onExport, modifier = Modifier.size(48.dp)) {
+                    Icon(Icons.Rounded.PictureAsPdf, "Экспорт PDF", tint = TextSecondary)
+                }
+                IconButton(onClick = onDelete, modifier = Modifier.size(48.dp)) {
+                    Icon(Icons.Rounded.DeleteOutline, "Удалить", tint = TextSecondary)
                 }
             }
         }

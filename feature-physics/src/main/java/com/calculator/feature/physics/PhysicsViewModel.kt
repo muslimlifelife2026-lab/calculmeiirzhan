@@ -75,6 +75,10 @@ class PhysicsViewModel(application: Application, private val savedState: SavedSt
                 if (savedTarget != null && _selectedFormula.value!!.variables.any { it.symbol == savedTarget }) {
                     _targetVariableSymbol.value = savedTarget
                 }
+                // selectFormula initializes these keys. Persist restored values for the next recreation too.
+                savedState["inputs"] = HashMap(_inputs.value)
+                savedState["units"] = HashMap(_inputUnits.value.mapValues { it.value.symbol })
+                savedState["target"] = _targetVariableSymbol.value
             }
         }
     }

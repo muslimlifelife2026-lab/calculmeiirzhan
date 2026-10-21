@@ -1,219 +1,58 @@
 package com.calculator.feature.chemistry
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.produceState
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.Alignment
+import androidx.compose.runtime.produceState
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.calculator.core.ui.components.GlassCard
-import com.calculator.core.ui.theme.*
+import com.calculator.core.ui.theme.TextSecondary
 import com.calculator.engine.solver.ChemistrySolver
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 
 @Composable
-fun BalancerSection(
-    equationInput: String,
-    onEquationChange: (String) -> Unit,
-    reactionPresets: List<ReactionPreset>,
-    modifier: Modifier = Modifier
-) {
-    val balanceResult by produceState<String?>(initialValue = null, equationInput) {
+fun BalancerSection(equationInput: String, onEquationChange: (String) -> Unit, reactionPresets: List<ReactionPreset>, modifier: Modifier = Modifier) {
+    val result by produceState<String?>(null, equationInput) {
         value = null
         if (equationInput.isNotBlank()) {
             delay(250)
             value = withContext(Dispatchers.Default) { ChemistrySolver.balanceReaction(equationInput) }
         }
     }
-
-    Column(
-        modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        // 1-Tap Reaction Presets Row
-        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(
-                text = "Примеры реакций (1 тап):",
-                color = TextSecondary,
-                fontSize = 11.sp,
-                fontWeight = FontWeight.SemiBold
-            )
-            LazyRow(
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                items(reactionPresets) { preset ->
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(SurfaceCard)
-                            .border(1.dp, SurfaceBorder, RoundedCornerShape(12.dp))
-                            .clickable { onEquationChange(preset.equation) }
-                            .padding(horizontal = 10.dp, vertical = 5.dp)
-                    ) {
-                        Text(
-                            text = preset.title,
-                            color = Color.White,
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Medium
-                        )
-                    }
-                }
-            }
+    LazyColumn(modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(16.dp), contentPadding = PaddingValues(bottom = 24.dp)) {
+        item {
+            Text("Химические реакции", style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.SemiBold)
+            Text("Задайте реагенты и продукты — подберём целые коэффициенты.", color = TextSecondary,
+                style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(top = 8.dp))
         }
-
-        GlassCard(modifier = Modifier.fillMaxWidth()) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(12.dp),
-                verticalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "Уравнение реакции (реагенты → продукты):",
-                        color = TextSecondary,
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                    if (equationInput.isNotEmpty()) {
-                        Text(
-                            text = "Очистить",
-                            color = ErrorRed,
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.clickable { onEquationChange("") }
-                        )
-                    }
-                }
-
-                TextField(
-                    value = equationInput,
-                    onValueChange = onEquationChange,
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = TextFieldDefaults.colors(
-                        focusedContainerColor = SurfaceElevated,
-                        unfocusedContainerColor = SurfaceElevated,
-                        focusedTextColor = Color.White,
-                        unfocusedTextColor = Color.White,
-                        cursorColor = Color.White,
-                        focusedIndicatorColor = Color.Transparent,
-                        unfocusedIndicatorColor = Color.Transparent
-                    ),
-                    shape = RoundedCornerShape(10.dp),
-                    singleLine = true,
-                    textStyle = LocalTextStyle.current.copy(
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold,
-                        fontFamily = FontFamily.Monospace
-                    ),
-                    placeholder = {
-                        Text(
-                            text = "H2 + O2 -> H2O",
-                            color = TextSecondary,
-                            fontSize = 14.sp
-                        )
-                    }
-                )
-
-                // Quick Operators & Elements for Balancer
-                LazyRow(
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.fillMaxWidth().padding(top = 4.dp)
-                ) {
-                    val keys = listOf("+", " -> ", "H", "O", "C", "N", "Fe", "Na", "Cl", "2", "3", "4", "(", ")", "⌫")
-                    items(keys) { key ->
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(if (key == " -> " || key == "+") Color.White else SurfaceElevated)
-                                .border(1.dp, SurfaceBorder, RoundedCornerShape(8.dp))
-                                .clickable {
-                                    if (key == "⌫") {
-                                        if (equationInput.isNotEmpty()) onEquationChange(equationInput.dropLast(1))
-                                    } else {
-                                        onEquationChange(equationInput + key)
-                                    }
-                                }
-                                .padding(horizontal = 10.dp, vertical = 6.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = key.trim(),
-                                color = if (key == " -> " || key == "+") Background else Color.White,
-                                fontSize = 13.sp,
-                                fontWeight = FontWeight.Bold,
-                                fontFamily = FontFamily.Monospace
-                            )
+        item {
+            ChemistryInputCard("Уравнение реакции", equationInput, onEquationChange, "H2 + O2 -> H2O",
+                listOf("+", " -> ", "H", "O", "C", "N", "Fe", "Na", "Cl", "2", "3", "4", "(", ")", "⌫"))
+        }
+        item { ChemistryExamples(reactionPresets.map { it.title to it.equation }, onEquationChange) }
+        result?.let { response ->
+            // An error explaining the separator also contains '='; that is not a balanced reaction.
+            val success = response.contains(" = ") && !response.startsWith("Ошибка") && !response.startsWith("Не удалось")
+            item {
+                GlassCard(Modifier.fillMaxWidth()) {
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Text(if (success) "Уравненная реакция" else "Проверьте уравнение", style = MaterialTheme.typography.titleMedium)
+                        Text(if (success) response else chemistryErrorMessage(response),
+                            color = if (success) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.error,
+                            style = if (success) MaterialTheme.typography.titleLarge.copy(fontFamily = FontFamily.Monospace)
+                                else MaterialTheme.typography.bodyMedium)
+                        if (success) {
+                            Text("Сохраняется число атомов каждого элемента. Подбор коэффициентов не доказывает, что реакция протекает в выбранных условиях.",
+                                color = TextSecondary, style = MaterialTheme.typography.bodySmall)
                         }
                     }
-                }
-            }
-        }
-
-        balanceResult?.let { result ->
-            val isSuccess = result.contains("=")
-            if (isSuccess) {
-                GlassCard(modifier = Modifier.fillMaxWidth()) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(14.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Text(
-                            text = "УРАВНЕННАЯ РЕАКЦИЯ:",
-                            color = com.calculator.core.ui.theme.AccentAmber,
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-
-                        Text(
-                            text = result,
-                            color = Color.White,
-                            fontSize = 20.sp,
-                            fontWeight = FontWeight.Bold,
-                            fontFamily = FontFamily.Monospace
-                        )
-
-                        HorizontalDivider(color = SurfaceBorder)
-
-                        Text(
-                            text = "Коэффициенты реакции расставлены по закону сохранения массы.",
-                            color = TextSecondary,
-                            fontSize = 12.sp
-                        )
-                    }
-                }
-            } else {
-                GlassCard(modifier = Modifier.fillMaxWidth()) {
-                    Text(
-                        text = result,
-                        color = MaterialTheme.colorScheme.error,
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.SemiBold
-                    )
                 }
             }
         }

@@ -13,13 +13,19 @@ class MainScreenTest {
     @get:Rule val rule = createAndroidComposeRule<ComponentActivity>()
     @Before fun setup() { rule.setContent { MainScreen() } }
 
+    private fun openTool(title: String) {
+        rule.onNodeWithTag("tools_list").performScrollToNode(hasText(title))
+        rule.onNodeWithText(title).performClick()
+    }
+
     @Test fun toolsExposeConverterAndBackNavigation() {
         rule.onNodeWithText("Инструменты").performClick()
-        rule.onNodeWithText("Конвертер").performClick()
-        rule.onNodeWithText("Температура").assertExists()
+        openTool("Конвертер")
+        rule.onNodeWithTag("conversion_category").assertExists()
         rule.onNodeWithContentDescription("Все инструменты").performClick()
+        rule.onNodeWithTag("tools_list").performScrollToNode(hasText("Физика"))
         rule.onNodeWithText("Физика").assertExists()
-        rule.onNodeWithText("Калькулятор").performClick()
+        rule.onNodeWithText("Расчёт").performClick()
         rule.onNodeWithText("AeroCalc").assertExists()
     }
 
@@ -32,7 +38,7 @@ class MainScreenTest {
         rule.onNodeWithText("15").assertExists()
         rule.onNodeWithText("Как получен ответ").assertExists()
         rule.onNodeWithText("Инструменты").performClick()
-        rule.onNodeWithText("Калькулятор").performClick()
+        rule.onNodeWithText("Расчёт").performClick()
         rule.onNodeWithText("15").assertExists()
         rule.onNodeWithText("Как получен ответ").performClick()
         rule.onNodeWithText("Решение по шагам").assertExists()
@@ -60,15 +66,15 @@ class MainScreenTest {
 
     @Test fun converterShowsResultAndBottomKeyboardRow() {
         rule.onNodeWithText("Инструменты").performClick()
-        rule.onNodeWithText("Конвертер").performClick()
+        openTool("Конвертер")
         rule.onNodeWithText("0.001").assertIsDisplayed()
         rule.onNodeWithContentDescription("Равно").assertIsDisplayed()
     }
 
     @Test fun everyToolOpensAndReturnsToCatalog() {
         rule.onNodeWithText("Инструменты").performClick()
-        for (title in listOf("Конвертер", "Физика", "Геометрия", "Графики", "Химия")) {
-            rule.onNodeWithText(title).performClick()
+        for (title in listOf("Конвертер", "Алгебра", "Физика", "Геометрия", "Графики", "Химия")) {
+            openTool(title)
             rule.onNodeWithContentDescription("Все инструменты").assertExists().performClick()
             rule.onNodeWithText(title).assertExists()
         }
@@ -89,22 +95,23 @@ class MainScreenTest {
 
     @Test fun graphParametersRemainEditableAfterReturningFromAnotherTab() {
         rule.onNodeWithText("Инструменты").performClick()
-        rule.onNodeWithText("Графики").performClick()
+        openTool("Графики")
         rule.onNodeWithText("Библиотека").performClick()
         rule.onNodeWithText("Параметры a и b").performClick()
-        rule.onNodeWithTag("graph_param_a").performSemanticsAction(SemanticsActions.SetProgress) { it(2f) }
-        rule.onNodeWithTag("graph_value_a").assertTextContains("2", substring = true)
-        rule.onNodeWithText("Калькулятор").performClick()
+        rule.onNodeWithTag("graph_param_a").performScrollTo().performSemanticsAction(SemanticsActions.SetProgress) { it(2f) }
+        rule.onNodeWithTag("graph_value_a").performScrollTo().assertTextContains("2", substring = true)
+        rule.onNodeWithText("Расчёт").performClick()
         rule.onNodeWithText("Инструменты").performClick()
-        rule.onNodeWithText("Графики").performClick()
-        rule.onNodeWithTag("graph_value_a").assertTextContains("2", substring = true)
+        openTool("Графики")
+        rule.onNodeWithTag("graph_value_a").performScrollTo().assertTextContains("2", substring = true)
         rule.onNodeWithTag("graph_param_b").assertExists()
     }
 
     @Test fun newtonExperimentIsReachableAndUsesTheSelectedForce() {
         rule.onNodeWithText("Инструменты").performClick()
-        rule.onNodeWithText("Физика").performClick()
-        rule.onNodeWithText("Сила и движение").performScrollTo().performClick()
+        openTool("Физика")
+        rule.onNodeWithTag("physics_library").performScrollToNode(hasText("Сила и движение"))
+        rule.onNodeWithText("Сила и движение").performClick()
         rule.onNodeWithText("a = F / m").assertExists()
         rule.onNodeWithContentDescription("Равнодействующая сила в ньютонах").performSemanticsAction(SemanticsActions.SetProgress) { it(0f) }
         rule.onNodeWithText("a = ${String.format(Locale.getDefault(), "%.2f", 0.0)} Н /", substring = true).assertExists()
@@ -112,7 +119,8 @@ class MainScreenTest {
 
     @Test fun absoluteTemperatureRejectsBelowZeroInsteadOfShowingAFalseNumber() {
         rule.onNodeWithText("Инструменты").performClick()
-        rule.onNodeWithText("Конвертер").performClick()
+        openTool("Конвертер")
+        rule.onNodeWithTag("conversion_category").performClick()
         rule.onNodeWithText("Температура").performClick()
         rule.onNodeWithContentDescription("Очистить").performClick()
         rule.onNodeWithText("±").performClick()

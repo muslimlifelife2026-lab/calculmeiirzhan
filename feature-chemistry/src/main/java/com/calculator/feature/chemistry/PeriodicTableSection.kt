@@ -15,10 +15,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.calculator.core.ui.theme.*
+import com.calculator.core.ui.components.GlassCard
 import com.calculator.domain.model.Element
 import com.calculator.domain.model.PeriodicTable
 
@@ -29,15 +32,18 @@ fun PeriodicTableSection(
 ) {
     val elements = remember { PeriodicTable.allElements }
     var searchQuery by rememberSaveable { mutableStateOf("") }
+    val fontScale = LocalDensity.current.fontScale
 
     Column(
         modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
+        Text("Элементы", style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.SemiBold)
         OutlinedTextField(
             value = searchQuery,
             onValueChange = { searchQuery = it },
-            placeholder = { Text("Поиск элемента: Fe, Железо, 26...") },
+            label = { Text("Найти элемент") },
+            placeholder = { Text("Fe, железо или 26") },
             modifier = Modifier.fillMaxWidth(),
             colors = OutlinedTextFieldDefaults.colors(
                 focusedBorderColor = Color.White,
@@ -47,7 +53,7 @@ fun PeriodicTableSection(
                 focusedTextColor = Color.White,
                 unfocusedTextColor = Color.White
             ),
-            shape = RoundedCornerShape(12.dp),
+            shape = RoundedCornerShape(16.dp),
             singleLine = true
         )
 
@@ -58,40 +64,37 @@ fun PeriodicTableSection(
             it.atomicNumber.toString().contains(searchQuery)
         }
 
+        if (filtered.isEmpty()) {
+            Text("Элемент не найден. Попробуйте символ, название или атомный номер.", color = TextSecondary)
+        }
         LazyVerticalGrid(
-            columns = GridCells.Adaptive(minSize = 75.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+            columns = GridCells.Adaptive(minSize = (100 * fontScale.coerceIn(1f, 1.8f)).dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
             modifier = Modifier.fillMaxWidth().weight(1f)
         ) {
-            items(filtered) { elem ->
-                Box(
+            items(filtered, key = { it.atomicNumber }) { elem ->
+                GlassCard(
                     modifier = Modifier
-                        .clip(RoundedCornerShape(10.dp))
-                        .background(SurfaceCard)
-                        .border(1.dp, SurfaceBorder, RoundedCornerShape(10.dp))
-                        .clickable { onElementClick(elem) }
-                        .padding(8.dp),
-                    contentAlignment = Alignment.Center
+                        .clip(RoundedCornerShape(24.dp))
+                        .clickable(role = Role.Button) { onElementClick(elem) }
                 ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         Text(
                             text = elem.atomicNumber.toString(),
                             color = TextSecondary,
-                            fontSize = 10.sp,
-                            modifier = Modifier.align(Alignment.Start)
+                            style = MaterialTheme.typography.labelMedium
                         )
                         Text(
                             text = elem.symbol,
                             color = Color.White,
-                            fontSize = 18.sp,
+                            style = MaterialTheme.typography.headlineMedium,
                             fontWeight = FontWeight.Bold
                         )
                         Text(
                             text = elem.nameRu,
                             color = TextSecondary,
-                            fontSize = 9.sp,
-                            maxLines = 1
+                            style = MaterialTheme.typography.bodySmall
                         )
                     }
                 }

@@ -10,20 +10,37 @@ class LearningProgressRepository(context: Context) {
         val knownIds = LearningPractice.questions.map { it.id }.toSet()
         val completed = preferences.getStringSet("completed", emptySet()).orEmpty().filterTo(mutableSetOf()) { it in knownIds }
         val question = LearningPractice.find(preferences.getString("active", null))
-        val attempt = question?.let {
-            val savedIndex = preferences.getInt("answer", -1)
-            val selected = savedIndex.takeIf { index -> index in it.answers.indices }
-            PracticeAttempt(it.id, selected, selected != null && preferences.getBoolean("checked", false))
+        fun readAttempt(question: PracticeQuestion, prefix: String): PracticeAttempt {
+            val savedIndex = preferences.getInt("${prefix}answer", -1)
+            val selected = savedIndex.takeIf { index -> index in question.answers.indices }
+            return PracticeAttempt(question.id, selected, selected != null && preferences.getBoolean("${prefix}checked", false))
         }
-        return LearningProgress(completed, attempt)
+        val attempt = question?.let { readAttempt(it, "") }
+        val drafts = LearningPractice.questions.filter { preferences.contains("draft.${it.id}.answer") }
+            .associate { it.id to readAttempt(it, "draft.${it.id}.") }
+        val review = preferences.getStringSet("review", emptySet()).orEmpty().filterTo(mutableSetOf()) { it in knownIds }
+        val lastCompleted = preferences.getString("lastCompleted", null)?.takeIf { it in knownIds }
+        return LearningProgress(completed, attempt, review, drafts, lastCompleted)
     }
 
     fun save(progress: LearningProgress) {
-        preferences.edit()
+        val edit = preferences.edit()
             .putStringSet("completed", progress.completedIds.toSet())
             .putString("active", progress.activeAttempt?.questionId)
             .putInt("answer", progress.activeAttempt?.selectedAnswerIndex ?: -1)
             .putBoolean("checked", progress.activeAttempt?.checked ?: false)
-            .apply()
+            .putStringSet("review", progress.reviewIds.toSet())
+            .putString("lastCompleted", progress.lastCompletedId)
+        LearningPractice.questions.forEach { question ->
+            val prefix = "draft.${question.id}."
+            val draft = progress.drafts[question.id]
+            if (draft == null) {
+                edit.remove("${prefix}answer").remove("${prefix}checked")
+            } else {
+                edit.putInt("${prefix}answer", draft.selectedAnswerIndex ?: -1)
+                    .putBoolean("${prefix}checked", draft.checked)
+            }
+        }
+        edit.apply()
     }
 }

@@ -7,6 +7,10 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -32,9 +36,12 @@ fun AtomModelSection(
     val sampleElements = remember { PeriodicTable.allElements }
 
     Column(
-        modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(6.dp)
+        modifier = modifier.fillMaxWidth().verticalScroll(rememberScrollState()),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
+        Text("Модель атома", style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.SemiBold)
+        Text("Схема электронных оболочек. Положение и движение электронов показаны условно — это не реальные орбиты.",
+            color = TextSecondary, style = MaterialTheme.typography.bodyMedium)
         // Quick Elements Selector Row
         LazyRow(
             horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -42,27 +49,14 @@ fun AtomModelSection(
         ) {
             items(sampleElements) { elem ->
                 val isSelected = selectedAtomElement.atomicNumber == elem.atomicNumber
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(14.dp))
-                        .background(if (isSelected) Color.White else SurfaceElevated)
-                        .border(1.dp, if (isSelected) Color.White else SurfaceBorder, RoundedCornerShape(14.dp))
-                        .clickable { selectedAtomSymbol = elem.symbol }
-                        .padding(horizontal = 10.dp, vertical = 5.dp)
-                ) {
-                    Text(
-                        text = "${elem.symbol} (${elem.name})",
-                        color = if (isSelected) Background else TextSecondary,
-                        fontSize = 11.sp,
-                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
-                    )
-                }
+                FilterChip(selected = isSelected, onClick = { selectedAtomSymbol = elem.symbol },
+                    label = { Text("${elem.symbol} · ${elem.nameRu}") }, modifier = Modifier.heightIn(min = 48.dp))
             }
         }
 
         AtomModelCanvas(
             element = selectedAtomElement,
-            modifier = Modifier.fillMaxWidth().weight(1f)
+            modifier = Modifier.fillMaxWidth().height(440.dp)
         )
     }
 }

@@ -11,6 +11,28 @@ import org.junit.Test
 import java.math.BigDecimal
 
 class FormulaSolverTest {
+    @Test fun numericalFallbackHandlesExcludedZeroAndSmallFunctionScale() {
+        val formula = Formula("domain", "Domain", "MATHEMATICS", canonicalEquation = "ln(x)-1",
+            latexTemplate = "", variables = listOf(Variable("x", "x", defaultUnitSymbol = "")))
+        val logarithm = FormulaSolver.solve(formula, emptyMap(), emptyMap(), "x")
+        assertTrue(logarithm.errorMessage, logarithm.success)
+        assertEquals(kotlin.math.E, logarithm.value, 1e-12)
+        val subunit = FormulaSolver.solve(formula.copy(canonicalEquation = "ln(x)+1"), emptyMap(), emptyMap(), "x")
+        assertTrue(subunit.errorMessage, subunit.success)
+        assertEquals(1.0 / kotlin.math.E, subunit.value, 1e-12)
+        val scaled = FormulaSolver.solve(formula.copy(canonicalEquation = "1e-30*(x-0.37)"), emptyMap(), emptyMap(), "x")
+        assertTrue(scaled.errorMessage, scaled.success)
+        assertEquals(0.37, scaled.value, 1e-12)
+    }
+
+    @Test fun substitutionPreservesFunctionsAndOverlappingVariableNames() {
+        val formula = Formula("names", "Names", "MATHEMATICS", canonicalEquation = "y-sin(a)-a_a",
+            latexTemplate = "", variables = listOf("y", "a", "a_a").map { Variable(it, it, defaultUnitSymbol = "") },
+            solvedEquations = mapOf("y" to "sin(a)+a_a"))
+        val result = FormulaSolver.solve(formula, mapOf("a" to BigDecimal.ZERO, "a_a" to BigDecimal.TEN), emptyMap(), "y")
+        assertTrue(result.success)
+        assertEquals("y = sin((0))+(10)", result.steps[2].equationLatex)
+    }
 
     @Test fun newlyIndexedFormulasSolveEveryTarget() {
         val ids = setOf("cone_volume", "electric_power", "friction_force", "gravity_accel",

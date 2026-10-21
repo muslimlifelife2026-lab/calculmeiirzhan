@@ -1,22 +1,15 @@
 package com.calculator.feature.graphing
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.shrinkVertically
-import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.CenterFocusStrong
-import androidx.compose.material.icons.rounded.CollectionsBookmark
-import androidx.compose.material.icons.rounded.TableChart
+import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
@@ -24,450 +17,173 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import com.calculator.core.ui.theme.*
+import com.calculator.core.ui.components.GlassCard
+import com.calculator.core.ui.theme.SurfaceBorder
+import com.calculator.core.ui.theme.TextSecondary
+import com.calculator.engine.solver.GraphEvaluator
+import java.util.Locale
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun GraphingScreen(
-    modifier: Modifier = Modifier
-) {
+fun GraphingScreen(modifier: Modifier = Modifier) {
     var mode by rememberSaveable { mutableStateOf(GraphMode.CARTESIAN) }
-    var expressions by rememberSaveable { mutableStateOf(listOf("sin(x)", "0.5*x - 1")) }
-
-    // Analysis Toggles
+    var cartesianExpressions by rememberSaveable { mutableStateOf(listOf("sin(x)", "0.5*x - 1")) }
+    var polarExpressions by rememberSaveable { mutableStateOf(listOf("cos(2*theta)")) }
+    var parametricExpressions by rememberSaveable { mutableStateOf(listOf("sin(3*t)", "sin(2*t)")) }
+    val expressions = when (mode) {
+        GraphMode.CARTESIAN -> cartesianExpressions
+        GraphMode.POLAR -> polarExpressions
+        GraphMode.PARAMETRIC -> parametricExpressions
+    }
+    fun updateExpressions(values: List<String>) {
+        when (mode) {
+            GraphMode.CARTESIAN -> cartesianExpressions = values
+            GraphMode.POLAR -> polarExpressions = values
+            GraphMode.PARAMETRIC -> parametricExpressions = values
+        }
+    }
     var showRoots by rememberSaveable { mutableStateOf(true) }
     var showExtremums by rememberSaveable { mutableStateOf(true) }
     var showIntersections by rememberSaveable { mutableStateOf(true) }
     var showTangent by rememberSaveable { mutableStateOf(false) }
     var showIntegral by rememberSaveable { mutableStateOf(false) }
-    var integralA by rememberSaveable { mutableStateOf(0.0) }
-    var integralB by rememberSaveable { mutableStateOf(2.0) }
-
-    // Controls and Modals
-    var resetTrigger by remember { mutableStateOf(0) }
+    var integralAText by rememberSaveable { mutableStateOf("0") }
+    var integralBText by rememberSaveable { mutableStateOf("2") }
+    var resetTrigger by remember { mutableIntStateOf(0) }
     var showPresetsSheet by remember { mutableStateOf(false) }
     var showValuesTable by remember { mutableStateOf(false) }
+    var paramValues by rememberSaveable { mutableStateOf(mapOf("a" to 1.0, "b" to 1.0, "c" to 0.0, "k" to 1.0)) }
 
-    // Dynamic Parameter Slider State (e.g., 'a', 'b', 'c', 'k')
-    var paramValues by rememberSaveable {
-        mutableStateOf(
-            mapOf("a" to 1.0, "b" to 1.0, "c" to 0.0, "k" to 1.0)
-        )
-    }
-
-    // Auto-detect any unknown variable parameters across all active expressions
-    val detectedParams = remember(expressions, mode) {
-        GraphParameters.discover(expressions, mode)
+    val detectedParams = remember(expressions, mode) { GraphParameters.discover(expressions, mode) }
+    val syntaxErrors = remember(expressions) {
+        expressions.map { expression ->
+            if (expression.isBlank()) null else try { GraphEvaluator(expression); null } catch (exception: IllegalArgumentException) { exception.message }
+        }
     }
     LaunchedEffect(detectedParams) {
         val missing = detectedParams.filterNot { it in paramValues }
         if (missing.isNotEmpty()) paramValues = paramValues + missing.associateWith { 1.0 }
     }
+    val integralA = integralAText.replace(',', '.').toDoubleOrNull()?.takeIf { it.isFinite() }
+    val integralB = integralBText.replace(',', '.').toDoubleOrNull()?.takeIf { it.isFinite() }
+    val graphColors = listOf(Color.White, Color(0xFFB9C6D6), Color(0xFFB9ADC8))
 
-    val graphColors = listOf(
-        Color(0xFFFFFFFF), // Titanium White
-        Color(0xFFB9C6D6), // Ice Blue
-        Color(0xFFB9ADC8), // Purple
-        Color(0xFFACC4B0)  // Emerald
-    )
-
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(horizontal = 12.dp, vertical = 4.dp),
-        verticalArrangement = Arrangement.spacedBy(6.dp)
-    ) {
-        // ─── 1. Header Card: Mode Selector & Calculus Toggles ──────────────────
+    BoxWithConstraints(modifier.fillMaxSize()) {
+        val graphHeight = (maxHeight * 0.53f).coerceIn(260.dp, 440.dp)
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(16.dp))
-                .background(SurfaceCard)
-                .border(1.dp, SurfaceBorder, RoundedCornerShape(16.dp))
-                .padding(horizontal = 10.dp, vertical = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp)
+            Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp).testTag("graph_screen"),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Coordinate System Mode Tabs
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    listOf(
-                        Pair(GraphMode.CARTESIAN, "y = f(x)"),
-                        Pair(GraphMode.POLAR, "r = f(θ)"),
-                        Pair(GraphMode.PARAMETRIC, "x(t), y(t)")
-                    ).forEach { (m, title) ->
-                        val isSelected = mode == m
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(if (isSelected) Color.White else SurfaceElevated)
-                                .clickable {
-                                    mode = m
-                                    expressions = when (m) {
-                                        GraphMode.CARTESIAN -> listOf("sin(x)", "0.5*x - 1")
-                                        GraphMode.POLAR -> listOf("cos(2*theta)")
-                                        GraphMode.PARAMETRIC -> listOf("sin(3*t)", "sin(2*t)")
-                                    }
+            Text("Графики", style = MaterialTheme.typography.headlineMedium)
+            Text("Исследуйте функции и меняйте параметры", style = MaterialTheme.typography.bodyMedium, color = TextSecondary)
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                AssistChip(onClick = { showPresetsSheet = true }, label = { Text("Библиотека") })
+                AssistChip(onClick = { showValuesTable = true }, label = { Text("Таблица") })
+                AssistChip(onClick = { resetTrigger++ }, label = { Text("К центру") })
+            }
+            Box(Modifier.fillMaxWidth().height(graphHeight).clip(RoundedCornerShape(24.dp)).border(0.5.dp, SurfaceBorder, RoundedCornerShape(24.dp))) {
+                GraphCanvas(
+                    expressions = expressions,
+                    mode = mode,
+                    params = paramValues,
+                    showRoots = showRoots,
+                    showExtremums = showExtremums,
+                    showIntersections = showIntersections,
+                    showTangent = showTangent,
+                    showIntegral = showIntegral && integralA != null && integralB != null,
+                    integralA = integralA ?: 0.0,
+                    integralB = integralB ?: 2.0,
+                    resetTrigger = resetTrigger,
+                    modifier = Modifier.fillMaxSize()
+                )
+            }
+            Text("Два пальца — масштаб. Перетаскивание — сдвиг. Нажатие — значение функции. Углы в радианах.",
+                style = MaterialTheme.typography.bodySmall, color = TextSecondary)
+
+            GlassCard(Modifier.fillMaxWidth()) {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text("Функции", style = MaterialTheme.typography.titleLarge)
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        listOf(GraphMode.CARTESIAN to "y = f(x)", GraphMode.POLAR to "r = f(θ)", GraphMode.PARAMETRIC to "x(t), y(t)").forEach { (value, title) ->
+                            FilterChip(selected = mode == value, onClick = {
+                                if (mode != value) {
+                                    mode = value
+                                    resetTrigger++
                                 }
-                                .padding(horizontal = 8.dp, vertical = 4.dp)
-                        ) {
-                            Text(
-                                text = title,
-                                color = if (isSelected) Background else TextSecondary,
-                                fontSize = 11.sp,
-                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
-                            )
+                            }, label = { Text(title) })
                         }
                     }
-                }
-
-                // Presets & Table Action Buttons
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(10.dp))
-                            .background(SurfaceElevated)
-                            .clickable { showPresetsSheet = true }
-                            .padding(horizontal = 8.dp, vertical = 4.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(4.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Rounded.CollectionsBookmark,
-                                contentDescription = "Пресеты",
-                                tint = Color(0xFFB9C6D6),
-                                modifier = Modifier.size(13.dp)
-                            )
-                            Text("Библиотека", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    expressions.forEachIndexed { index, expression ->
+                        val label = when (mode) {
+                            GraphMode.CARTESIAN -> "y${index + 1}"
+                            GraphMode.POLAR -> "r${index + 1}(θ)"
+                            GraphMode.PARAMETRIC -> if (index == 0) "x(t)" else "y(t)"
                         }
+                        OutlinedTextField(
+                            value = expression,
+                            onValueChange = { if (it.length <= 256) updateExpressions(expressions.toMutableList().also { updated -> updated[index] = it }) },
+                            label = { Text(label, color = graphColors[index % graphColors.size]) },
+                            modifier = Modifier.fillMaxWidth().testTag("graph_expression_$index"),
+                            singleLine = true,
+                            isError = syntaxErrors[index] != null,
+                            supportingText = syntaxErrors[index]?.let { error -> { Text(error) } },
+                            textStyle = MaterialTheme.typography.bodyLarge.copy(fontFamily = FontFamily.Monospace),
+                            trailingIcon = if (expressions.size > 1 && mode != GraphMode.PARAMETRIC) {
+                                { IconButton(onClick = { updateExpressions(expressions.filterIndexed { i, _ -> i != index }) }) { Icon(Icons.Rounded.Close, "Удалить $label") } }
+                            } else null
+                        )
                     }
-
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(10.dp))
-                            .background(SurfaceElevated)
-                            .clickable { showValuesTable = true }
-                            .padding(horizontal = 8.dp, vertical = 4.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(4.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Rounded.TableChart,
-                                contentDescription = "Таблица",
-                                tint = Color(0xFFB9ADC8),
-                                modifier = Modifier.size(13.dp)
-                            )
-                            Text("Таблица", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                        }
+                    if (expressions.size < 3 && mode != GraphMode.PARAMETRIC) {
+                        TextButton(onClick = { updateExpressions(expressions + "") }) { Text("Добавить функцию") }
                     }
+                    Text("Примеры: x^2, sin(x), a*x+b. Степень — ^, умножение — *. Константы: pi, e.", style = MaterialTheme.typography.bodySmall, color = TextSecondary)
                 }
             }
-
-            // Function Expression Inputs
-            expressions.forEachIndexed { index, expr ->
-                val color = graphColors[index % graphColors.size]
-                val placeholderText = when (mode) {
-                    GraphMode.CARTESIAN -> "y${index + 1} = ..."
-                    GraphMode.POLAR -> "r${index + 1}(θ) = ..."
-                    GraphMode.PARAMETRIC -> if (index == 0) "x(t) = ..."else "y(t) = ..."
-                }
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(10.dp)
-                            .clip(RoundedCornerShape(5.dp))
-                            .background(color)
-                    )
-
-                    OutlinedTextField(
-                        value = expr,
-                        onValueChange = { newText ->
-                            val updated = expressions.toMutableList()
-                            updated[index] = newText
-                            expressions = updated
-                        },
-                        placeholder = { Text(placeholderText, color = TextSecondary, fontSize = 12.sp) },
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(42.dp),
-                        singleLine = true,
-                        shape = RoundedCornerShape(10.dp),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedContainerColor = SurfaceElevated,
-                            unfocusedContainerColor = SurfaceElevated,
-                            focusedBorderColor = color,
-                            unfocusedBorderColor = SurfaceBorder,
-                            focusedTextColor = Color.White,
-                            unfocusedTextColor = Color.White
-                        ),
-                        textStyle = androidx.compose.ui.text.TextStyle(
-                            fontSize = 13.sp,
-                            fontFamily = FontFamily.Monospace
-                        )
-                    )
-
-                    if (expressions.size > 1 && mode != GraphMode.PARAMETRIC) {
-                        Box(
-                            modifier = Modifier
-                                .size(28.dp)
-                                .clip(RoundedCornerShape(6.dp))
-                                .background(SurfaceElevated)
-                                .clickable {
-                                    val updated = expressions.toMutableList()
-                                    updated.removeAt(index)
-                                    expressions = updated
-                                },
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text("✕", color = TextSecondary, fontSize = 13.sp, fontWeight = FontWeight.Bold)
-                        }
-                    }
-                }
-            }
-
-            if (expressions.size < 3 && mode != GraphMode.PARAMETRIC) {
-                Button(
-                    onClick = { expressions = expressions + "" },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(28.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = SurfaceElevated),
-                    contentPadding = PaddingValues(0.dp),
-                    shape = RoundedCornerShape(8.dp)
-                ) {
-                    Text("+ Добавить функцию", color = Color.White, fontSize = 11.sp)
-                }
-            }
-
-            // ─── 2. Calculus Feature Toggles Bar ──────────────────────────────
-            if (mode == GraphMode.CARTESIAN) {
-                LazyRow(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    // Roots
-                    item {
-                        CalculusTogglePill(
-                            label = "Корни",
-                            isActive = showRoots,
-                            activeColor = Color(0xFF06B6D4),
-                            onClick = { showRoots = !showRoots }
-                        )
-                    }
-                    // Extremums
-                    item {
-                        CalculusTogglePill(
-                            label = "Экстремумы",
-                            isActive = showExtremums,
-                            activeColor = Color(0xFFD0C3AD),
-                            onClick = { showExtremums = !showExtremums }
-                        )
-                    }
-                    // Intersections
-                    item {
-                        CalculusTogglePill(
-                            label = "✖ Пересечения",
-                            isActive = showIntersections,
-                            activeColor = Color(0xFFB9ADC8),
-                            onClick = { showIntersections = !showIntersections }
-                        )
-                    }
-                    // Tangent
-                    item {
-                        CalculusTogglePill(
-                            label = "Касательная",
-                            isActive = showTangent,
-                            activeColor = Color(0xFFD0C3AD),
-                            onClick = { showTangent = !showTangent }
-                        )
-                    }
-                    // Definite Integral
-                    item {
-                        CalculusTogglePill(
-                            label = "Интеграл ∫",
-                            isActive = showIntegral,
-                            activeColor = Color(0xFFB9C6D6),
-                            onClick = { showIntegral = !showIntegral }
+            if (detectedParams.isNotEmpty()) GlassCard(Modifier.fillMaxWidth()) {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("Параметры", style = MaterialTheme.typography.titleLarge)
+                    Text("Изменения сразу видны на графике и в таблице", color = TextSecondary)
+                    detectedParams.forEach { name ->
+                        val value = paramValues[name] ?: 1.0
+                        Text("$name = ${String.format(Locale.getDefault(), "%.1f", value)}", fontFamily = FontFamily.Monospace,
+                            modifier = Modifier.testTag("graph_value_$name"))
+                        Slider(
+                            value = value.toFloat().coerceIn(-5f, 5f),
+                            onValueChange = { paramValues = paramValues + (name to GraphParameters.sliderValue(it)) },
+                            valueRange = -5f..5f,
+                            steps = 99,
+                            modifier = Modifier.fillMaxWidth().testTag("graph_param_$name").semantics { contentDescription = "Параметр $name" }
                         )
                     }
                 }
             }
-
-            // ─── 3. Real-Time Parameter Sliders (Dynamic a, b, c) ──────────────
-            AnimatedVisibility(
-                visible = detectedParams.isNotEmpty(),
-                enter = expandVertically(),
-                exit = shrinkVertically()
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(10.dp))
-                        .background(SurfaceElevated)
-                        .padding(horizontal = 10.dp, vertical = 6.dp),
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    Text(
-                        text = "Параметры функции",
-                        color = Color(0xFF94A3B8),
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Text("Изменяйте коэффициенты — график и таблица обновятся.",
-                        color = TextSecondary, fontSize = 11.sp)
-                    detectedParams.forEach { paramName ->
-                        val currentVal = paramValues[paramName] ?: 1.0
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            Text(
-                                text = "$paramName = ${String.format("%.1f", currentVal)}",
-                                color = Color.White,
-                                fontSize = 12.sp,
-                                fontFamily = FontFamily.Monospace,
-                                modifier = Modifier.width(62.dp).testTag("graph_value_$paramName")
-                            )
-                            Slider(
-                                value = currentVal.toFloat(),
-                                onValueChange = { newVal ->
-                                    paramValues = paramValues + (paramName to GraphParameters.sliderValue(newVal))
-                                },
-                                valueRange = -5f..5f,
-                                steps = 99,
-                                modifier = Modifier.weight(1f).testTag("graph_param_$paramName")
-                                    .semantics { contentDescription = "Параметр $paramName" },
-                                colors = SliderDefaults.colors(
-                                    thumbColor = Color(0xFFB9C6D6),
-                                    activeTrackColor = Color(0xFFB9C6D6),
-                                    inactiveTrackColor = SurfaceBorder
-                                )
-                            )
-                        }
+            if (mode == GraphMode.CARTESIAN) GlassCard(Modifier.fillMaxWidth()) {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text("Анализ", style = MaterialTheme.typography.titleLarge)
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        FilterChip(showRoots, { showRoots = !showRoots }, { Text("Корни") })
+                        FilterChip(showExtremums, { showExtremums = !showExtremums }, { Text("Экстремумы") })
+                        FilterChip(showIntersections, { showIntersections = !showIntersections }, { Text("Пересечения") })
+                        FilterChip(showTangent, { showTangent = !showTangent }, { Text("Касательная") })
+                        FilterChip(showIntegral, { showIntegral = !showIntegral }, { Text("Интеграл") })
                     }
+                    if (showIntegral) {
+                        OutlinedTextField(integralAText, { if (it.length <= 20) integralAText = it }, Modifier.fillMaxWidth(),
+                            label = { Text("Нижний предел a") }, isError = integralA == null, singleLine = true)
+                        OutlinedTextField(integralBText, { if (it.length <= 20) integralBText = it }, Modifier.fillMaxWidth(),
+                            label = { Text("Верхний предел b") }, isError = integralB == null, singleLine = true)
+                        if (integralA == null || integralB == null) Text("Укажите конечные числовые пределы", color = MaterialTheme.colorScheme.error)
+                    }
+                    Text("Анализ численный и приближённый. На видимом участке могут обнаруживаться не все корни и экстремумы. Разрывы и очень быстрые колебания требуют отдельной проверки.",
+                        style = MaterialTheme.typography.bodySmall, color = TextSecondary)
                 }
             }
         }
-
-        // ─── 4. Graph Canvas Viewport with Float Controls ──────────────────────
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .weight(1f)
-                .clip(RoundedCornerShape(18.dp))
-                .border(1.dp, SurfaceBorder, RoundedCornerShape(18.dp))
-        ) {
-            GraphCanvas(
-                expressions = expressions.filter { it.isNotBlank() },
-                mode = mode,
-                params = paramValues,
-                showRoots = showRoots,
-                showExtremums = showExtremums,
-                showIntersections = showIntersections,
-                showTangent = showTangent,
-                showIntegral = showIntegral,
-                integralA = integralA,
-                integralB = integralB,
-                resetTrigger = resetTrigger,
-                modifier = Modifier.fillMaxSize()
-            )
-
-            // Floating Home / Reset Origin Button
-            FloatingSnapOriginButton(
-                onClick = { resetTrigger++ },
-                modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .padding(12.dp)
-            )
-        }
     }
-
-    // ─── 5. Presets Bottom Sheet ───────────────────────────────────────────────
-    if (showPresetsSheet) {
-        PresetsSheet(
-            onSelectPreset = { preset ->
-                mode = preset.mode
-                expressions = preset.expressions
-                paramValues = paramValues + preset.initialParameters
-            },
-            onDismiss = { showPresetsSheet = false }
-        )
-    }
-
-    // ─── 6. X-Y Values Table Dialog ───────────────────────────────────────────
-    if (showValuesTable) {
-        ValuesTableDialog(
-            expressions = expressions.filter { it.isNotBlank() },
-            mode = mode,
-            params = paramValues,
-            onDismiss = { showValuesTable = false }
-        )
-    }
+    if (showPresetsSheet) PresetsSheet(
+        onSelectPreset = { mode = it.mode; updateExpressions(it.expressions); paramValues = paramValues + it.initialParameters; resetTrigger++ },
+        onDismiss = { showPresetsSheet = false }
+    )
+    if (showValuesTable) ValuesTableDialog(expressions = expressions, mode = mode, params = paramValues, onDismiss = { showValuesTable = false })
 }
-
-@Composable
-private fun CalculusTogglePill(
-    label: String,
-    isActive: Boolean,
-    activeColor: Color,
-    onClick: () -> Unit
-) {
-    Box(
-        modifier = Modifier
-            .clip(RoundedCornerShape(12.dp))
-            .background(if (isActive) activeColor.copy(alpha = 0.2f) else SurfaceElevated)
-            .border(1.dp, if (isActive) activeColor else SurfaceBorder, RoundedCornerShape(12.dp))
-            .clickable(onClick = onClick)
-            .padding(horizontal = 8.dp, vertical = 4.dp)
-    ) {
-        Text(
-            text = label,
-            color = if (isActive) activeColor else TextSecondary,
-            fontSize = 11.sp,
-            fontWeight = FontWeight.Bold
-        )
-    }
-}
-
-@Composable
-private fun FloatingSnapOriginButton(
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Box(
-        modifier = modifier
-            .size(38.dp)
-            .clip(RoundedCornerShape(12.dp))
-            .background(Color(0xEE1E293B))
-            .border(1.dp, SurfaceBorder, RoundedCornerShape(12.dp))
-            .clickable(onClick = onClick),
-        contentAlignment = Alignment.Center
-    ) {
-        Icon(
-            imageVector = Icons.Rounded.CenterFocusStrong,
-            contentDescription = "Сброс к центру (0,0)",
-            tint = Color(0xFFB9C6D6),
-            modifier = Modifier.size(20.dp)
-        )
-    }
-}
-

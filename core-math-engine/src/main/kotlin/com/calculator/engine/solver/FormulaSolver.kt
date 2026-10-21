@@ -75,9 +75,8 @@ object FormulaSolver {
                 )
 
                 // Render equation with substituted values
-                var substitutedLatex = formula.solvedEquations[targetSymbol] ?: ""
-                for ((symbol, valSi) in siInputs) {
-                    substitutedLatex = substitutedLatex.replace(symbol, "(${valSi.stripTrailingZeros().toPlainString()})")
+                val substitutedLatex = Regex("[\\p{L}_][\\p{L}\\p{N}_]*").replace(equationString) { match ->
+                    siInputs[match.value]?.let { "(${it.stripTrailingZeros().toPlainString()})" } ?: match.value
                 }
                 steps.add(
                     SolutionStep(
@@ -150,33 +149,38 @@ object FormulaSolver {
             MathParser.evaluateRPN(rpn, evalInputs, mc.precision)
         }
         val zero = BigDecimal.ZERO
-        val fZero = f(zero)
-        if (fZero.signum() == 0) return zero
+        fun validValue(x: BigDecimal): BigDecimal? = try { f(x) } catch (_: ArithmeticException) {
+            null
+        } catch (_: IllegalArgumentException) { null }
+        val fZero = validValue(zero)
+        if (fZero?.signum() == 0) return zero
         val samples = mutableListOf(zero)
-        var magnitude = BigDecimal.ONE
-        repeat(31) {
-            samples += magnitude
-            magnitude = magnitude.multiply(BigDecimal(2))
+        // Include sub-unit samples: f(0) may be outside the domain, e.g. ln(x).
+        val positiveSamples = (-64..64).map { exponent ->
+            if (exponent >= 0) BigDecimal(2).pow(exponent)
+            else BigDecimal.ONE.divide(BigDecimal(2).pow(-exponent), mc)
         }
-        magnitude = BigDecimal.ONE
-        repeat(31) {
-            samples += magnitude.negate()
-            magnitude = magnitude.multiply(BigDecimal(2))
-        }
+        samples += positiveSamples
+        samples += positiveSamples.map { it.negate() }
         var previousX = samples.first()
         var previousY = fZero
         for ((index, x) in samples.withIndex().drop(1)) {
-            if (index == 32) {
+            if (index == positiveSamples.size + 1) {
                 previousX = zero
                 previousY = fZero
             }
-            val y = f(x)
+            val y = validValue(x)
+            if (y == null) {
+                previousX = x
+                previousY = null
+                continue
+            }
             if (y.signum() == 0) return x
-            if (y.signum() != previousY.signum()) {
+            if (previousY != null && y.signum() != previousY.signum()) {
                 var low = previousX.min(x)
                 var high = previousX.max(x)
                 var lowY = f(low)
-                val residualLimit = previousY.abs().max(y.abs()).max(BigDecimal.ONE)
+                val residualLimit = previousY.abs().max(y.abs())
                     .multiply(BigDecimal("1e-20"), mc)
                 repeat(180) {
                     val mid = low.add(high, mc).divide(BigDecimal(2), mc)

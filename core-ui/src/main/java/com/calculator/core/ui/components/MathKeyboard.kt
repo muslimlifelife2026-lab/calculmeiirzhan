@@ -32,6 +32,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -50,6 +51,7 @@ fun MathKeyboard(
 ) {
     var scientific by rememberSaveable { mutableStateOf(false) }
     val view = LocalView.current
+    val fontScale = LocalDensity.current.fontScale.coerceAtLeast(1f)
     val rows = if (numbersOnly) listOf(
         listOf("C", "±", "⌫"), listOf("7", "8", "9"), listOf("4", "5", "6"),
         listOf("1", "2", "3"), listOf("0", ".", "=")
@@ -58,7 +60,12 @@ fun MathKeyboard(
         listOf("4", "5", "6", "-"), listOf("1", "2", "3", "+"), listOf("0", ".", "=")
     )
     BoxWithConstraints(modifier.fillMaxSize()) {
-        val minimum = if (scientific && !numbersOnly) 470.dp else if (numbersOnly) 280.dp else 330.dp
+        val functionRows = if (scientific && !numbersOnly) if (showVariables) 3 else 2 else 0
+        val keyHeight = (48f * fontScale).dp
+        // Scrolling preserves 48 dp targets and scaled labels even in landscape or split-screen.
+        val minimum = keyHeight * 5 + 32.dp +
+            (if (numbersOnly) 0.dp else (48f * fontScale).dp + 8.dp) +
+            (keyHeight + 8.dp) * functionRows
         val contentHeight = maxHeight.coerceAtLeast(minimum)
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
             Column(Modifier.fillMaxWidth().height(contentHeight), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -88,7 +95,7 @@ fun MathKeyboard(
                         functions.chunked(5).forEach { row ->
                             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                 row.forEach { key ->
-                                    KeyboardKey(key, Modifier.weight(1f).height(44.dp), small = true) { onKeyPressed(key) }
+                                    KeyboardKey(key, Modifier.weight(1f).height(keyHeight), small = true) { onKeyPressed(key) }
                                 }
                                 repeat(5 - row.size) { Spacer(Modifier.weight(1f)) }
                             }
@@ -142,6 +149,10 @@ private fun KeyboardKey(key: String, modifier: Modifier, small: Boolean = false,
     val label = when(key) {
         "C" -> "Очистить"; "⌫" -> "Удалить последний символ"; "=" -> "Равно"
         "sqrt(" -> "Квадратный корень"; "fact(" -> "Факториал"; "±" -> "Изменить знак"
+        "sin(" -> "Синус"; "cos(" -> "Косинус"; "tan(" -> "Тангенс"
+        "ln(" -> "Натуральный логарифм"; "log(" -> "Десятичный логарифм"
+        "^" -> "Возвести в степень"; "+" -> "Плюс"; "-" -> "Минус"
+        "×" -> "Умножить"; "÷" -> "Разделить"; "%" -> "Процент"; "." -> "Десятичный разделитель"
         else -> key
     }
     Box(

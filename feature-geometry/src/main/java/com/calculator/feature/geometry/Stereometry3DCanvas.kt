@@ -81,6 +81,13 @@ fun Stereometry3DCanvas(
             val cx = size.width / 2f
             val cy = size.height / 2f
             val baseScale = Math.min(size.width, size.height) * 0.42f
+            // One scale for every axis preserves proportions; clamping each dimension did not.
+            val maximumDimension = when (shapeType) {
+                Shape3DType.SPHERE -> dimA
+                Shape3DType.CUBE -> maxOf(dimA, dimB, dimC)
+                else -> maxOf(dimA, dimB)
+            }
+            val modelScale = 1.5f / maximumDimension.coerceAtLeast(10f)
 
             fun project(p: Point3D): ProjectedPoint {
                 // Rotate around Y axis (Yaw)
@@ -128,9 +135,9 @@ fun Stereometry3DCanvas(
 
             when (shapeType) {
                 Shape3DType.CUBE -> {
-                    val w = 0.55f * (dimA / 10f).coerceIn(0.5f, 1.5f)
-                    val h = 0.55f * (dimB / 10f).coerceIn(0.5f, 1.5f)
-                    val d = 0.55f * (dimC / 10f).coerceIn(0.5f, 1.5f)
+                    val w = dimA * modelScale / 2f
+                    val h = dimB * modelScale / 2f
+                    val d = dimC * modelScale / 2f
 
                     val vertices = listOf(
                         Point3D(-w, -h, -d), Point3D(w, -h, -d),
@@ -166,7 +173,7 @@ fun Stereometry3DCanvas(
                 }
 
                 Shape3DType.SPHERE -> {
-                    val r = 0.75f * (dimA / 10f).coerceIn(0.5f, 1.5f)
+                    val r = dimA * modelScale / 2f
                     val latCircles = 8
                     val lonCircles = 8
                     val pointsCount = 36
@@ -215,8 +222,8 @@ fun Stereometry3DCanvas(
                 }
 
                 Shape3DType.CYLINDER -> {
-                    val r = 0.55f * (dimA / 10f).coerceIn(0.5f, 1.4f)
-                    val h = 0.70f * (dimB / 10f).coerceIn(0.5f, 1.6f)
+                    val r = dimA * modelScale / 2f
+                    val h = dimB * modelScale
                     val steps = 36
 
                     val topCircle = Path()
@@ -262,8 +269,8 @@ fun Stereometry3DCanvas(
                 }
 
                 Shape3DType.CONE -> {
-                    val r = 0.60f * (dimA / 10f).coerceIn(0.5f, 1.4f)
-                    val h = 0.85f * (dimB / 10f).coerceIn(0.5f, 1.6f)
+                    val r = dimA * modelScale / 2f
+                    val h = dimB * modelScale
                     val steps = 36
                     val apex = project(Point3D(0f, h / 2f, 0f))
 
@@ -300,8 +307,8 @@ fun Stereometry3DCanvas(
                 }
 
                 Shape3DType.PYRAMID -> {
-                    val w = 0.55f * (dimA / 10f).coerceIn(0.5f, 1.4f)
-                    val h = 0.80f * (dimB / 10f).coerceIn(0.5f, 1.6f)
+                    val w = dimA * modelScale / 2f
+                    val h = dimB * modelScale
 
                     val base0 = project(Point3D(-w, -h / 2f, -w))
                     val base1 = project(Point3D(w, -h / 2f, -w))

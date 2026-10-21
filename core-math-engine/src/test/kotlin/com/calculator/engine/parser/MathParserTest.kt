@@ -1,11 +1,46 @@
 package com.calculator.engine.parser
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertThrows
 import org.junit.Test
 import java.math.BigDecimal
 import java.math.MathContext
 
 class MathParserTest {
+
+    @Test fun tangentPolesReportUndefinedInsteadOfHugeFiniteAnswers() {
+        listOf("tan(90)", "tan(270)", "tan(-90)", "tan(450)", "tan(-270)",
+            "tan(180000000000000000000000000090)").forEach { input ->
+            assertThrows(input, ArithmeticException::class.java) {
+                MathParser.evaluateRPN(MathParser.shuntingYard(MathParser.tokenize(input)), isDegrees = true)
+            }
+        }
+        assertThrows(ArithmeticException::class.java) { calculate("tan(pi/2)") }
+        val nearPole = MathParser.evaluateRPN(MathParser.shuntingYard(MathParser.tokenize("tan(89.99)")), isDegrees = true)
+        org.junit.Assert.assertTrue(nearPole > BigDecimal(5000))
+        val pastPole = MathParser.evaluateRPN(MathParser.shuntingYard(MathParser.tokenize("tan(270.01)")), isDegrees = true)
+        org.junit.Assert.assertTrue(pastPole < BigDecimal(-5000))
+        val period = MathParser.evaluateRPN(MathParser.shuntingYard(MathParser.tokenize("tan(180000000000000000000000000045)")), isDegrees = true)
+        org.junit.Assert.assertTrue(period.subtract(BigDecimal.ONE).abs() < BigDecimal("1e-30"))
+    }
+
+    @Test fun degreeAnglesAreReducedBeforeConvertingToApproximateRadians() {
+        val result = MathParser.evaluateRPN(MathParser.shuntingYard(MathParser.tokenize("cos(360000000000000000000000000000000000000000000000000000000000000000)")), isDegrees = true)
+        assertEquals(0, result.compareTo(BigDecimal.ONE))
+    }
+
+    @Test fun malformedInfixInputCannotBorrowOperandsFromAnotherExpression() {
+        listOf("1 2 +", "sin(1,2)+", "1+", "()", "2+sin()", "sin 2").forEach { expression ->
+            assertThrows(expression, IllegalArgumentException::class.java) { calculate(expression) }
+        }
+    }
+
+    @Test fun multiplicationAfterParenthesesAndSignedPowers() {
+        mapOf("(2+3)4" to "20", "2^-2^2" to "0.0625", "(-2)^-3" to "-0.125")
+            .forEach { (expression, expected) ->
+                assertEquals(expression, 0, calculate(expression).compareTo(BigDecimal(expected)))
+            }
+    }
 
     private fun calculate(expression: String): BigDecimal =
         MathParser.evaluateRPN(MathParser.shuntingYard(MathParser.tokenize(expression)))

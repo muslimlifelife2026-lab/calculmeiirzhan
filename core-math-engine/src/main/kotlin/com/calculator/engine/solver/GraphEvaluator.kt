@@ -129,6 +129,11 @@ class GraphEvaluator(val expression: String) {
                         "log" -> if (a > 0.0) log10(a) else Double.NaN
                         "exp" -> exp(a)
                         "abs" -> abs(a)
+                        "fact" -> if (a.isFinite() && a >= 0.0 && a <= 170.0 && a == floor(a)) {
+                            var factorial = 1.0
+                            for (factor in 2..a.toInt()) factorial *= factor
+                            factorial
+                        } else Double.NaN
                         else -> Double.NaN
                     }
                     stack[sp++] = res
@@ -154,7 +159,8 @@ class GraphEvaluator(val expression: String) {
     ): DoubleArray {
         require(pointsCount in 0..1200) { "Слишком много точек графика" }
         val yValues = DoubleArray(pointsCount)
-        if (pointsCount <= 1) return yValues
+        if (pointsCount == 0) return yValues
+        if (pointsCount == 1) return doubleArrayOf(evaluate(xMin, params, varSymbol))
 
         val step = (xMax - xMin) / (pointsCount - 1)
         val stack = DoubleArray(rpn.size)
@@ -176,6 +182,7 @@ class GraphEvaluator(val expression: String) {
         varSymbol: String = "x",
         h: Double = 1e-5
     ): Double {
+        require(h.isFinite() && h > 0.0) { "Шаг производной должен быть положительным" }
         val yPlus = evaluate(x + h, params, varSymbol)
         val yMinus = evaluate(x - h, params, varSymbol)
         if (yPlus.isNaN() || yMinus.isNaN() || yPlus.isInfinite() || yMinus.isInfinite()) {
@@ -194,13 +201,14 @@ class GraphEvaluator(val expression: String) {
         varSymbol: String = "x",
         intervals: Int = 100
     ): Double {
+        require(intervals in 2..10_000) { "Число интервалов должно быть от 2 до 10000" }
         if (a == b) return 0.0
         val n = max(2, if (intervals % 2 == 0) intervals else intervals + 1)
         val h = (b - a) / n
 
         val fa = evaluate(a, params, varSymbol)
         val fb = evaluate(b, params, varSymbol)
-        if (fa.isNaN() || fb.isNaN()) return Double.NaN
+        if (!fa.isFinite() || !fb.isFinite()) return Double.NaN
 
         var sumOdd = 0.0
         var sumEven = 0.0
@@ -229,6 +237,7 @@ class GraphEvaluator(val expression: String) {
         pointsCount: Int,
         params: Map<String, Double> = emptyMap()
     ): List<Pair<Double, Double>> {
+        require(pointsCount in 0..1200) { "Слишком много точек графика" }
         val points = mutableListOf<Pair<Double, Double>>()
         val step = (thetaMax - thetaMin) / max(1, pointsCount - 1)
         val stack = DoubleArray(rpn.size)
@@ -258,6 +267,7 @@ class GraphEvaluator(val expression: String) {
         pointsCount: Int,
         params: Map<String, Double> = emptyMap()
     ): List<Pair<Double, Double>> {
+        require(pointsCount in 0..1200) { "Слишком много точек графика" }
         val points = mutableListOf<Pair<Double, Double>>()
         val step = (tMax - tMin) / max(1, pointsCount - 1)
         val xStack = DoubleArray(rpn.size)
@@ -280,13 +290,23 @@ class GraphEvaluator(val expression: String) {
 
     fun findRoots(xMin: Double, xMax: Double, pointsCount: Int = 400,
                   params: Map<String, Double> = emptyMap()): List<Double> {
-        if (pointsCount < 3 || xMax <= xMin) return emptyList()
+        val stack = DoubleArray(rpn.size)
+        val flags = BooleanArray(rpn.size)
+        return findRootsOf(xMin, xMax, pointsCount) { evaluateWithStack(it, params, "x", stack, flags) }
+    }
+
+    private fun findRootsOf(xMin: Double, xMax: Double, pointsCount: Int, f: (Double) -> Double): List<Double> {
+        require(pointsCount <= 1200) { "Слишком много точек графика" }
+        if (pointsCount < 3 || !xMin.isFinite() || !xMax.isFinite() || xMax <= xMin) return emptyList()
         val step = (xMax - xMin) / (pointsCount - 1)
-        val values = evaluateRange(xMin, xMax, pointsCount, params)
+        val values = DoubleArray(pointsCount) { f(xMin + it * step) }
+        // A constant function has either no zeros or infinitely many, not isolated roots.
+        if (values.all { it == values[0] }) return emptyList()
         val roots = mutableListOf<Double>()
-        fun addIfValid(x: Double) {
-            val y = evaluate(x, params)
-            if (y.isFinite() && abs(y) <= 1e-6 && roots.none { abs(it - x) < step * 2 }) roots += x
+        fun addIfValid(x: Double, localScale: Double = 0.0) {
+            val y = f(x)
+            if (y.isFinite() && abs(y) <= localScale * 1e-10 &&
+                roots.none { abs(it - x) < 1e-7 * max(1.0, abs(x)) }) roots += x
         }
         for (i in 0 until pointsCount - 1) {
             val y0 = values[i]
@@ -300,7 +320,7 @@ class GraphEvaluator(val expression: String) {
                 var leftY = y0
                 repeat(50) {
                     val mid = (left + right) / 2
-                    val midY = evaluate(mid, params)
+                    val midY = f(mid)
                     if (midY.isFinite()) {
                         if (midY == 0.0 || midY.sign == leftY.sign) {
                             left = mid
@@ -308,22 +328,22 @@ class GraphEvaluator(val expression: String) {
                         } else right = mid
                     }
                 }
-                addIfValid((left + right) / 2)
+                addIfValid((left + right) / 2, max(abs(y0), abs(y1)))
             }
-            if (i > 0 && abs(y0) <= abs(values[i - 1]) && abs(y0) <= abs(y1)) {
+            if (i > 0 && values[i - 1].isFinite() && abs(y0) < abs(values[i - 1]) && abs(y0) < abs(y1)) {
                 var left = x0 - step
                 var right = x0 + step
                 repeat(40) {
                     val third = (right - left) / 3
-                    val a = abs(evaluate(left + third, params))
-                    val b = abs(evaluate(right - third, params))
+                    val a = abs(f(left + third))
+                    val b = abs(f(right - third))
                     if (a < b) right -= third else left += third
                 }
-                addIfValid((left + right) / 2)
+                addIfValid((left + right) / 2, max(abs(values[i - 1]), abs(y1)))
             }
         }
         addIfValid(xMax)
-        return roots
+        return roots.sorted()
     }
 
     /**
@@ -336,8 +356,15 @@ class GraphEvaluator(val expression: String) {
         pointsCount: Int = 300,
         params: Map<String, Double> = emptyMap()
     ): List<Pair<Double, Double>> {
-        val difference = GraphEvaluator("($expression)-(${other.expression})")
-        return difference.findRoots(xMin, xMax, pointsCount, params).mapNotNull { x ->
+        val firstStack = DoubleArray(rpn.size)
+        val secondStack = DoubleArray(other.rpn.size)
+        val firstFlags = BooleanArray(rpn.size)
+        val secondFlags = BooleanArray(other.rpn.size)
+        val roots = findRootsOf(xMin, xMax, pointsCount) {
+            evaluateWithStack(it, params, "x", firstStack, firstFlags) -
+                other.evaluateWithStack(it, params, "x", secondStack, secondFlags)
+        }
+        return roots.mapNotNull { x ->
             val y1 = evaluate(x, params)
             val y2 = other.evaluate(x, params)
             if (y1.isFinite() && y2.isFinite() && abs(y1 - y2) <= 1e-5 * max(1.0, abs(y1))) {

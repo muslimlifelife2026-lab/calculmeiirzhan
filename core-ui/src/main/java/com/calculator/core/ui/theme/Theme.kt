@@ -1,8 +1,10 @@
 package com.calculator.core.ui.theme
 
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.graphics.Color
 
 private val DarkColorScheme = darkColorScheme(
@@ -31,7 +33,9 @@ fun AeroCalcTheme(
 ) {
     MaterialTheme(
         colorScheme = DarkColorScheme,
-        typography = Typography,
-        content = content
-    )
+        typography = Typography
+    ) {
+        // The glass host is transparent and intentionally has no opaque Material Surface.
+        CompositionLocalProvider(LocalContentColor provides TextPrimary, content = content)
+    }
 }

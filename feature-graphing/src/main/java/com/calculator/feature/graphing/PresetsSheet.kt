@@ -18,6 +18,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.calculator.core.ui.theme.*
+import com.calculator.core.ui.components.GlassCard
 
 data class GraphPreset(
     val title: String,
@@ -44,9 +45,9 @@ val PRESET_LIBRARY = listOf(
     ),
     // ─── Calculus & Algebra Classics ───
     GraphPreset(
-        title = "Распределение Гаусса (Колокол)",
+        title = "Гауссовы кривые",
         category = "Математический анализ",
-        description = "Нормальное распределение вероятностей с пиком в нуле",
+        description = "Колоколообразные функции exp(−x²). Площадь не нормирована к 1: это не плотности вероятности",
         expressions = listOf("exp(-x^2)", "0.5 * exp(-0.5 * x^2)"),
         mode = GraphMode.CARTESIAN
     ),
@@ -72,7 +73,7 @@ val PRESET_LIBRARY = listOf(
         mode = GraphMode.CARTESIAN
     ),
     GraphPreset(
-        title = "Кубический сплайн и экстремумы",
+        title = "Кубический полином и экстремумы",
         category = "Математический анализ",
         description = "Полином третьей степени с локальными экстремумами",
         expressions = listOf("x^3 - 3*x"),
@@ -151,8 +152,7 @@ fun PresetsSheet(
                 Text(
                     text = "Библиотека математических кривых",
                     color = Color.White,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold
+                    style = MaterialTheme.typography.titleLarge
                 )
             }
 
@@ -184,68 +184,13 @@ private fun PresetCard(
     preset: GraphPreset,
     onClick: () -> Unit
 ) {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
-            .background(SurfaceCard)
-            .border(1.dp, SurfaceBorder, RoundedCornerShape(14.dp))
-            .clickable(onClick = onClick)
-            .padding(12.dp)
-    ) {
-        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = preset.title,
-                    color = Color.White,
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Bold
-                )
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(6.dp))
-                        .background(Color(0xFFB9C6D6).copy(alpha = 0.15f))
-                        .padding(horizontal = 6.dp, vertical = 2.dp)
-                ) {
-                    Text(
-                        text = preset.mode.title.split(" ").first(),
-                        color = Color(0xFFB9C6D6),
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-            }
-
-            Text(
-                text = preset.description,
-                color = TextSecondary,
-                fontSize = 11.sp,
-                lineHeight = 14.sp
-            )
-
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                preset.expressions.forEach { expr ->
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(4.dp))
-                            .background(SurfaceElevated)
-                            .padding(horizontal = 6.dp, vertical = 2.dp)
-                    ) {
-                        Text(
-                            text = expr,
-                            color = Color(0xFFB9ADC8),
-                            fontSize = 10.sp,
-                            fontFamily = FontFamily.Monospace
-                        )
-                    }
-                }
+    GlassCard(Modifier.fillMaxWidth().clickable(onClick = onClick)) {
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(preset.title, style = MaterialTheme.typography.titleMedium)
+            Text(preset.mode.title, style = MaterialTheme.typography.labelMedium, color = TextSecondary)
+            Text(preset.description, color = TextSecondary, style = MaterialTheme.typography.bodyMedium)
+            preset.expressions.forEach { expression ->
+                Text(expression, style = MaterialTheme.typography.bodyMedium, fontFamily = FontFamily.Monospace)
             }
         }
     }

@@ -75,6 +75,11 @@ class GeometryViewModel(application: Application, private val savedState: SavedS
                 if (savedTarget != null && _selectedFormula.value!!.variables.any { it.symbol == savedTarget }) {
                     _targetVariableSymbol.value = savedTarget
                 }
+                // selectFormula resets the saved keys; write restored values back so a second
+                // recreation does not erase the draft that was successfully restored once.
+                savedState["inputs"] = HashMap(_inputs.value)
+                savedState["units"] = HashMap(_inputUnits.value.mapValues { it.value.symbol })
+                savedState["target"] = _targetVariableSymbol.value
             }
         }
     }

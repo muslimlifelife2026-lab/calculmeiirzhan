@@ -44,7 +44,7 @@ fun GlassTabs(
                         .background(if (active) Color.White.copy(alpha = 0.9f) else Color.Transparent, RoundedCornerShape(15.dp))
                         .semantics { selected = active }
                         .clickable(role = Role.Tab) { onSelect(index) }
-                        .defaultMinSize(minHeight = 44.dp)
+                        .defaultMinSize(minHeight = 48.dp)
                         .padding(horizontal = 16.dp, vertical = 12.dp),
                     color = if (active) Background else TextSecondary,
                     fontSize = 13.sp,

@@ -26,37 +26,35 @@ import com.google.android.libraries.ads.mobile.sdk.common.LoadAdError
 fun BannerSlot(modifier: Modifier = Modifier) {
     val context = LocalContext.current
     val preview = LocalInspectionMode.current
-    val adView = remember(context) { AdView(context) }
-    var loaded by remember(adView) { mutableStateOf(false) }
-
-    Box(modifier.fillMaxWidth().height(68.dp), contentAlignment = Alignment.Center) {
-        LaunchedEffect(adView, preview) {
-            if (!preview) {
-                adView.loadAd(
-                    BannerAdRequest.Builder(BuildConfig.ADMOB_BANNER_UNIT_ID, AdSize.BANNER).build(),
-                    object : AdLoadCallback<BannerAd> {
-                        override fun onAdLoaded(ad: BannerAd) { loaded = true }
-                        override fun onAdFailedToLoad(adError: LoadAdError) {
-                            loaded = false
-                            Log.w("AeroCalcAds", "Banner load: $adError")
-                        }
+    BoxWithConstraints(modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+        // A fixed 320dp creative must never be clipped on compact/split-screen windows.
+        if (maxWidth < 320.dp || preview) return@BoxWithConstraints
+        val adView = remember(context) { AdView(context) }
+        var loaded by remember(adView) { mutableStateOf(false) }
+        DisposableEffect(adView) {
+            val main = android.os.Handler(android.os.Looper.getMainLooper())
+            var active = true
+            adView.loadAd(
+                BannerAdRequest.Builder(BuildConfig.ADMOB_BANNER_UNIT_ID, AdSize.BANNER).build(),
+                object : AdLoadCallback<BannerAd> {
+                    override fun onAdLoaded(ad: BannerAd) { main.post { if (active) loaded = true } }
+                    override fun onAdFailedToLoad(adError: LoadAdError) {
+                        main.post { if (active) loaded = false }
+                        Log.w("AeroCalcAds", "Banner load: $adError")
                     }
-                )
+                }
+            )
+            onDispose {
+                active = false
+                (adView.parent as? ViewGroup)?.removeView(adView)
+                adView.destroy()
             }
         }
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            if (loaded) {
-                Text("РЕКЛАМА", color = TextMuted, fontSize = 10.sp, fontWeight = FontWeight.Medium)
-                Spacer(Modifier.height(3.dp))
-            }
-            AndroidView(factory = { adView }, modifier = Modifier.wrapContentSize())
-        }
-    }
-
-    DisposableEffect(adView) {
-        onDispose {
-            (adView.parent as? ViewGroup)?.removeView(adView)
-            adView.destroy()
+        Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(vertical = 4.dp)) {
+            // Keep space stable while loading; allow the label to grow with the system font.
+            Text(if (loaded) "РЕКЛАМА" else " ", color = TextMuted, fontSize = 10.sp, fontWeight = FontWeight.Medium)
+            Spacer(Modifier.height(4.dp))
+            AndroidView(factory = { adView }, modifier = Modifier.width(320.dp).height(50.dp))
         }
     }
 }

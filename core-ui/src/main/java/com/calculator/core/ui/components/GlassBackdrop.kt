@@ -80,7 +80,7 @@ fun Modifier.glassBackdrop(blurRadius: Dp = 16.dp, cornerRadius: Dp = 28.dp): Mo
             val scene = GlassScene(globalSize)
             val blur = if (radius > 0f) BlurEffect(radius, radius, TileMode.Clamp) else null
             layer.renderEffect = refraction?.effect(
-                size, margin, cornerRadius.toPx(), 1.8.dp.toPx(), radius
+                size, margin, cornerRadius.toPx(), 4.dp.toPx(), radius
             ) ?: blur
             if (globalSize.width > 0f && globalSize.height > 0f) {
                 layer.record(
@@ -182,11 +182,11 @@ private class Api33EdgeRefraction private constructor() : EdgeRefraction {
 
 private class GlassScene(private val extent: Size) {
     private val base = Brush.verticalGradient(
-        listOf(Color(0xFF30343A), Color(0xFF1D242C), Color(0xFF101820)),
+        listOf(Color(0xFF25282D), Color(0xFF191F26), Color(0xFF10161D)),
         endY = extent.height.coerceAtLeast(1f)
     )
     private val silver = Brush.radialGradient(
-        listOf(Color(0x80959BA2), Color(0x4057626D), Color.Transparent),
+        listOf(Color(0x70959BA2), Color(0x3057626D), Color.Transparent),
         center = Offset(extent.width * 1.12f, extent.height * 0.30f),
         radius = extent.height.coerceAtLeast(1f) * 0.78f
     )
@@ -206,9 +206,23 @@ private class GlassScene(private val extent: Size) {
         close()
     }
     private val ribbonFill = Brush.linearGradient(
-        listOf(Color(0x108C949D), Color(0x506C7885), Color(0x285A646F)),
+        listOf(Color(0x107A818B), Color(0x65778390), Color(0x203B4652)),
         start = Offset.Zero,
         end = Offset(extent.width, extent.height)
+    )
+    private val fold = Path().apply {
+        val w = extent.width
+        val h = extent.height
+        moveTo(-w * .15f, -h * .08f)
+        cubicTo(w * .85f, h * .06f, w * .72f, h * .18f, w * .25f, h * .28f)
+        cubicTo(-w * .22f, h * .39f, w * .18f, h * .51f, w * .64f, h * .54f)
+        cubicTo(w * .12f, h * .52f, -w * .40f, h * .40f, w * .08f, h * .27f)
+        cubicTo(w * .44f, h * .16f, w * .55f, h * .06f, -w * .15f, -h * .02f)
+        close()
+    }
+    private val foldFill = Brush.linearGradient(
+        listOf(Color(0x307B7977), Color(0x707F8993), Color(0x18303C49)),
+        start = Offset.Zero, end = Offset(extent.width * .65f, extent.height * .55f)
     )
 
     fun draw(scope: DrawScope) = with(scope) {
@@ -216,6 +230,8 @@ private class GlassScene(private val extent: Size) {
         drawRect(silver, size = extent)
         drawRect(warmLight, size = extent)
         drawPath(ribbon, ribbonFill)
-        drawPath(ribbon, Color(0x60909AA5), style = Stroke(1.1.dp.toPx()))
+        drawPath(ribbon, Color(0x4A9DA8B4), style = Stroke(0.9.dp.toPx()))
+        drawPath(fold, foldFill)
+        drawPath(fold, Color(0x409EA7B0), style = Stroke(0.7.dp.toPx()))
     }
 }

@@ -22,6 +22,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.calculator.core.ui.components.GlassCard
@@ -54,36 +56,25 @@ fun ConverterScreen(
         }
     }
 
+    BoxWithConstraints(modifier.fillMaxSize()) {
+    val compact = maxHeight < 540.dp || LocalDensity.current.fontScale > 1.3f
     Column(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(12.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp)
+        modifier = Modifier.fillMaxSize().then(if (compact) Modifier.verticalScroll(rememberScrollState()) else Modifier).padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        // 1. Bento Category Selector
-        LazyRow(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            items(ConversionCategory.entries) { category ->
-                val isSelected = category == selectedCategory
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(if (isSelected) Color.White else SurfaceCard)
-                        .border(1.dp, if (isSelected) Color.White else SurfaceBorder, RoundedCornerShape(12.dp))
-                        .bounceClick {
-                            categoryName = category.name
-                            inputValue = "1"
-                        }
-                        .padding(horizontal = 14.dp, vertical = 8.dp)
-                ) {
-                    Text(
-                        text = category.title,
-                        color = if (isSelected) Color(0xFF161719) else TextPrimary,
-                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                        fontSize = 13.sp
-                    )
+        var chooseCategory by remember { mutableStateOf(false) }
+        Box {
+            OutlinedButton(onClick = { chooseCategory = true }, modifier = Modifier.fillMaxWidth().testTag("conversion_category")) {
+                Text(selectedCategory.title, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
+                Icon(Icons.Rounded.KeyboardArrowDown, "Выбрать категорию")
+            }
+            DropdownMenu(chooseCategory, { chooseCategory = false }) {
+                ConversionCategory.entries.forEach { category ->
+                    DropdownMenuItem(text = { Text(category.title) }, onClick = {
+                        categoryName = category.name
+                        inputValue = "1"
+                        chooseCategory = false
+                    })
                 }
             }
         }
@@ -98,11 +89,11 @@ fun ConverterScreen(
         // 2. Conversion Bento Cards with Interactive Swap Button
         Column(
             verticalArrangement = Arrangement.spacedBy(8.dp),
-            modifier = Modifier.weight(1f).verticalScroll(rememberScrollState())
+            modifier = if (compact) Modifier.fillMaxWidth() else Modifier.weight(1f).verticalScroll(rememberScrollState())
         ) {
             // FROM field
             ConversionField(
-                label = "ИЗНАЧАЛЬНО",
+                label = "Исходное значение",
                 value = inputValue,
                 unit = fromUnit,
                 units = units,
@@ -136,7 +127,7 @@ fun ConverterScreen(
 
             // TO field (Result with Glowing Border)
             ConversionField(
-                label = "РЕЗУЛЬТАТ",
+                label = "Результат",
                 value = conversion.getOrNull()?.let {
                     com.calculator.core.ui.utils.NumberFormatter.formatExact(it.round(MathContext(14)))
                 } ?: "—",
@@ -151,7 +142,7 @@ fun ConverterScreen(
             Text(
                 if (selectedCategory == ConversionCategory.TEMPERATURE && temperatureDifference)
                     "ΔT — изменение, без смещения шкалы: 1 °C = 1 K = 1,8 °F."
-                else "Расчёт: до 34 значащих цифр. Показ: до 14. Точность измерения зависит от исходных данных.",
+                else "Результат округлён до 14 значащих цифр.",
                 color = TextMuted, fontSize = 12.sp, lineHeight = 17.sp
             )
         }
@@ -175,6 +166,7 @@ fun ConverterScreen(
             showVariables = false
         )
     }
+    }
 }
 
 @Composable
@@ -189,18 +181,13 @@ fun ConversionField(
     var expanded by remember { mutableStateOf(false) }
 
     GlassCard(
-        modifier = Modifier
-            .fillMaxWidth()
-            .then(
-                if (isResult) Modifier.border(1.dp, Color(0xFFB9C6D6).copy(alpha = 0.45f), RoundedCornerShape(16.dp))
-                else Modifier
-            ),
-        cornerRadius = 16.dp
+        modifier = Modifier.fillMaxWidth(),
+        cornerRadius = 24.dp
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 14.dp, vertical = 8.dp),
+                .padding(vertical = 4.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             // Text Input / Output
@@ -208,15 +195,14 @@ fun ConversionField(
                 Text(
                     text = label,
                     color = if (isResult) Color(0xFFB9C6D6) else TextSecondary,
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = 1.sp
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Medium
                 )
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
                     text = if (value.isEmpty()) "0" else value,
                     color = Color.White,
-                    fontSize = 28.sp,
+                    fontSize = 32.sp,
                     fontWeight = FontWeight.Bold,
                     maxLines = 1,
                     modifier = Modifier.horizontalScroll(rememberScrollState()),
@@ -230,11 +216,11 @@ fun ConversionField(
                     color = SurfaceElevated,
                     shape = RoundedCornerShape(10.dp),
                     border = androidx.compose.foundation.BorderStroke(1.dp, SurfaceBorder),
-                    modifier = Modifier.clickable { expanded = true }
+                    modifier = Modifier.heightIn(min = 48.dp).clickable { expanded = true }
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 12.dp)
                     ) {
                         Text(
                             text = unit.symbol,

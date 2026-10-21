@@ -26,6 +26,14 @@ class LearningInterstitial(
     private var lastLoadAttemptMs: Long? = null
     private var loading = false
     private var disposed = false
+    private var consentGeneration = 0L
+
+    fun invalidateConsent() {
+        consentGeneration++
+        ad?.destroy(); ad = null
+        loading = false
+        lastLoadAttemptMs = null
+    }
 
     init { activity.lifecycle.addObserver(this) }
 
@@ -36,17 +44,18 @@ class LearningInterstitial(
         if (lastLoadAttemptMs?.let { now - it < 60_000L } == true) return
         lastLoadAttemptMs = now
         loading = true
+        val generation = consentGeneration
         try {
             InterstitialAd.load(AdRequest.Builder(unitId).build(), object : AdLoadCallback<InterstitialAd> {
                 override fun onAdLoaded(loaded: InterstitialAd) {
                     activity.runOnUiThread {
-                        loading = false
-                        if (disposed || !canRequestAds()) loaded.destroy()
+                        if (generation == consentGeneration) loading = false
+                        if (disposed || generation != consentGeneration || !canRequestAds()) loaded.destroy()
                         else { ad = loaded; loadedAtMs = SystemClock.elapsedRealtime() }
                     }
                 }
                 override fun onAdFailedToLoad(error: LoadAdError) {
-                    activity.runOnUiThread { loading = false }
+                    activity.runOnUiThread { if (generation == consentGeneration) loading = false }
                     Log.w("AeroCalcAds", "Interstitial unavailable: ${error.message}")
                 }
             })

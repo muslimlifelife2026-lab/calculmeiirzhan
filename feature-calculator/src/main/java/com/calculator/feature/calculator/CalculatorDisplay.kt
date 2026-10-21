@@ -34,7 +34,7 @@ fun CalculatorDisplay(
     val context = LocalContext.current
     Column(modifier.verticalScroll(rememberScrollState())) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text("AeroCalc", color = TextPrimary, fontSize = 24.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
+            Text("AeroCalc", color = TextPrimary, fontSize = 28.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
             GlassToolbarButton(Icons.Rounded.History, "Последние вычисления", onHistory)
             GlassToolbarButton(Icons.Rounded.CameraAlt, "Сканировать пример", onScanner)
         }
@@ -55,17 +55,17 @@ fun CalculatorDisplay(
             Text(
                 text = expression.ifBlank { "0" },
                 color = if (result.isBlank()) TextPrimary else TextSecondary,
-                fontSize = if (result.isBlank()) 48.sp else 26.sp,
+                fontSize = if (result.isBlank()) 52.sp else 24.sp,
                 fontWeight = FontWeight.Light,
                 maxLines = 1,
                 modifier = Modifier.horizontalScroll(rememberScrollState())
             )
             if (result.isNotBlank()) Text(
-                text = result, color = TextPrimary, fontSize = 48.sp, fontWeight = FontWeight.Light,
+                text = result, color = TextPrimary, fontSize = 52.sp, fontWeight = FontWeight.Light,
                 maxLines = 1, modifier = Modifier.horizontalScroll(rememberScrollState())
             )
             if (error.isNotBlank()) Text(ErrorLocalizer.localize(error), color = ErrorRed, fontSize = 14.sp)
-            if (expression.isBlank()) Text("Введите пример или используйте камеру", color = TextMuted, fontSize = 13.sp, modifier = Modifier.padding(top = 8.dp))
+            if (expression.isBlank()) Text("Посчитайте или отсканируйте пример", color = TextMuted, fontSize = 13.sp, modifier = Modifier.padding(top = 8.dp))
             if (hasSteps) TextButton(onClick = onSteps) {
                 Text("Как получен ответ", color = TextSecondary, fontSize = 13.sp)
                 Icon(Icons.Rounded.KeyboardArrowRight, null, tint = TextSecondary, modifier = Modifier.size(18.dp))
