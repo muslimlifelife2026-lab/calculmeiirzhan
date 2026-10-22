@@ -1,0 +1,142 @@
+{
+  "date": "2026-10-22",
+  "version": "1.3.0",
+  "versionCode": 4,
+  "jvm": [
+    {
+      "module": "core-domain",
+      "tests": 35,
+      "failures": 0
+    },
+    {
+      "module": "core-math-engine",
+      "tests": 54,
+      "failures": 0
+    },
+    {
+      "module": "feature-graphing",
+      "tests": 5,
+      "failures": 0
+    },
+    {
+      "module": "app",
+      "tests": 14,
+      "failures": 0
+    }
+  ],
+  "android": {
+    "device": "Android 14 / test_emulator",
+    "distinct_scenarios": 30,
+    "results": {
+      "com.aerocalc.smartcalculator.ui.main.CompactAccessibilityTest.scientificKeyboardHasReachableKeysWithLargeTextOnShortScreen": "passed",
+      "com.aerocalc.smartcalculator.ui.main.CompactAccessibilityTest.oldestAgeChoiceRemainsReachableWithLargeTextOnShortScreen": "passed",
+      "com.aerocalc.smartcalculator.ui.main.DatabaseMigrationTest.oldCalculationSurvivesUpgrade": "passed",
+      "com.aerocalc.smartcalculator.ui.main.DesignNavigationTest.redesignedCatalogsKeepEachScienceWorkspaceReachable": "passed",
+      "com.aerocalc.smartcalculator.ui.main.GraphWorkspaceTest.changingModesAndRestorationKeepSeparateFunctionDrafts": "passed",
+      "com.aerocalc.smartcalculator.ui.main.LearningPracticeUiTest.repositoryRestoresActiveAndPausedAnswersAndReviewAfterRecreation": "passed",
+      "com.aerocalc.smartcalculator.ui.main.LearningPracticeUiTest.wrongAnswerCannotCompleteAndCorrectCompletionPersistsWithoutRepeatingTheAdEvent": "passed",
+      "com.aerocalc.smartcalculator.ui.main.MainActivityLaunchTest.launcherActivityCreatesContentWindow": "passed",
+      "com.aerocalc.smartcalculator.ui.main.MainScreenTest.graphParametersRemainEditableAfterReturningFromAnotherTab": "passed",
+      "com.aerocalc.smartcalculator.ui.main.MainScreenTest.toolsExposeConverterAndBackNavigation": "passed",
+      "com.aerocalc.smartcalculator.ui.main.MainScreenTest.newtonExperimentIsReachableAndUsesTheSelectedForce": "passed",
+      "com.aerocalc.smartcalculator.ui.main.MainScreenTest.tinyNonzeroResultRemainsVisible": "passed",
+      "com.aerocalc.smartcalculator.ui.main.MainScreenTest.absoluteTemperatureRejectsBelowZeroInsteadOfShowingAFalseNumber": "passed",
+      "com.aerocalc.smartcalculator.ui.main.MainScreenTest.completedCalculationKeepsExplanationAcrossTabs": "passed",
+      "com.aerocalc.smartcalculator.ui.main.MainScreenTest.converterShowsResultAndBottomKeyboardRow": "passed",
+      "com.aerocalc.smartcalculator.ui.main.MainScreenTest.learningLessonsAndPhysicsPracticeAreReachable": "passed",
+      "com.aerocalc.smartcalculator.ui.main.MainScreenTest.scientificFunctionsAreDiscoverableButInitiallyCollapsed": "passed",
+      "com.aerocalc.smartcalculator.ui.main.MainScreenTest.everyToolOpensAndReturnsToCatalog": "passed",
+      "com.aerocalc.smartcalculator.ui.main.PdfExportTest.longSolutionSpansMultiplePages": "passed",
+      "com.aerocalc.smartcalculator.ui.main.ScienceWorkspaceTest.algebraSolvesQuadraticAndRejectsVariableDivision": "passed",
+      "com.aerocalc.smartcalculator.ui.main.ScienceWorkspaceTest.restoredPhysicsInputsSurviveTheNextRestoration": "passed",
+      "com.aerocalc.smartcalculator.ui.main.ScienceWorkspaceTest.sensorRecordingStopsWhenActivityLeavesForeground": "passed",
+      "com.aerocalc.smartcalculator.ui.main.ScienceWorkspaceTest.geometryConstructsMeasuredSegmentFromExactCoordinates": "passed",
+      "com.aerocalc.smartcalculator.ui.main.ScienceWorkspaceTest.moleculePresetProducesFormulaAndSurvivesLeavingWorkspace": "passed",
+      "com.aerocalc.smartcalculator.ui.main.CompactAccessibilityTest.plainTextOnTransparentDarkThemeHasReadableContrast": "passed",
+      "com.aerocalc.smartcalculator.ui.main.CompactAccessibilityTest.selectedControlsAndContainerRolesHaveReadableContrast": "passed",
+      "com.aerocalc.smartcalculator.ui.main.CompactAccessibilityTest.typingPreviewDoesNotResizeOrMoveTheEnteredNumber": "passed",
+      "com.aerocalc.smartcalculator.ui.main.AlgebraLearningWorkflowTest.systemSolutionOpensItsLinesAndFreshImportsReplaceOnlyRequestedGraphDrafts": "passed",
+      "com.aerocalc.smartcalculator.ui.main.AlgebraLearningWorkflowTest.scannedSystemKeepsBothSidesAndManualDraftUntilAnotherImportIsRequested": "passed",
+      "com.aerocalc.smartcalculator.ui.main.PrintedEquationOcrTest.galleryImageRetainsTwoCompleteEquationsAndProducesTheExpectedSolution": "passed"
+    },
+    "note": "Historical union, not one complete run. For 1.3.0: first 13-scenario run had 11 passes; selector/navigation assumptions were corrected and all 3 related scenarios passed in the targeted recheck. PrintedEquationOcrTest then passed again independently. See RELEASE_1_3_0_2026-10-22.md."
+  },
+  "release_smoke": {
+    "linear_system": "x+y=3; x-y=1 -> x=2, y=1",
+    "cold_launch_ms": 1456,
+    "passed": true,
+    "gallery_flow_debug": "system Photo Picker -> OCR review -> automatic system solution -> graph",
+    "optimized_release_binary": true,
+    "temporary_debug_signature": true,
+    "version": "1.3.0",
+    "fatal_runtime_errors": 0
+  },
+  "lint": {
+    "errors": 0,
+    "warnings": [
+      "AndroidGradlePluginVersion",
+      "AndroidGradlePluginVersion",
+      "AndroidGradlePluginVersion",
+      "GradleDependency",
+      "GradleDependency",
+      "GradleDependency",
+      "GradleDependency",
+      "GradleDependency",
+      "GradleDependency",
+      "GradleDependency",
+      "GradleDependency",
+      "GradleDependency",
+      "GradleDependency",
+      "GradleDependency",
+      "GradleDependency",
+      "GradleDependency",
+      "GradleDependency",
+      "GradleDependency",
+      "GradleDependency",
+      "GradleDependency",
+      "GradleDependency",
+      "NewerVersionAvailable",
+      "NewerVersionAvailable",
+      "NewerVersionAvailable",
+      "NewerVersionAvailable",
+      "NewerVersionAvailable",
+      "NewerVersionAvailable",
+      "NewerVersionAvailable",
+      "NewerVersionAvailable",
+      "NewerVersionAvailable",
+      "UseKtx",
+      "UseTomlInstead",
+      "UseTomlInstead"
+    ]
+  },
+  "upload_certificate_sha256": "35:AF:AD:53:8E:1A:BB:5D:BA:92:32:7F:68:2C:2C:E8:87:5B:70:E2:68:6E:76:7B:0C:50:A9:FC:98:49:11:65",
+  "artifacts": [
+    {
+      "file": "AeroCalc-1.3.0.apk",
+      "bytes": 72432593,
+      "sha256": "D4758D331D7CAD8DFC1E1EAE2F219ACD1467205A735F2703E4DD0F0513E00597"
+    },
+    {
+      "file": "AeroCalc-1.3.0-play.aab",
+      "bytes": 48295517,
+      "sha256": "B159202F387EB698E4D4BFECDECB21E7E31AB0EA63F6038BD38BE6048FA792AC"
+    }
+  ],
+  "ui_feedback_fix": {
+    "stable_60fps_confirmed": false,
+    "release_vital_lint": "passed",
+    "physical_phone_tested": false,
+    "failures": 0,
+    "final_android_tests": 6,
+    "report": "audit/UI_FEEDBACK_2026-10-21.md",
+    "debug_and_release_builds": "passed"
+  },
+  "learning_solver_release": {
+    "report": "audit/RELEASE_1_3_0_2026-10-22.md",
+    "handwriting_supported": false,
+    "android_feature_scenarios": 13,
+    "hardware_camera_tested": false,
+    "jvm_tests": 108,
+    "upload_key_activation_confirmed": false
+  }
+}

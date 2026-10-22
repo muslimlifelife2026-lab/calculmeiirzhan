@@ -1,11 +1,13 @@
 package com.calculator.feature.calculator.scanner
 
 import android.Manifest
-import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.provider.Settings
 import android.view.ViewGroup
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.core.Camera
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.FocusMeteringAction
@@ -50,9 +52,9 @@ import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.shouldShowRationale
 import com.google.accompanist.permissions.rememberPermissionState
-import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
@@ -63,20 +65,40 @@ fun ScannerScreen(
     val cameraPermissionState = rememberPermissionState(Manifest.permission.CAMERA)
     val context = LocalContext.current
     var permissionRequested by rememberSaveable { mutableStateOf(false) }
-
-    if (cameraPermissionState.status.isGranted) {
-        CameraPreview(onResult = onResult, onClose = onClose)
-    } else {
-        LaunchedEffect(Unit) {
-            if (!permissionRequested) {
-                permissionRequested = true
-            cameraPermissionState.launchPermissionRequest()
-            }
+    var isProcessing by remember { mutableStateOf(false) }
+    var pickerOpen by rememberSaveable { mutableStateOf(false) }
+    var error by remember { mutableStateOf<String?>(null) }
+    val engine = remember { MathOcrEngine() }
+    val scope = rememberCoroutineScope()
+    val currentOnResult by rememberUpdatedState(onResult)
+    DisposableEffect(engine) { onDispose { engine.close() } }
+    val gallery = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
+        pickerOpen = false
+        if (uri != null && !isProcessing) scope.launch {
+            isProcessing = true
+            error = null
+            try {
+                val text = engine.processUri(context, uri)
+                if (text.isNullOrBlank()) error = scanHelp else currentOnResult(text)
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (_: Exception) {
+                error = "Не удалось прочитать фото. Выберите другое изображение."
+            } finally { isProcessing = false }
         }
-        Box(modifier = Modifier.fillMaxSize().background(Color.Black), contentAlignment = Alignment.Center) {
-            Text("Требуется разрешение на использование камеры", color = Color.White)
-            Button(
-                onClick = {
+    }
+
+    Box(Modifier.fillMaxSize().background(Color.Black)) {
+        if (cameraPermissionState.status.isGranted) {
+            CameraPreview(onResult = onResult, onClose = onClose, mathOcrEngine = engine,
+                isProcessing = isProcessing, onProcessingChange = { isProcessing = it; if (it) error = null },
+                onFailure = { error = it })
+        } else {
+            Column(Modifier.align(Alignment.Center).padding(24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                Text("Решить по фото", color = Color.White, style = MaterialTheme.typography.headlineSmall)
+                Text("Выберите снимок печатного примера или двух уравнений. Для съёмки разрешите доступ к камере.", color = Color.White)
+                Button(onClick = {
                     if (permissionRequested && !cameraPermissionState.status.shouldShowRationale) {
                         context.startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
                             Uri.parse("package:${context.packageName}")))
@@ -84,26 +106,52 @@ fun ScannerScreen(
                         permissionRequested = true
                         cameraPermissionState.launchPermissionRequest()
                     }
-                },
-                modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 64.dp)
-            ) {
-                Text(if (permissionRequested && !cameraPermissionState.status.shouldShowRationale) "Открыть настройки" else "Разрешить")
+                }, enabled = !isProcessing && !pickerOpen) {
+                    Text(if (permissionRequested && !cameraPermissionState.status.shouldShowRationale) "Настройки камеры" else "Разрешить камеру")
+                }
             }
+            IconButton(onClick = onClose, modifier = Modifier.align(Alignment.TopStart).statusBarsPadding().padding(16.dp)) {
+                Icon(Icons.Rounded.Close, "Закрыть сканер", tint = Color.White)
+            }
+        }
+        error?.let { message ->
+            Surface(color = Color(0xEE20252C), shape = RoundedCornerShape(16.dp),
+                modifier = Modifier.align(Alignment.BottomCenter).navigationBarsPadding()
+                    .padding(horizontal = 24.dp).padding(bottom = 190.dp)) {
+                Text(message, color = Color.White, modifier = Modifier.padding(16.dp),
+                    style = MaterialTheme.typography.bodyMedium)
+            }
+        }
+        Button(onClick = {
+            pickerOpen = true
+            try { gallery.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) }
+            catch (_: android.content.ActivityNotFoundException) {
+                pickerOpen = false
+                error = "Не удалось открыть выбор фото на этом устройстве."
+            }
+        }, enabled = !isProcessing && !pickerOpen,
+            modifier = Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(bottom = 24.dp)) {
+            Text(if (isProcessing) "Распознавание…" else "Выбрать фото")
         }
     }
 }
 
+private const val scanHelp = "Не удалось разобрать пример. Нужны чёткий печатный текст и обе части уравнения. Дроби записывайте через /. Можно ввести задачу вручную после закрытия сканера."
+
 @Composable
 private fun CameraPreview(
     onResult: (String) -> Unit,
-    onClose: () -> Unit
+    onClose: () -> Unit,
+    mathOcrEngine: MathOcrEngine,
+    isProcessing: Boolean,
+    onProcessingChange: (Boolean) -> Unit,
+    onFailure: (String) -> Unit
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     val coroutineScope = rememberCoroutineScope()
     
     val imageCapture = remember { ImageCapture.Builder().build() }
-    val mathOcrEngine = remember { MathOcrEngine() }
     val cameraProviderFuture = remember(context) { ProcessCameraProvider.getInstance(context) }
     val disposed = remember { java.util.concurrent.atomic.AtomicBoolean(false) }
     var camera by remember { mutableStateOf<Camera?>(null) }
@@ -115,11 +163,9 @@ private fun CameraPreview(
             if (cameraProviderFuture.isDone) {
                 runCatching { cameraProviderFuture.get().unbindAll() }
             }
-            mathOcrEngine.close()
         }
     }
     
-    var isProcessing by remember { mutableStateOf(false) }
     var isTorchEnabled by remember { mutableStateOf(false) }
     var previewViewRef by remember { mutableStateOf<PreviewView?>(null) }
 
@@ -253,7 +299,7 @@ private fun CameraPreview(
             
             // Text hint below the frame
             Text(
-                text = "Наведите камеру на пример",
+                text = "Печатный пример или два уравнения",
                 color = Color.White,
                 fontSize = 16.sp,
                 modifier = Modifier
@@ -289,7 +335,7 @@ private fun CameraPreview(
             IconButton(onClick = onClose) {
                 Icon(
                     imageVector = Icons.Rounded.Close,
-                    contentDescription = "Close Scanner",
+                    contentDescription = "Закрыть сканер",
                     tint = Color.White,
                     modifier = Modifier.size(32.dp)
                 )
@@ -304,7 +350,7 @@ private fun CameraPreview(
             ) {
                 Icon(
                     imageVector = if (isTorchEnabled) Icons.Rounded.FlashOn else Icons.Rounded.FlashOff,
-                    contentDescription = "Toggle Flashlight",
+                    contentDescription = "Фонарик",
                     tint = if (isTorchEnabled) Color.Yellow else Color.White,
                     modifier = Modifier.size(32.dp)
                 )
@@ -315,37 +361,43 @@ private fun CameraPreview(
         Button(
             onClick = {
                 if (isProcessing) return@Button
-                isProcessing = true
+                onProcessingChange(true)
                 
-                imageCapture.takePicture(
+                try { imageCapture.takePicture(
                     ContextCompat.getMainExecutor(context),
                     object : ImageCapture.OnImageCapturedCallback() {
                         override fun onCaptureSuccess(imageProxy: ImageProxy) {
-                            coroutineScope.launch {
-                                val text = withContext(Dispatchers.IO) {
-                                    mathOcrEngine.processImage(imageProxy)
-                                }
-                                isProcessing = false
-                                if (!text.isNullOrBlank()) {
-                                    onResult(text)
-                                } else {
-                                    android.widget.Toast.makeText(context, "Текст не найден или не похож на формулу. Поднесите ближе.", android.widget.Toast.LENGTH_LONG).show()
-                                }
+                            if (disposed.get()) { imageProxy.close(); return }
+                            coroutineScope.launch(start = CoroutineStart.UNDISPATCHED) {
+                                try {
+                                    val text = mathOcrEngine.processImage(imageProxy,
+                                        previewViewRef?.width ?: 0, previewViewRef?.height ?: 0)
+                                    if (!text.isNullOrBlank()) onResult(text) else onFailure(scanHelp)
+                                } catch (cancelled: CancellationException) {
+                                    throw cancelled
+                                } catch (_: Exception) {
+                                    onFailure("Не удалось обработать снимок. Попробуйте ещё раз.")
+                                } finally { onProcessingChange(false) }
                             }
                         }
 
                         override fun onError(exception: ImageCaptureException) {
-                            isProcessing = false
-                            android.widget.Toast.makeText(context, "Ошибка камеры: ${exception.message}", android.widget.Toast.LENGTH_SHORT).show()
-                            exception.printStackTrace()
+                            if (!disposed.get()) {
+                                onProcessingChange(false)
+                                onFailure("Не удалось сделать снимок. Проверьте доступ к камере.")
+                            }
                         }
                     }
-                )
+                ) } catch (_: IllegalStateException) {
+                    onProcessingChange(false)
+                    onFailure("Камера ещё не готова. Попробуйте через секунду.")
+                }
             },
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .padding(bottom = 96.dp)
                 .size(80.dp),
+            enabled = !isProcessing,
             colors = ButtonDefaults.buttonColors(containerColor = ElectricViolet)
         ) {
             if (isProcessing) {
@@ -353,7 +405,7 @@ private fun CameraPreview(
             } else {
                 Icon(
                     imageVector = Icons.Rounded.CameraAlt,
-                    contentDescription = "Capture Image",
+                    contentDescription = "Сфотографировать пример",
                     tint = com.calculator.core.ui.theme.Background,
                     modifier = Modifier.size(32.dp)
                 )

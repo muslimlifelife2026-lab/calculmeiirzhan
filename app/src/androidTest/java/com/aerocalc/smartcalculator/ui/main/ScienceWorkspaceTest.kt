@@ -54,8 +54,8 @@ class ScienceWorkspaceTest {
         rule.onNodeWithTag("algebra_calculate").performScrollTo().performClick()
         rule.waitUntil(5000) { rule.onAllNodesWithTag("algebra_result").fetchSemanticsNodes().isNotEmpty() }
         rule.onNodeWithTag("algebra_result").performScrollTo()
-        rule.onNodeWithText("x1 = 2").assertExists()
-        rule.onNodeWithText("x2 = 3").assertExists()
+        rule.onNode(hasText("x1 = 2") and hasAnyAncestor(hasTestTag("algebra_result"))).assertExists()
+        rule.onNode(hasText("x2 = 3") and hasAnyAncestor(hasTestTag("algebra_result"))).assertExists()
         rule.onNodeWithTag("algebra_input").performScrollTo().performTextReplacement("x/x")
         rule.onNodeWithText("Упростить").performClick()
         rule.onNodeWithTag("algebra_calculate").performScrollTo().performClick()

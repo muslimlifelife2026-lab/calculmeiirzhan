@@ -26,9 +26,10 @@ import java.util.Locale
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun GraphingScreen(modifier: Modifier = Modifier) {
+fun GraphingScreen(modifier: Modifier = Modifier, initialExpressions: List<String>? = null, initialRequest: Long = 0L) {
     var mode by rememberSaveable { mutableStateOf(GraphMode.CARTESIAN) }
-    var cartesianExpressions by rememberSaveable { mutableStateOf(listOf("sin(x)", "0.5*x - 1")) }
+    var cartesianExpressions by rememberSaveable { mutableStateOf(initialExpressions?.take(3) ?: listOf("sin(x)", "0.5*x - 1")) }
+    var appliedImportRequest by rememberSaveable { mutableLongStateOf(initialRequest) }
     var polarExpressions by rememberSaveable { mutableStateOf(listOf("cos(2*theta)")) }
     var parametricExpressions by rememberSaveable { mutableStateOf(listOf("sin(3*t)", "sin(2*t)")) }
     val expressions = when (mode) {
@@ -51,6 +52,14 @@ fun GraphingScreen(modifier: Modifier = Modifier) {
     var integralAText by rememberSaveable { mutableStateOf("0") }
     var integralBText by rememberSaveable { mutableStateOf("2") }
     var resetTrigger by remember { mutableIntStateOf(0) }
+    LaunchedEffect(initialRequest, initialExpressions) {
+        if (!initialExpressions.isNullOrEmpty() && initialRequest != appliedImportRequest) {
+            mode = GraphMode.CARTESIAN
+            cartesianExpressions = initialExpressions.take(3)
+            appliedImportRequest = initialRequest
+            resetTrigger++
+        }
+    }
     var showPresetsSheet by remember { mutableStateOf(false) }
     var showValuesTable by remember { mutableStateOf(false) }
     var paramValues by rememberSaveable { mutableStateOf(mapOf("a" to 1.0, "b" to 1.0, "c" to 0.0, "k" to 1.0)) }

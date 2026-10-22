@@ -21,7 +21,7 @@ import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CalculatorScreen(modifier: Modifier = Modifier, viewModel: CalculatorViewModel = viewModel()) {
+fun CalculatorScreen(modifier: Modifier = Modifier, viewModel: CalculatorViewModel = viewModel(), onOpenAlgebra: ((String) -> Unit)? = null) {
     val expression by viewModel.displayExpression.collectAsState()
     val result by viewModel.calculatedResult.collectAsState()
     val error by viewModel.errorMessage.collectAsState()
@@ -94,6 +94,7 @@ fun CalculatorScreen(modifier: Modifier = Modifier, viewModel: CalculatorViewMod
         })
     }
     scannedExpression?.let { candidate ->
+        val isAlgebra = candidate.contains('=') || Regex("(?i)(?<![a-z])[xy](?![a-z])").containsMatchIn(candidate)
         AlertDialog(
             onDismissRequest = { scannedExpression = null },
             title = { Text("Проверьте распознанный пример") },
@@ -102,17 +103,25 @@ fun CalculatorScreen(modifier: Modifier = Modifier, viewModel: CalculatorViewMod
                     value = candidate,
                     onValueChange = { scannedExpression = it },
                     label = { Text("Выражение") },
-                    singleLine = true
+                    minLines = 2,
+                    maxLines = 4,
+                    supportingText = { Text(if (isAlgebra) "Проверьте обе части уравнения. Две строки — система с x и y." else "Проверьте числа, скобки и знаки действий.") }
                 )
             },
             confirmButton = {
                 TextButton(onClick = {
-                    completedExpression = null
-                    completedResult = null
-                    viewModel.clearDisplay()
-                    viewModel.pasteFromHistory(candidate)
+                    if (isAlgebra) {
+                        onOpenAlgebra?.invoke(candidate)
+                    } else {
+                        completedExpression = null
+                        completedResult = null
+                        viewModel.clearDisplay()
+                        viewModel.pasteFromHistory(candidate)
+                    }
                     scannedExpression = null
-                }, enabled = candidate.isNotBlank()) { Text("Вставить") }
+                }, enabled = candidate.isNotBlank() && (!isAlgebra || onOpenAlgebra != null)) {
+                    Text(if (isAlgebra) "Открыть решение" else "Вставить")
+                }
             },
             dismissButton = { TextButton(onClick = { scannedExpression = null }) { Text("Отмена") } }
         )

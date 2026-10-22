@@ -48,6 +48,10 @@ fun MainScreen(
     var tab by rememberSaveable { mutableIntStateOf(0) }
     var toolId by rememberSaveable { mutableStateOf<String?>(null) }
     var learningPractice by rememberSaveable { mutableStateOf(false) }
+    var algebraImport by rememberSaveable { mutableStateOf<String?>(null) }
+    var algebraImportRequest by rememberSaveable { mutableLongStateOf(0L) }
+    var graphImport by rememberSaveable { mutableStateOf<List<String>?>(null) }
+    var graphImportRequest by rememberSaveable { mutableLongStateOf(0L) }
     val holder = rememberSaveableStateHolder()
     val tool = scienceTools.firstOrNull { it.id == toolId }
     BackHandler(enabled = tool != null && tab == 1) { toolId = null }
@@ -88,8 +92,22 @@ fun MainScreen(
                     ) { visibleRoute ->
                         holder.SaveableStateProvider(visibleRoute) {
                         when (visibleRoute) {
-                            "calculator" -> CalculatorScreen()
-                            "algebra" -> AlgebraScreen()
+                            "calculator" -> CalculatorScreen(onOpenAlgebra = { input ->
+                                algebraImport = input
+                                algebraImportRequest++
+                                tab = 1
+                                toolId = "algebra"
+                            })
+                            "algebra" -> AlgebraScreen(
+                                initialExpression = algebraImport,
+                                initialRequest = algebraImportRequest,
+                                onGraph = { functions ->
+                                    graphImport = functions.take(3)
+                                    graphImportRequest++
+                                    tab = 1
+                                    toolId = "graphs"
+                                }
+                            )
                             "history" -> HistoryScreen()
                             "learning" -> LearningScreen(
                                 onOpenPhysicsPractice = { learningPractice = true },
@@ -100,7 +118,7 @@ fun MainScreen(
                             "physics" -> PhysicsScreen()
                             "geometry" -> GeometryScreen()
                             "chemistry" -> ChemistryScreen()
-                            "graphs" -> GraphingScreen()
+                            "graphs" -> GraphingScreen(initialExpressions = graphImport, initialRequest = graphImportRequest)
                             "converter" -> ConverterScreen()
                             else -> ToolsScreen(
                                 onSelect = { toolId = it },

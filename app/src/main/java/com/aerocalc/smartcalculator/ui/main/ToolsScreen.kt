@@ -26,7 +26,7 @@ import com.calculator.core.ui.theme.*
 data class ScienceTool(val id: String, val title: String, val description: String, val icon: ImageVector)
 val scienceTools = listOf(
     ScienceTool("converter", "Конвертер", "Длина, масса, температура и другие единицы", Icons.Rounded.SwapHoriz),
-    ScienceTool("algebra", "Алгебра", "Уравнения, многочлены и производные", Icons.Rounded.Functions),
+    ScienceTool("algebra", "Алгебра", "Уравнения, системы, многочлены и производные", Icons.Rounded.Functions),
     ScienceTool("physics", "Физика", "Расчёты, эксперименты и датчики телефона", Icons.Rounded.Science),
     ScienceTool("geometry", "Геометрия", "Площади, объёмы и трёхмерные фигуры", Icons.Rounded.Architecture),
     ScienceTool("graphs", "Графики", "Функции, пересечения и таблица значений", Icons.AutoMirrored.Rounded.ShowChart),
