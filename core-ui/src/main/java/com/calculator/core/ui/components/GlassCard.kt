@@ -14,6 +14,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.calculator.core.ui.theme.GlassCardTopSheenAlpha
 import com.calculator.core.ui.theme.SurfaceBorder
 import com.calculator.core.ui.theme.GlassTint
 
@@ -32,7 +33,7 @@ fun GlassCard(
             .clip(shape)
             .glassBackdrop(12.dp, cornerRadius)
             .background(GlassTint)
-            .background(Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.08f), Color.Transparent, Color.Black.copy(alpha = 0.07f))))
+            .background(Brush.verticalGradient(listOf(Color.White.copy(alpha = GlassCardTopSheenAlpha), Color.Transparent, Color.Black.copy(alpha = 0.07f))))
             .border(borderWidth, Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.30f), SurfaceBorder, Color.White.copy(alpha = 0.10f))), shape)
             .padding(16.dp),
         contentAlignment = androidx.compose.ui.Alignment.CenterStart,

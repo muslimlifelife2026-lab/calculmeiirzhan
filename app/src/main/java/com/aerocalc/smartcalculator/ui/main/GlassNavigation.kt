@@ -57,7 +57,7 @@ fun GlassNavigation(
                 val indicatorSize = Size(itemWidth.toPx(), size.height)
                 val corners = CornerRadius(27.dp.toPx())
                 drawRoundRect(
-                    brush = Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.20f), Color.White.copy(alpha = 0.07f))),
+                    brush = Brush.verticalGradient(listOf(Color.White.copy(alpha = GlassNavIndicatorAlpha), Color.White.copy(alpha = 0.06f))),
                     topLeft = topLeft, size = indicatorSize, cornerRadius = corners
                 )
                 drawRoundRect(

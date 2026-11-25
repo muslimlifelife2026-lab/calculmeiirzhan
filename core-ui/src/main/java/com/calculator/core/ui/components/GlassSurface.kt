@@ -29,7 +29,7 @@ fun GlassSurface(
             .clip(shape)
             .glassBackdrop(cornerRadius = radius)
             .background(GlassTint)
-            .background(Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.09f), Color.Transparent, Color.Black.copy(alpha = 0.08f))))
+            .background(Brush.verticalGradient(listOf(Color.White.copy(alpha = GlassSurfaceTopSheenAlpha), Color.Transparent, Color.Black.copy(alpha = 0.08f))))
             .border(0.7.dp, Brush.verticalGradient(listOf(GlassHighlight, SurfaceBorder, Color.White.copy(alpha = 0.10f))), shape),
         content = content
     )

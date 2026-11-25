@@ -28,6 +28,18 @@ import androidx.compose.ui.graphics.asComposeRenderEffect
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.translate
+import com.calculator.core.ui.theme.GlassSceneBottom
+import com.calculator.core.ui.theme.GlassSceneFoldEnd
+import com.calculator.core.ui.theme.GlassSceneFoldPeak
+import com.calculator.core.ui.theme.GlassSceneFoldStart
+import com.calculator.core.ui.theme.GlassSceneMid
+import com.calculator.core.ui.theme.GlassSceneRibbonEnd
+import com.calculator.core.ui.theme.GlassSceneRibbonPeak
+import com.calculator.core.ui.theme.GlassSceneRibbonStart
+import com.calculator.core.ui.theme.GlassSceneSilverMid
+import com.calculator.core.ui.theme.GlassSceneSilverPeak
+import com.calculator.core.ui.theme.GlassSceneTop
+import com.calculator.core.ui.theme.GlassSceneWarmLight
 import androidx.compose.ui.graphics.layer.drawLayer
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.drawscope.scale
@@ -67,12 +79,13 @@ fun GlassBackdropHost(modifier: Modifier = Modifier, content: @Composable BoxSco
     val extent = state.size
     LaunchedEffect(extent, density, direction) {
         state.images = emptyList()
+        if (Build.VERSION.SDK_INT < 31) return@LaunchedEffect
         if (extent.width > 0f && extent.height > 0f) {
             val scene = state.scene
             try {
                 val images = listOf(soft, medium, strong).mapIndexed { index, shared ->
                     val radius = with(density) { listOf(6.dp, 12.dp, 16.dp)[index].toPx() } * 0.5f
-                    shared.renderEffect = if (Build.VERSION.SDK_INT >= 31) BlurEffect(radius, radius, TileMode.Clamp) else null
+                    shared.renderEffect = BlurEffect(radius, radius, TileMode.Clamp)
                     shared.record(
                         density = density,
                         layoutDirection = direction,
@@ -180,8 +193,9 @@ private interface EdgeRefraction {
 
 /** API-specific class instantiated only after the API 33 guard. */
 @RequiresApi(33)
-private class Api33EdgeRefraction private constructor() : EdgeRefraction {
-    private val shader = android.graphics.RuntimeShader(SOURCE)
+private class Api33EdgeRefraction private constructor(
+    private val shader: android.graphics.RuntimeShader
+) : EdgeRefraction {
     private var configuration: OpticsConfiguration? = null
     private var cachedEffect: RenderEffect? = null
 
@@ -217,9 +231,13 @@ private class Api33EdgeRefraction private constructor() : EdgeRefraction {
 
     companion object {
         private var disabled = false
+        private var sharedShader: android.graphics.RuntimeShader? = null
+
+        private fun getOrCreateShader(): android.graphics.RuntimeShader =
+            sharedShader ?: android.graphics.RuntimeShader(SOURCE).also { sharedShader = it }
 
         fun createOrNull(): EdgeRefraction? = if (disabled) null else try {
-            Api33EdgeRefraction()
+            Api33EdgeRefraction(getOrCreateShader())
         } catch (failure: RuntimeException) {
             disable(failure)
             null
@@ -257,16 +275,16 @@ private class Api33EdgeRefraction private constructor() : EdgeRefraction {
 
 private class GlassScene(private val extent: Size) {
     private val base = Brush.verticalGradient(
-        listOf(Color(0xFF25282D), Color(0xFF191F26), Color(0xFF10161D)),
+        listOf(GlassSceneTop, GlassSceneMid, GlassSceneBottom),
         endY = extent.height.coerceAtLeast(1f)
     )
     private val silver = Brush.radialGradient(
-        listOf(Color(0x70959BA2), Color(0x3057626D), Color.Transparent),
+        listOf(GlassSceneSilverPeak, GlassSceneSilverMid, Color.Transparent),
         center = Offset(extent.width * 1.12f, extent.height * 0.30f),
         radius = extent.height.coerceAtLeast(1f) * 0.78f
     )
     private val warmLight = Brush.radialGradient(
-        listOf(Color(0x306F675D), Color.Transparent),
+        listOf(GlassSceneWarmLight, Color.Transparent),
         center = Offset(-extent.width * 0.2f, extent.height * 0.12f),
         radius = extent.width.coerceAtLeast(1f) * 1.15f
     )
@@ -281,7 +299,7 @@ private class GlassScene(private val extent: Size) {
         close()
     }
     private val ribbonFill = Brush.linearGradient(
-        listOf(Color(0x107A818B), Color(0x65778390), Color(0x203B4652)),
+        listOf(GlassSceneRibbonStart, GlassSceneRibbonPeak, GlassSceneRibbonEnd),
         start = Offset.Zero,
         end = Offset(extent.width, extent.height)
     )
@@ -296,7 +314,7 @@ private class GlassScene(private val extent: Size) {
         close()
     }
     private val foldFill = Brush.linearGradient(
-        listOf(Color(0x307B7977), Color(0x707F8993), Color(0x18303C49)),
+        listOf(GlassSceneFoldStart, GlassSceneFoldPeak, GlassSceneFoldEnd),
         start = Offset.Zero, end = Offset(extent.width * .65f, extent.height * .55f)
     )
 

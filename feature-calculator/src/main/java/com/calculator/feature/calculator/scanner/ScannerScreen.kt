@@ -23,8 +23,10 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -37,7 +39,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -90,18 +92,30 @@ fun ScannerScreen(
 
     Box(Modifier.fillMaxSize().background(Color.Black)) {
         if (cameraPermissionState.status.isGranted) {
-            CameraPreview(onResult = onResult, onClose = onClose, mathOcrEngine = engine,
-                isProcessing = isProcessing, onProcessingChange = { isProcessing = it; if (it) error = null },
+            CameraPreview(onResult = currentOnResult, onClose = onClose, mathOcrEngine = engine,
+                isProcessing = isProcessing, pickerOpen = pickerOpen,
+                onProcessingChange = { isProcessing = it; if (it) error = null },
                 onFailure = { error = it })
         } else {
-            Column(Modifier.align(Alignment.Center).padding(24.dp),
-                horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            Column(
+                Modifier.fillMaxSize()
+                    .statusBarsPadding()
+                    .navigationBarsPadding()
+                    .verticalScroll(rememberScrollState())
+                    .padding(start = 24.dp, end = 24.dp, top = 72.dp, bottom = 96.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically)
+            ) {
                 Text("Решить по фото", color = Color.White, style = MaterialTheme.typography.headlineSmall)
                 Text("Выберите снимок печатного примера или двух уравнений. Для съёмки разрешите доступ к камере.", color = Color.White)
                 Button(onClick = {
                     if (permissionRequested && !cameraPermissionState.status.shouldShowRationale) {
-                        context.startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
-                            Uri.parse("package:${context.packageName}")))
+                        try {
+                            context.startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                                Uri.parse("package:${context.packageName}")))
+                        } catch (_: android.content.ActivityNotFoundException) {
+                            error = "Откройте настройки приложения вручную, чтобы разрешить камеру."
+                        }
                     } else {
                         permissionRequested = true
                         cameraPermissionState.launchPermissionRequest()
@@ -116,8 +130,8 @@ fun ScannerScreen(
         }
         error?.let { message ->
             Surface(color = Color(0xEE20252C), shape = RoundedCornerShape(16.dp),
-                modifier = Modifier.align(Alignment.BottomCenter).navigationBarsPadding()
-                    .padding(horizontal = 24.dp).padding(bottom = 190.dp)) {
+                modifier = Modifier.align(Alignment.TopCenter).statusBarsPadding()
+                    .padding(top = 72.dp, start = 16.dp, end = 16.dp)) {
                 Text(message, color = Color.White, modifier = Modifier.padding(16.dp),
                     style = MaterialTheme.typography.bodyMedium)
             }
@@ -130,7 +144,7 @@ fun ScannerScreen(
                 error = "Не удалось открыть выбор фото на этом устройстве."
             }
         }, enabled = !isProcessing && !pickerOpen,
-            modifier = Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(bottom = 24.dp)) {
+            modifier = Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(bottom = 20.dp)) {
             Text(if (isProcessing) "Распознавание…" else "Выбрать фото")
         }
     }
@@ -144,6 +158,7 @@ private fun CameraPreview(
     onClose: () -> Unit,
     mathOcrEngine: MathOcrEngine,
     isProcessing: Boolean,
+    pickerOpen: Boolean,
     onProcessingChange: (Boolean) -> Unit,
     onFailure: (String) -> Unit
 ) {
@@ -199,14 +214,14 @@ private fun CameraPreview(
                 
                 cameraProviderFuture.addListener({
                     if (disposed.get()) return@addListener
-                    val cameraProvider = cameraProviderFuture.get()
-                    val preview = Preview.Builder().build().also {
-                        it.setSurfaceProvider(previewView.surfaceProvider)
-                    }
-                    
-                    val cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
-                    
                     try {
+                        val cameraProvider = cameraProviderFuture.get()
+                        val preview = Preview.Builder().build().also {
+                            it.setSurfaceProvider(previewView.surfaceProvider)
+                        }
+
+                        val cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
+
                         cameraProvider.unbindAll()
                         camera = cameraProvider.bindToLifecycle(
                             lifecycleOwner,
@@ -215,7 +230,7 @@ private fun CameraPreview(
                             imageCapture
                         )
                     } catch (e: Exception) {
-                        android.widget.Toast.makeText(ctx, "Не удалось открыть камеру", android.widget.Toast.LENGTH_LONG).show()
+                        onFailure("Не удалось открыть камеру")
                         android.util.Log.e("ScannerScreen", "Camera binding failed", e)
                     }
                 }, ContextCompat.getMainExecutor(ctx))
@@ -297,15 +312,22 @@ private fun CameraPreview(
                 )
             }
             
-            // Text hint below the frame
-            Text(
-                text = "Печатный пример или два уравнения",
-                color = Color.White,
-                fontSize = 16.sp,
+            // Text hint above the bottom controls
+            Surface(
+                color = Color(0x99000000),
+                shape = RoundedCornerShape(14.dp),
                 modifier = Modifier
-                    .align(Alignment.Center)
-                    .offset(y = 160.dp)
-            )
+                    .align(Alignment.BottomCenter)
+                    .navigationBarsPadding()
+                    .padding(start = 24.dp, end = 24.dp, bottom = 176.dp)
+            ) {
+                Text(
+                    text = "Печатный пример или два уравнения",
+                    color = Color.White,
+                    fontSize = 15.sp,
+                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp)
+                )
+            }
         }
 
         // Animated Focus Ring
@@ -360,7 +382,7 @@ private fun CameraPreview(
         // Scan Button
         Button(
             onClick = {
-                if (isProcessing) return@Button
+                if (isProcessing || pickerOpen) return@Button
                 onProcessingChange(true)
                 
                 try { imageCapture.takePicture(
@@ -395,9 +417,10 @@ private fun CameraPreview(
             },
             modifier = Modifier
                 .align(Alignment.BottomCenter)
-                .padding(bottom = 96.dp)
+                .navigationBarsPadding()
+                .padding(bottom = 84.dp)
                 .size(80.dp),
-            enabled = !isProcessing,
+            enabled = !isProcessing && !pickerOpen,
             colors = ButtonDefaults.buttonColors(containerColor = ElectricViolet)
         ) {
             if (isProcessing) {

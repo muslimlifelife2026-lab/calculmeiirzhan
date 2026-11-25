@@ -21,6 +21,7 @@ import androidx.compose.ui.unit.dp
 import com.calculator.core.ui.components.GlassCard
 import com.calculator.core.ui.theme.SurfaceBorder
 import com.calculator.core.ui.theme.TextSecondary
+import com.calculator.core.ui.utils.ErrorLocalizer
 import com.calculator.engine.solver.GraphEvaluator
 import java.util.Locale
 
@@ -60,14 +61,18 @@ fun GraphingScreen(modifier: Modifier = Modifier, initialExpressions: List<Strin
             resetTrigger++
         }
     }
-    var showPresetsSheet by remember { mutableStateOf(false) }
-    var showValuesTable by remember { mutableStateOf(false) }
+    var showPresetsSheet by rememberSaveable { mutableStateOf(false) }
+    var showValuesTable by rememberSaveable { mutableStateOf(false) }
     var paramValues by rememberSaveable { mutableStateOf(mapOf("a" to 1.0, "b" to 1.0, "c" to 0.0, "k" to 1.0)) }
 
     val detectedParams = remember(expressions, mode) { GraphParameters.discover(expressions, mode) }
     val syntaxErrors = remember(expressions) {
         expressions.map { expression ->
-            if (expression.isBlank()) null else try { GraphEvaluator(expression); null } catch (exception: IllegalArgumentException) { exception.message }
+            if (expression.isBlank()) null else try {
+                GraphEvaluator(expression); null
+            } catch (exception: IllegalArgumentException) {
+                ErrorLocalizer.localize(exception.message ?: "Некорректное выражение")
+            }
         }
     }
     LaunchedEffect(detectedParams) {
@@ -87,9 +92,9 @@ fun GraphingScreen(modifier: Modifier = Modifier, initialExpressions: List<Strin
             Text("Графики", style = MaterialTheme.typography.headlineMedium)
             Text("Исследуйте функции и меняйте параметры", style = MaterialTheme.typography.bodyMedium, color = TextSecondary)
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                AssistChip(onClick = { showPresetsSheet = true }, label = { Text("Библиотека") })
-                AssistChip(onClick = { showValuesTable = true }, label = { Text("Таблица") })
-                AssistChip(onClick = { resetTrigger++ }, label = { Text("К центру") })
+                AssistChip(onClick = { showPresetsSheet = true }, label = { Text("Библиотека") }, modifier = Modifier.heightIn(min = 48.dp))
+                AssistChip(onClick = { showValuesTable = true }, label = { Text("Таблица") }, modifier = Modifier.heightIn(min = 48.dp))
+                AssistChip(onClick = { resetTrigger++ }, label = { Text("К центру") }, modifier = Modifier.heightIn(min = 48.dp))
             }
             Box(Modifier.fillMaxWidth().height(graphHeight).clip(RoundedCornerShape(24.dp)).border(0.5.dp, SurfaceBorder, RoundedCornerShape(24.dp))) {
                 GraphCanvas(
@@ -120,7 +125,7 @@ fun GraphingScreen(modifier: Modifier = Modifier, initialExpressions: List<Strin
                                     mode = value
                                     resetTrigger++
                                 }
-                            }, label = { Text(title) })
+                            }, label = { Text(title) }, modifier = Modifier.heightIn(min = 48.dp))
                         }
                     }
                     expressions.forEachIndexed { index, expression ->
@@ -171,11 +176,11 @@ fun GraphingScreen(modifier: Modifier = Modifier, initialExpressions: List<Strin
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Text("Анализ", style = MaterialTheme.typography.titleLarge)
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        FilterChip(showRoots, { showRoots = !showRoots }, { Text("Корни") })
-                        FilterChip(showExtremums, { showExtremums = !showExtremums }, { Text("Экстремумы") })
-                        FilterChip(showIntersections, { showIntersections = !showIntersections }, { Text("Пересечения") })
-                        FilterChip(showTangent, { showTangent = !showTangent }, { Text("Касательная") })
-                        FilterChip(showIntegral, { showIntegral = !showIntegral }, { Text("Интеграл") })
+                        FilterChip(showRoots, { showRoots = !showRoots }, { Text("Корни") }, modifier = Modifier.heightIn(min = 48.dp))
+                        FilterChip(showExtremums, { showExtremums = !showExtremums }, { Text("Экстремумы") }, modifier = Modifier.heightIn(min = 48.dp))
+                        FilterChip(showIntersections, { showIntersections = !showIntersections }, { Text("Пересечения") }, modifier = Modifier.heightIn(min = 48.dp))
+                        FilterChip(showTangent, { showTangent = !showTangent }, { Text("Касательная") }, modifier = Modifier.heightIn(min = 48.dp))
+                        FilterChip(showIntegral, { showIntegral = !showIntegral }, { Text("Интеграл") }, modifier = Modifier.heightIn(min = 48.dp))
                     }
                     if (showIntegral) {
                         OutlinedTextField(integralAText, { if (it.length <= 20) integralAText = it }, Modifier.fillMaxWidth(),

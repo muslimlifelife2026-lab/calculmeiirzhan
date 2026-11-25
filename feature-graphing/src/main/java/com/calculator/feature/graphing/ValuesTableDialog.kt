@@ -40,8 +40,11 @@ fun ValuesTableDialog(
     val rows = remember(evaluators, mode, step, params) {
         fun shown(value: Double?) = if (value != null && value.isFinite()) NumberFormatter.formatCompact(value) else "—"
         val symbol = when (mode) { GraphMode.PARAMETRIC -> "t"; GraphMode.POLAR -> "theta"; GraphMode.CARTESIAN -> "x" }
-        List((10.0 / step).toInt() + 1) { index ->
-            val coordinate = -5.0 + index * step
+        val start = if (mode == GraphMode.POLAR) 0.0 else -5.0
+        val end = if (mode == GraphMode.POLAR) 2.0 * Math.PI else 5.0
+        val count = kotlin.math.floor((end - start) / step).toInt() + 1
+        List(count) { index ->
+            val coordinate = start + index * step
             listOf(shown(coordinate)) + evaluators.map { shown(it?.evaluate(coordinate, params, symbol)) }
         }
     }
@@ -57,11 +60,19 @@ fun ValuesTableDialog(
                     },
                     style = MaterialTheme.typography.titleLarge
                 )
-                Text("Диапазон от −5 до 5. Прочерк — выражение не задано или значение не определено.",
-                    style = MaterialTheme.typography.bodySmall, color = TextSecondary)
+                Text(
+                    if (mode == GraphMode.POLAR) "Диапазон θ от 0 до 2π (рад). Прочерк — выражение не задано или значение не определено."
+                    else "Диапазон от −5 до 5. Прочерк — выражение не задано или значение не определено.",
+                    style = MaterialTheme.typography.bodySmall, color = TextSecondary
+                )
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     listOf(0.1, 0.25, 0.5, 1.0, 2.0).forEach { value ->
-                        FilterChip(selected = step == value, onClick = { step = value }, label = { Text("Шаг $value") })
+                        FilterChip(
+                            selected = step == value,
+                            onClick = { step = value },
+                            label = { Text("Шаг $value") },
+                            modifier = Modifier.heightIn(min = 48.dp)
+                        )
                     }
                 }
                 Column(Modifier.weight(1f, fill = false).horizontalScroll(rememberScrollState())) {

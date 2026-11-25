@@ -12,6 +12,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.saveable.rememberSaveableStateHolder
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
@@ -23,7 +24,9 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.calculator.core.ui.components.GlassCard
 import com.calculator.core.ui.components.VariableInput
+import com.calculator.core.ui.theme.AccentPrimary
 import com.calculator.core.ui.theme.TextSecondary
+import com.calculator.core.ui.utils.MathFormatter
 import com.calculator.core.ui.utils.NumberFormatter
 
 @Composable
@@ -110,7 +113,7 @@ private fun GeometryFormulas(viewModel: GeometryViewModel) {
                         viewModel.selectFormula(choice); selector = false
                     }.padding(vertical = 16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         Text(choice.name, style = MaterialTheme.typography.titleMedium)
-                        Text("${choice.subcategory} · ${choice.canonicalEquation}", color = TextSecondary)
+                        Text("${choice.subcategory} · ${MathFormatter.format(choice.latexTemplate.ifBlank { choice.canonicalEquation })}", color = TextSecondary)
                     }
                     HorizontalDivider()
                 }
@@ -118,7 +121,13 @@ private fun GeometryFormulas(viewModel: GeometryViewModel) {
         },
         confirmButton = { TextButton(onClick = { selector = false }) { Text("Закрыть") } }
     )
-    val selected = formula ?: return
+    val selected = formula
+    if (selected == null) {
+        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            CircularProgressIndicator(color = AccentPrimary)
+        }
+        return
+    }
     LazyColumn(state = listState, modifier = Modifier.fillMaxSize().testTag("geometry_formulas"),
         contentPadding = PaddingValues(horizontal = 8.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -134,7 +143,11 @@ private fun GeometryFormulas(viewModel: GeometryViewModel) {
                     Text(selected.subcategory, color = TextSecondary, style = MaterialTheme.typography.labelLarge)
                     Text(selected.name, style = MaterialTheme.typography.titleLarge)
                     SelectionContainer {
-                        Text(selected.canonicalEquation, style = MaterialTheme.typography.headlineMedium, fontFamily = FontFamily.Monospace)
+                        Text(
+                            MathFormatter.format(selected.latexTemplate.ifBlank { selected.canonicalEquation }),
+                            style = MaterialTheme.typography.headlineMedium,
+                            fontFamily = FontFamily.Monospace
+                        )
                     }
                     if (selected.description.isNotBlank()) Text(selected.description, color = TextSecondary)
                     OutlinedButton(onClick = { selector = true }, modifier = Modifier.fillMaxWidth()) { Text("Выбрать другую формулу") }

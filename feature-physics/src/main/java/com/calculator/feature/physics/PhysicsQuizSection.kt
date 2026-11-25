@@ -5,6 +5,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.listSaver
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -16,6 +17,11 @@ import com.calculator.domain.model.Formula
 import com.calculator.core.ui.components.GlassCard
 import com.calculator.core.ui.theme.TextPrimary
 import com.calculator.core.ui.theme.TextSecondary
+
+private val stringListSaver = listSaver<List<String>, String>(
+    save = { it },
+    restore = { it }
+)
 
 @Composable
 @OptIn(ExperimentalLayoutApi::class)
@@ -47,9 +53,11 @@ fun PhysicsQuizSection(formulas: List<Formula>, modifier: Modifier = Modifier) {
             } else if (c == '*' || c == '+' || c == '-' || c == '/' || c == '=' || c == '^') {
                 tokens.add(c.toString())
                 i++
-            } else if (c.isDigit()) {
+            } else if (c.isDigit() || (c == '.' && i + 1 < cleanEquation.length && cleanEquation[i + 1].isDigit())) {
                 val start = i
-                while (i < cleanEquation.length && cleanEquation[i].isDigit()) {
+                var hasDot = false
+                while (i < cleanEquation.length && (cleanEquation[i].isDigit() || (cleanEquation[i] == '.' && !hasDot))) {
+                    if (cleanEquation[i] == '.') hasDot = true
                     i++
                 }
                 tokens.add(cleanEquation.substring(start, i))
@@ -61,10 +69,14 @@ fun PhysicsQuizSection(formulas: List<Formula>, modifier: Modifier = Modifier) {
         tokens
     }
 
-    var options by remember(originalTokens) { mutableStateOf(originalTokens.shuffled()) }
-    var userAnswer by remember(originalTokens) { mutableStateOf<List<String>>(emptyList()) }
-    var quizMessage by remember(originalTokens) { mutableStateOf("") }
-    var isSuccess by remember(originalTokens) { mutableStateOf<Boolean?>(null) }
+    var options by rememberSaveable(cleanEquation, stateSaver = stringListSaver) {
+        mutableStateOf(originalTokens.shuffled())
+    }
+    var userAnswer by rememberSaveable(cleanEquation, stateSaver = stringListSaver) {
+        mutableStateOf(emptyList())
+    }
+    var quizMessage by rememberSaveable(cleanEquation) { mutableStateOf("") }
+    var isSuccess by rememberSaveable(cleanEquation) { mutableStateOf<Boolean?>(null) }
 
     Column(
         modifier = modifier
@@ -139,7 +151,7 @@ fun PhysicsQuizSection(formulas: List<Formula>, modifier: Modifier = Modifier) {
                         isSuccess = null
                         quizMessage = ""
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0x33FFFFFF)),
+                    colors = ButtonDefaults.buttonColors(containerColor = com.calculator.core.ui.theme.SurfaceElevated),
                     modifier = Modifier.padding(2.dp)
                 ) {
                     Text(token, color = TextPrimary)

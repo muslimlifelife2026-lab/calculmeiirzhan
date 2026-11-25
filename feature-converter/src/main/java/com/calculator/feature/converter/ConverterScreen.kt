@@ -57,12 +57,16 @@ fun ConverterScreen(
     }
 
     BoxWithConstraints(modifier.fillMaxSize()) {
-    val compact = maxHeight < 540.dp || LocalDensity.current.fontScale > 1.3f
+    val fontScale = LocalDensity.current.fontScale
+    val compact = maxHeight < 540.dp || fontScale > 1.3f
+    val keypadHeight = (280.dp * fontScale.coerceIn(1f, 1.45f))
+        .coerceAtMost(if (compact) 380.dp else maxHeight * 0.48f)
+        .coerceAtLeast(240.dp)
     Column(
         modifier = Modifier.fillMaxSize().then(if (compact) Modifier.verticalScroll(rememberScrollState()) else Modifier).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        var chooseCategory by remember { mutableStateOf(false) }
+        var chooseCategory by rememberSaveable { mutableStateOf(false) }
         Box {
             OutlinedButton(onClick = { chooseCategory = true }, modifier = Modifier.fillMaxWidth().testTag("conversion_category")) {
                 Text(selectedCategory.title, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
@@ -108,7 +112,7 @@ fun ConverterScreen(
                         .size(48.dp)
                         .clip(CircleShape)
                         .background(SurfaceElevated)
-                        .border(1.dp, Color(0xFFB9C6D6).copy(alpha = 0.4f), CircleShape)
+                        .border(1.dp, AccentSecondary.copy(alpha = 0.4f), CircleShape)
                         .bounceClick {
                             val temp = fromIndex
                             fromIndex = toIndex
@@ -119,7 +123,7 @@ fun ConverterScreen(
                     Icon(
                         imageVector = Icons.Rounded.SwapVert,
                         contentDescription = "Поменять единицы местами",
-                        tint = Color(0xFFB9C6D6),
+                        tint = AccentSecondary,
                         modifier = Modifier.size(22.dp)
                     )
                 }
@@ -149,7 +153,7 @@ fun ConverterScreen(
 
         // 3. High-precision tactile keypad
         MathKeyboard(
-            modifier = Modifier.fillMaxWidth().height(280.dp),
+            modifier = Modifier.fillMaxWidth().height(keypadHeight),
             numbersOnly = true,
             onKeyPressed = { key ->
                 inputValue = when (key) {
@@ -158,9 +162,15 @@ fun ConverterScreen(
                     "." -> if (!inputValue.contains(".")) inputValue + "." else inputValue
                     "=" -> inputValue
                     "±" -> if (inputValue.startsWith("-")) inputValue.removePrefix("-") else "-$inputValue"
-                    else -> if (key.all { it.isDigit() }) { if (inputValue == "0") key else inputValue + key } else inputValue
+                    else -> if (key.all { it.isDigit() }) {
+                        when (inputValue) {
+                            "0" -> key
+                            "-0" -> "-$key"
+                            else -> inputValue + key
+                        }
+                    } else inputValue
                 }
-                if (inputValue.isEmpty()) inputValue = "0"
+                if (inputValue.isEmpty() || inputValue == "-") inputValue = "0"
                 inputValue = inputValue.take(48)
             },
             showVariables = false
@@ -194,14 +204,14 @@ fun ConversionField(
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = label,
-                    color = if (isResult) Color(0xFFB9C6D6) else TextSecondary,
+                    color = if (isResult) AccentSecondary else TextSecondary,
                     fontSize = 13.sp,
                     fontWeight = FontWeight.Medium
                 )
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
                     text = if (value.isEmpty()) "0" else value,
-                    color = Color.White,
+                    color = TextPrimary,
                     fontSize = 32.sp,
                     fontWeight = FontWeight.Bold,
                     maxLines = 1,
@@ -224,7 +234,7 @@ fun ConversionField(
                     ) {
                         Text(
                             text = unit.symbol,
-                            color = Color(0xFFB9C6D6),
+                            color = AccentSecondary,
                             fontSize = 15.sp,
                             fontWeight = FontWeight.Bold
                         )
@@ -232,7 +242,7 @@ fun ConversionField(
                         Icon(
                             imageVector = Icons.Rounded.KeyboardArrowDown,
                             contentDescription = "Выбрать единицу",
-                            tint = Color(0xFFB9C6D6),
+                            tint = AccentSecondary,
                             modifier = Modifier.size(18.dp)
                         )
                     }
@@ -250,7 +260,7 @@ fun ConversionField(
                             text = {
                                 Text(
                                     text = "${u.name} (${u.symbol})",
-                                    color = if (u == unit) Color(0xFFB9C6D6) else Color.White,
+                                    color = if (u == unit) AccentSecondary else TextPrimary,
                                     fontSize = 13.sp,
                                     fontWeight = if (u == unit) FontWeight.Bold else FontWeight.Normal
                                 )

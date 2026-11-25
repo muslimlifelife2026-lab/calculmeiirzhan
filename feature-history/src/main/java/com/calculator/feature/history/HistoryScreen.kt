@@ -17,6 +17,7 @@ import androidx.compose.material.icons.rounded.History
 import androidx.compose.material.icons.rounded.PictureAsPdf
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -64,20 +65,27 @@ fun HistoryScreen(
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
     val coroutineScope = rememberCoroutineScope()
-    var itemToExport by remember { mutableStateOf<com.calculator.core.data.database.CalculationEntity?>(null) }
-    var confirmClear by remember { mutableStateOf(false) }
+    val historyItems by viewModel.historyItems.collectAsState()
+    var pendingExportId by rememberSaveable { mutableStateOf<Int?>(null) }
+    var confirmClear by rememberSaveable { mutableStateOf(false) }
 
     val exportLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
         contract = androidx.activity.result.contract.ActivityResultContracts.CreateDocument("application/pdf")
     ) { uri ->
-        val item = itemToExport
-        if (uri != null && item != null) {
+        val exportId = pendingExportId
+        pendingExportId = null
+        if (uri != null && exportId != null) {
             coroutineScope.launch {
+                val item = historyItems.firstOrNull { it.id == exportId } ?: viewModel.getItemById(exportId)
+                if (item == null) {
+                    android.widget.Toast.makeText(context, "Запись не найдена", android.widget.Toast.LENGTH_SHORT).show()
+                    return@launch
+                }
                 val stepsList = formatHistorySteps(item)
                 val success = com.calculator.core.ui.utils.PdfGenerator.generateAndSavePdf(
                     context = context,
                     uri = uri,
-                    title = "History: ${item.formulaName}",
+                    title = "История: ${item.formulaName}",
                     expression = item.expression.ifBlank { item.solvedVariable },
                     result = formatHistoryResult(item),
                     steps = stepsList
@@ -87,14 +95,10 @@ fun HistoryScreen(
                     if (success) "PDF сохранён" else "Ошибка PDF",
                     android.widget.Toast.LENGTH_SHORT
                 ).show()
-                itemToExport = null
             }
-        } else {
-            itemToExport = null
         }
     }
 
-    val historyItems by viewModel.historyItems.collectAsState()
     val dateFormat = remember { SimpleDateFormat("dd MMM yyyy, HH:mm", Locale.forLanguageTag("ru")) }
 
     if (confirmClear) {
@@ -211,7 +215,7 @@ fun HistoryScreen(
                             accentColor = accentColor,
                             dateFormat = dateFormat,
                             onExport = {
-                                itemToExport = item
+                                pendingExportId = item.id
                                 exportLauncher.launch("solution_${item.id}.pdf")
                             },
                             onDelete = { viewModel.deleteItem(item.id) }

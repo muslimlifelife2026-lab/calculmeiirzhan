@@ -203,6 +203,7 @@ object ChemistrySolver {
     }
 }
 
+@ConsistentCopyVisibility
 private data class Fraction private constructor(val numerator: BigInteger, val denominator: BigInteger) {
     companion object {
         fun of(value: Int) = Fraction(BigInteger.valueOf(value.toLong()), BigInteger.ONE)

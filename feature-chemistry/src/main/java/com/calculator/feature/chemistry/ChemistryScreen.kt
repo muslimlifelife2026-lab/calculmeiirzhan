@@ -147,7 +147,7 @@ fun ChemistryScreen(
                         Text(elem.symbol, color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
                     }
                     Column {
-                        Text(elem.name, color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                        Text(elem.nameRu.ifBlank { elem.name }, color = TextPrimary, fontSize = 18.sp, fontWeight = FontWeight.Bold)
                         Text("Атомный номер Z = ${elem.atomicNumber}", color = TextSecondary, fontSize = 12.sp)
                     }
                 }
@@ -185,7 +185,7 @@ fun ChemistryScreen(
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = AccentPrimary)
                 ) {
-                    Text("Вставить в формулу ", color = Background, fontWeight = FontWeight.Bold)
+                    Text("Вставить в формулу", color = Background, fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {

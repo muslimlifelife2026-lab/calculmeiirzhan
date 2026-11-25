@@ -110,11 +110,14 @@ object FormulaSolver {
                 solvedValueSi
             }
 
+            val unitLabel = (finalUnit?.symbol ?: targetVariable.defaultUnitSymbol).trim()
+            val unitSuffix = if (unitLabel.isEmpty()) "" else " $unitLabel"
+            val unitDesc = if (unitLabel.isEmpty()) ":" else " в единицах [$unitLabel]:"
             steps.add(
                 SolutionStep(
                     order = stepOrder++,
-                    description = "Получаем финальный результат в единицах [${finalUnit?.symbol ?: targetVariable.defaultUnitSymbol}]:",
-                    equationLatex = "$targetSymbol = ${finalValue.stripTrailingZeros().toPlainString()} \\text{ ${finalUnit?.symbol ?: targetVariable.defaultUnitSymbol}}"
+                    description = "Получаем финальный результат$unitDesc",
+                    equationLatex = "$targetSymbol = ${finalValue.stripTrailingZeros().toPlainString()}$unitSuffix"
                 )
             )
 

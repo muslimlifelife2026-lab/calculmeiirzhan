@@ -19,14 +19,20 @@ import androidx.compose.ui.graphics.*
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.*
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.calculator.core.ui.utils.NumberFormatter
 import com.calculator.engine.solver.GraphEvaluator
+import java.util.Locale
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlin.math.*
 
 data class CriticalPoint(
@@ -38,8 +44,23 @@ data class CriticalPoint(
     val isIntersection: Boolean = false
 )
 
-private data class GraphSampleKey(val index: Int, val min: Double, val max: Double, val count: Int)
 private data class GraphCursor(val x: Double, val y: Double)
+
+private data class GraphRenderData(
+    val cartesianXMin: Double = 0.0,
+    val cartesianXMax: Double = 0.0,
+    val cartesianSamples: Map<Int, DoubleArray> = emptyMap(),
+    val polarCurves: Map<Int, List<Pair<Double, Double>>> = emptyMap(),
+    val parametricPoints: List<Pair<Double, Double>> = emptyList(),
+    val criticalPoints: List<CriticalPoint> = emptyList(),
+    val integralValue: Double = Double.NaN,
+    val integralPoints: List<Pair<Double, Double>> = emptyList()
+)
+
+private fun formatAxisTick(value: Double): String {
+    val text = String.format(Locale.US, "%.1f", value).trimEnd('0').trimEnd('.')
+    return if (text == "-0") "0" else text
+}
 
 @OptIn(ExperimentalTextApi::class)
 @Composable
@@ -69,6 +90,7 @@ fun GraphCanvas(
 
     var activePoint by remember { mutableStateOf<GraphCursor?>(null) }
     var lastHapticPoint by remember { mutableStateOf<Double?>(null) }
+    var canvasSize by remember { mutableStateOf(IntSize.Zero) }
 
     LaunchedEffect(expressions, params, mode) {
         activePoint = null
@@ -91,91 +113,250 @@ fun GraphCanvas(
         expressions.map { expr ->
             try {
                 if (expr.isNotBlank()) GraphEvaluator(expr) else null
-            } catch (e: Exception) {
+            } catch (_: Exception) {
                 null
             }
         }
     }
-    val sampleCache = remember(expressions, params) { mutableMapOf<GraphSampleKey, DoubleArray>() }
-    val rootCache = remember(expressions, params) { mutableMapOf<GraphSampleKey, List<Double>>() }
-    val intersectionCache = remember(expressions, params) { mutableMapOf<GraphSampleKey, List<Pair<Double, Double>>>() }
-    val polarCache = remember(expressions, params) { mutableMapOf<Int, List<Pair<Double, Double>>>() }
-    val parametricPoints = remember(expressions, params) {
-        val x = evaluators.getOrNull(0)
-        val y = evaluators.getOrNull(1)
-        if (x != null && y != null) x.evaluateParametricRange(y, -10.0, 10.0, 800, params) else emptyList()
+
+    var renderData by remember { mutableStateOf(GraphRenderData()) }
+    LaunchedEffect(
+        evaluators, mode, params, showRoots, showExtremums,
+        showIntersections, showIntegral, integralA, integralB, canvasSize
+    ) {
+        if (canvasSize.width <= 0 || canvasSize.height <= 0) return@LaunchedEffect
+        snapshotFlow { Triple(animScale.value, animOffsetX.value, animOffsetY.value) }
+            .collectLatest { (scale, offsetX, offsetY) ->
+                val width = canvasSize.width.toFloat()
+                val height = canvasSize.height.toFloat()
+                val pixelsPerUnit = 50f * scale
+                val originX = width / 2f + offsetX
+                val visXStart = (-originX / pixelsPerUnit).toDouble()
+                val visXEnd = ((width - originX) / pixelsPerUnit).toDouble()
+                val viewYSpan = max(1e-6, (height / pixelsPerUnit).toDouble())
+
+                val computed = withContext(Dispatchers.Default) {
+                    when (mode) {
+                        GraphMode.CARTESIAN -> {
+                            val xSpan = (visXEnd - visXStart).coerceAtLeast(1e-6)
+                            val sampleMin = visXStart - xSpan * 0.35
+                            val sampleMax = visXEnd + xSpan * 0.35
+                            val pointsCount = (width * 1.4f).toInt().coerceIn(200, 1200)
+                            val sampleStep = (sampleMax - sampleMin) / (pointsCount - 1)
+
+                            val samples = mutableMapOf<Int, DoubleArray>()
+                            val criticals = mutableListOf<CriticalPoint>()
+
+                            evaluators.forEachIndexed { index, evaluator ->
+                                if (evaluator != null) {
+                                    val yValues = evaluator.evaluateRange(sampleMin, sampleMax, pointsCount, params)
+                                    samples[index] = yValues
+                                    if (index == 0 && showExtremums) {
+                                        var lastExtremumX: Double? = null
+                                        for (i in 2 until pointsCount - 2) {
+                                            val yM2 = yValues[i - 2]
+                                            val prevY = yValues[i - 1]
+                                            val mathY = yValues[i]
+                                            val nextY = yValues[i + 1]
+                                            val yP2 = yValues[i + 2]
+                                            if (!yM2.isFinite() || !prevY.isFinite() || !mathY.isFinite() ||
+                                                !nextY.isFinite() || !yP2.isFinite()
+                                            ) continue
+                                            if (abs(mathY - prevY) > viewYSpan * 0.5 ||
+                                                abs(nextY - mathY) > viewYSpan * 0.5 ||
+                                                abs(mathY) > viewYSpan * 4.0
+                                            ) continue
+                                            val isMax = mathY > prevY && mathY > nextY
+                                            val isMin = mathY < prevY && mathY < nextY
+                                            if (!isMax && !isMin) continue
+                                            val mathX = sampleMin + i * sampleStep
+                                            if (lastExtremumX != null && mathX - lastExtremumX <= sampleStep * 4.0) continue
+                                            criticals.add(CriticalPoint(mathX, mathY, isMax = isMax, isMin = isMin))
+                                            lastExtremumX = mathX
+                                        }
+                                    }
+                                    if (index == 0 && showRoots) {
+                                        evaluator.findRoots(visXStart, visXEnd, 400, params).forEach { rx ->
+                                            criticals.add(CriticalPoint(rx, 0.0, isRoot = true))
+                                        }
+                                    }
+                                }
+                            }
+
+                            if (showIntersections && evaluators.size >= 2) {
+                                val ev1 = evaluators.getOrNull(0)
+                                val ev2 = evaluators.getOrNull(1)
+                                if (ev1 != null && ev2 != null) {
+                                    ev1.findIntersections(ev2, visXStart, visXEnd, 300, params).forEach { (cx, cy) ->
+                                        criticals.add(CriticalPoint(cx, cy, isIntersection = true))
+                                    }
+                                }
+                            }
+
+                            var intVal = Double.NaN
+                            var intSamples = emptyList<Pair<Double, Double>>()
+                            val primaryEvaluator = evaluators.firstOrNull { it != null }
+                            if (showIntegral && primaryEvaluator != null) {
+                                val a = min(integralA, integralB)
+                                val b = max(integralA, integralB)
+                                intVal = primaryEvaluator.evaluateIntegral(integralA, integralB, params)
+                                if (intVal.isFinite()) {
+                                    val numSteps = 120
+                                    intSamples = (0..numSteps).mapNotNull { s ->
+                                        val curX = a + s * (b - a) / numSteps
+                                        val curY = primaryEvaluator.evaluate(curX, params)
+                                        if (curY.isFinite()) curX to curY else null
+                                    }
+                                }
+                            }
+
+                            GraphRenderData(
+                                cartesianXMin = sampleMin,
+                                cartesianXMax = sampleMax,
+                                cartesianSamples = samples,
+                                criticalPoints = criticals,
+                                integralValue = intVal,
+                                integralPoints = intSamples
+                            )
+                        }
+
+                        GraphMode.POLAR -> {
+                            val polarMap = mutableMapOf<Int, List<Pair<Double, Double>>>()
+                            evaluators.forEachIndexed { index, evaluator ->
+                                if (evaluator != null) {
+                                    polarMap[index] = evaluator.evaluatePolarRange(0.0, 4.0 * Math.PI, 600, params)
+                                }
+                            }
+                            GraphRenderData(polarCurves = polarMap)
+                        }
+
+                        GraphMode.PARAMETRIC -> {
+                            val evX = evaluators.getOrNull(0)
+                            val evY = evaluators.getOrNull(1)
+                            val pts = if (evX != null && evY != null) {
+                                evX.evaluateParametricRange(evY, -10.0, 10.0, 800, params)
+                            } else emptyList()
+                            GraphRenderData(parametricPoints = pts)
+                        }
+                    }
+                }
+                renderData = computed
+            }
+    }
+
+    val activeDerivative by produceState<Double?>(null, activePoint, showTangent, mode, evaluators, params) {
+        value = if (showTangent && mode == GraphMode.CARTESIAN && activePoint != null) {
+            val ev = evaluators.firstOrNull { it != null } ?: return@produceState
+            val xVal = activePoint!!.x
+            withContext(Dispatchers.Default) {
+                ev.evaluateDerivative(xVal, params).takeIf { it.isFinite() }
+            }
+        } else {
+            null
+        }
+    }
+
+    LaunchedEffect(activePoint, renderData.criticalPoints) {
+        val point = activePoint ?: return@LaunchedEffect
+        renderData.criticalPoints.firstOrNull { abs(it.x - point.x) < 0.06 && abs(it.y - point.y) < 0.15 }?.let { cp ->
+            if (lastHapticPoint == null || abs(lastHapticPoint!! - cp.x) > 0.1) {
+                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                lastHapticPoint = cp.x
+            }
+        }
     }
 
     val textMeasurer = rememberTextMeasurer()
 
-    val graphColors = listOf(
-        Color(0xFFFFFFFF), // Titanium White
-        Color(0xFFB9C6D6), // Ice Blue
-        Color(0xFFB9ADC8), // Cyber Purple
-        Color(0xFFACC4B0)  // Emerald
-    )
+    val graphColors = remember {
+        listOf(
+            Color(0xFFFFFFFF), // Titanium White
+            Color(0xFFB9C6D6), // Ice Blue
+            Color(0xFFB9ADC8), // Cyber Purple
+            Color(0xFFACC4B0)  // Emerald
+        )
+    }
+    val dashGridEffect = remember { PathEffect.dashPathEffect(floatArrayOf(6f, 6f), 0f) }
+    val dashIntegralEffect = remember { PathEffect.dashPathEffect(floatArrayOf(5f, 5f), 0f) }
+    val dashTangentEffect = remember { PathEffect.dashPathEffect(floatArrayOf(8f, 6f), 0f) }
+    val dashCrosshairEffect = remember { PathEffect.dashPathEffect(floatArrayOf(8f, 8f), 0f) }
+    val integralBrush = remember(canvasSize.height) {
+        Brush.verticalGradient(
+            colors = listOf(Color(0xFFB9C6D6).copy(alpha = 0.35f), Color(0xFFB9C6D6).copy(alpha = 0.05f)),
+            startY = 0f,
+            endY = canvasSize.height.toFloat().coerceAtLeast(1f)
+        )
+    }
+
+    val currentEvaluators by rememberUpdatedState(evaluators)
+    val currentRenderData by rememberUpdatedState(renderData)
+    val currentMode by rememberUpdatedState(mode)
+    val currentParams by rememberUpdatedState(params)
+
+    fun updateCursorForPointer(pointer: Offset, widthPx: Int, heightPx: Int, maxDistPx: Float, clearOnInvalidCartesian: Boolean) {
+        val scale = animScale.value
+        val offsetX = animOffsetX.value
+        val offsetY = animOffsetY.value
+        val pixelsPerUnit = 50f * scale
+        val originX = widthPx / 2f + offsetX
+        val originY = heightPx / 2f + offsetY
+        when (currentMode) {
+            GraphMode.CARTESIAN -> {
+                val primaryEvaluator = currentEvaluators.firstOrNull { it != null }
+                if (primaryEvaluator != null) {
+                    val mathX = ((pointer.x - originX) / pixelsPerUnit).toDouble()
+                    val mathY = primaryEvaluator.evaluate(mathX, currentParams)
+                    if (mathY.isFinite()) {
+                        activePoint = GraphCursor(mathX, mathY)
+                    } else if (clearOnInvalidCartesian) {
+                        activePoint = null
+                    }
+                } else if (clearOnInvalidCartesian) {
+                    activePoint = null
+                }
+            }
+            GraphMode.POLAR, GraphMode.PARAMETRIC -> {
+                val points = if (currentMode == GraphMode.POLAR) {
+                    currentRenderData.polarCurves.values.firstOrNull().orEmpty()
+                } else {
+                    currentRenderData.parametricPoints
+                }
+                var bestDist = Float.MAX_VALUE
+                var bestPoint: GraphCursor? = null
+                for ((px, py) in points) {
+                    if (!px.isFinite() || !py.isFinite()) continue
+                    val sx = originX + (px * pixelsPerUnit).toFloat()
+                    val sy = originY - (py * pixelsPerUnit).toFloat()
+                    val dist = hypot(sx - pointer.x, sy - pointer.y)
+                    if (dist < bestDist) {
+                        bestDist = dist
+                        bestPoint = GraphCursor(px, py)
+                    }
+                }
+                activePoint = if (bestDist <= maxDistPx) bestPoint else null
+            }
+        }
+    }
 
     Canvas(
         modifier = modifier
             .fillMaxSize()
+            .onSizeChanged { canvasSize = it }
             .background(Color(0xFF161719)) // Pure Obsidian Canvas
-            .pointerInput(expressions, params, mode) {
+            .pointerInput(Unit) {
+                val snapRadius = 48.dp.toPx()
                 detectTapGestures { pressOffset ->
-                    val scale = animScale.value
-                    val offsetX = animOffsetX.value
-                    val offsetY = animOffsetY.value
-                    val pixelsPerUnit = 50f * scale
-                    val originX = size.width / 2 + offsetX
-                    val originY = size.height / 2 + offsetY
-                    val mathX = (pressOffset.x - originX) / pixelsPerUnit
-
-                    val primaryEvaluator = evaluators.firstOrNull { it != null }
-                    if (primaryEvaluator != null && mode == GraphMode.CARTESIAN) {
-                        val mathY = primaryEvaluator.evaluate(mathX.toDouble(), params)
-                        if (!mathY.isNaN() && !mathY.isInfinite()) {
-                            activePoint = GraphCursor(mathX.toDouble(), mathY)
-                        } else {
-                            activePoint = null
-                        }
-                    } else {
-                        val mathY = (originY - pressOffset.y) / pixelsPerUnit
-                        activePoint = GraphCursor(mathX.toDouble(), mathY.toDouble())
-                    }
+                    updateCursorForPointer(pressOffset, size.width, size.height, snapRadius, clearOnInvalidCartesian = true)
                 }
             }
-            .pointerInput(expressions, params, mode) {
+            .pointerInput(Unit) {
+                val snapRadius = 48.dp.toPx()
                 detectDragGestures(
                     onDragStart = { startOffset ->
-                        val scale = animScale.value
-                        val offsetX = animOffsetX.value
-                        val pixelsPerUnit = 50f * scale
-                        val originX = size.width / 2 + offsetX
-                        val mathX = (startOffset.x - originX) / pixelsPerUnit
-                        val primaryEvaluator = evaluators.firstOrNull { it != null }
-                        if (primaryEvaluator != null && mode == GraphMode.CARTESIAN) {
-                            val mathY = primaryEvaluator.evaluate(mathX.toDouble(), params)
-                            if (!mathY.isNaN() && !mathY.isInfinite()) {
-                                activePoint = GraphCursor(mathX.toDouble(), mathY)
-                            } else {
-                                activePoint = null
-                            }
-                        }
+                        updateCursorForPointer(startOffset, size.width, size.height, snapRadius, clearOnInvalidCartesian = false)
                     },
                     onDrag = { change, _ ->
-                        val scale = animScale.value
-                        val offsetX = animOffsetX.value
-                        val pixelsPerUnit = 50f * scale
-                        val originX = size.width / 2 + offsetX
-                        val mathX = (change.position.x - originX) / pixelsPerUnit
-                        val primaryEvaluator = evaluators.firstOrNull { it != null }
-                        if (primaryEvaluator != null && mode == GraphMode.CARTESIAN) {
-                            val mathY = primaryEvaluator.evaluate(mathX.toDouble(), params)
-                            if (!mathY.isNaN() && !mathY.isInfinite()) {
-                                activePoint = GraphCursor(mathX.toDouble(), mathY)
-                            } else {
-                                activePoint = null
-                            }
-                        }
+                        updateCursorForPointer(change.position, size.width, size.height, snapRadius, clearOnInvalidCartesian = false)
                     }
                 )
             }
@@ -205,8 +386,8 @@ fun GraphCanvas(
 
         val xStartUnit = -originX / pixelsPerUnit
         val xEndUnit = (width - originX) / pixelsPerUnit
-        val yStartUnit = -originY / pixelsPerUnit
-        val yEndUnit = (height - originY) / pixelsPerUnit
+        val yStartUnit = -(height - originY) / pixelsPerUnit
+        val yEndUnit = originY / pixelsPerUnit
 
         val step: Double = when {
             scale < 0.35f -> 10.0
@@ -218,7 +399,6 @@ fun GraphCanvas(
 
         // ─── 1. Grid Rendering ────────────────────────────────────────────────
         if (mode == GraphMode.POLAR) {
-            // Polar concentric rings & angle rays
             val maxRadius = sqrt((width / 2 + abs(offsetX)).pow(2) + (height / 2 + abs(offsetY)).pow(2)) / pixelsPerUnit
             var r = step
             while (r <= maxRadius) {
@@ -231,27 +411,16 @@ fun GraphCanvas(
                 )
                 drawText(
                     textMeasurer = textMeasurer,
-                    text = "r=${String.format("%.1f", r).trimEnd('0').trimEnd('.')}",
+                    text = "r=${formatAxisTick(r)}",
                     style = TextStyle(color = Color(0xFF475569), fontSize = 9.sp),
                     topLeft = Offset(originX + radiusPx + 3f, originY + 2f)
                 )
                 r += step
             }
 
-            // Radial angle rays (0, π/6, π/4, π/3, π/2, etc.)
-            val angles = listOf(
-                Pair(0.0, "0°"),
-                Pair(Math.PI / 6, "30°"),
-                Pair(Math.PI / 4, "45°"),
-                Pair(Math.PI / 3, "60°"),
-                Pair(Math.PI / 2, "90°"),
-                Pair(2 * Math.PI / 3, "120°"),
-                Pair(3 * Math.PI / 4, "135°"),
-                Pair(5 * Math.PI / 6, "150°"),
-                Pair(Math.PI, "180°")
-            )
+            val angles = listOf(0.0, Math.PI / 6, Math.PI / 4, Math.PI / 3, Math.PI / 2, 2 * Math.PI / 3, 3 * Math.PI / 4, 5 * Math.PI / 6, Math.PI)
             val rayLen = max(width, height) * 2f
-            for ((ang, label) in angles) {
+            for (ang in angles) {
                 val cosA = cos(ang).toFloat()
                 val sinA = sin(ang).toFloat()
                 drawLine(
@@ -259,12 +428,11 @@ fun GraphCanvas(
                     start = Offset(originX - cosA * rayLen, originY + sinA * rayLen),
                     end = Offset(originX + cosA * rayLen, originY - sinA * rayLen),
                     strokeWidth = 1f,
-                    pathEffect = PathEffect.dashPathEffect(floatArrayOf(6f, 6f), 0f)
+                    pathEffect = dashGridEffect
                 )
             }
         } else {
-            // Cartesian Vertical Grid
-            var currentX: Double = Math.floor(xStartUnit.toDouble() / step) * step
+            var currentX: Double = floor(xStartUnit.toDouble() / step) * step
             while (currentX <= xEndUnit) {
                 val screenX = originX + (currentX * pixelsPerUnit).toFloat()
                 drawLine(
@@ -276,7 +444,7 @@ fun GraphCanvas(
                 if (abs(currentX) > 0.001) {
                     drawText(
                         textMeasurer = textMeasurer,
-                        text = String.format("%.1f", currentX).trimEnd('0').trimEnd('.'),
+                        text = formatAxisTick(currentX),
                         style = TextStyle(color = Color(0xFF64748B), fontSize = 10.sp),
                         topLeft = Offset(screenX + 4f, (originY + 4f).coerceIn(4f, height - 20f))
                     )
@@ -284,8 +452,7 @@ fun GraphCanvas(
                 currentX += step
             }
 
-            // Cartesian Horizontal Grid
-            var currentY: Double = Math.floor(yStartUnit.toDouble() / step) * step
+            var currentY: Double = floor(yStartUnit.toDouble() / step) * step
             while (currentY <= yEndUnit) {
                 val screenY = originY - (currentY * pixelsPerUnit).toFloat()
                 drawLine(
@@ -297,7 +464,7 @@ fun GraphCanvas(
                 if (abs(currentY) > 0.001) {
                     drawText(
                         textMeasurer = textMeasurer,
-                        text = String.format("%.1f", currentY).trimEnd('0').trimEnd('.'),
+                        text = formatAxisTick(currentY),
                         style = TextStyle(color = Color(0xFF64748B), fontSize = 10.sp),
                         topLeft = Offset((originX + 6f).coerceIn(4f, width - 40f), screenY - 14f)
                     )
@@ -325,54 +492,38 @@ fun GraphCanvas(
         if (showIntegral && mode == GraphMode.CARTESIAN && primaryEvaluator != null) {
             val a = min(integralA, integralB)
             val b = max(integralA, integralB)
-            val integralVal = primaryEvaluator.evaluateIntegral(integralA, integralB, params)
-
-            val polyPath = Path()
-            val numSteps = 120
+            val integralVal = renderData.integralValue
             val startScreenX = originX + (a * pixelsPerUnit).toFloat()
             val endScreenX = originX + (b * pixelsPerUnit).toFloat()
 
-            polyPath.moveTo(startScreenX, originY)
-
-            for (s in 0..numSteps) {
-                val curX = a + s * (b - a) / numSteps
-                val curY = primaryEvaluator.evaluate(curX, params)
-                if (!curY.isNaN() && !curY.isInfinite()) {
+            if (integralVal.isFinite() && renderData.integralPoints.isNotEmpty()) {
+                val polyPath = Path()
+                polyPath.moveTo(startScreenX, originY)
+                for ((curX, curY) in renderData.integralPoints) {
                     val sX = originX + (curX * pixelsPerUnit).toFloat()
                     val sY = originY - (curY * pixelsPerUnit).toFloat()
                     polyPath.lineTo(sX, sY)
                 }
+                polyPath.lineTo(endScreenX, originY)
+                polyPath.close()
+                drawPath(path = polyPath, brush = integralBrush)
             }
-            polyPath.lineTo(endScreenX, originY)
-            polyPath.close()
 
-            // Draw Area Gradient
-            if (integralVal.isFinite()) drawPath(
-                path = polyPath,
-                brush = Brush.verticalGradient(
-                    colors = listOf(Color(0xFFB9C6D6).copy(alpha = 0.35f), Color(0xFFB9C6D6).copy(alpha = 0.05f)),
-                    startY = 0f,
-                    endY = height
-                )
-            )
-
-            // Draw Integral Bounds Markers
             drawLine(
                 color = Color(0xFFB9C6D6),
                 start = Offset(startScreenX, 0f),
                 end = Offset(startScreenX, height),
                 strokeWidth = 1.2f,
-                pathEffect = PathEffect.dashPathEffect(floatArrayOf(5f, 5f), 0f)
+                pathEffect = dashIntegralEffect
             )
             drawLine(
                 color = Color(0xFFB9C6D6),
                 start = Offset(endScreenX, 0f),
                 end = Offset(endScreenX, height),
                 strokeWidth = 1.2f,
-                pathEffect = PathEffect.dashPathEffect(floatArrayOf(5f, 5f), 0f)
+                pathEffect = dashIntegralEffect
             )
 
-            // Integral Result Badge
             val intLabel = "∫[${NumberFormatter.formatCompact(integralA)}, ${NumberFormatter.formatCompact(integralB)}] " +
                 if (integralVal.isFinite()) "≈ ${NumberFormatter.formatCompact(integralVal)}" else "не определён"
             val intLayout = textMeasurer.measure(
@@ -393,70 +544,38 @@ fun GraphCanvas(
         }
 
         // ─── 4. Plot graphs ────────────────────────────────────────────────────
-        val criticalPoints = mutableListOf<CriticalPoint>()
-
+        val jumpThreshold = hypot(width, height) * 1.2f
         when (mode) {
             GraphMode.CARTESIAN -> {
-                evaluators.forEachIndexed { index, evaluator ->
-                    if (evaluator != null) {
+                val sampleMin = renderData.cartesianXMin
+                val sampleMax = renderData.cartesianXMax
+                renderData.cartesianSamples.forEach { (index, yValues) ->
+                    val pointsCount = yValues.size
+                    if (pointsCount >= 2 && sampleMax > sampleMin) {
                         val color = graphColors[index % graphColors.size]
-                        val pointsCount = width.toInt().coerceIn(100, 1200)
-                        val sampleKey = GraphSampleKey(index, xStartUnit.toDouble(), xEndUnit.toDouble(), pointsCount)
-                        if (sampleCache.size > 8) sampleCache.clear()
-                        val yValues = sampleCache.getOrPut(sampleKey) {
-                            evaluator.evaluateRange(xStartUnit.toDouble(), xEndUnit.toDouble(), pointsCount, params)
-                        }
-
                         val path = Path()
                         var isFirstPoint = true
                         var prevYScreen = 0f
 
                         for (i in 0 until pointsCount) {
-                            val mathX = xStartUnit + i * (xEndUnit - xStartUnit) / (pointsCount - 1)
                             val mathY = yValues[i]
-
-                            if (!mathY.isNaN() && !mathY.isInfinite()) {
-                                val screenX = originX + mathX * pixelsPerUnit
+                            if (mathY.isFinite()) {
+                                val mathX = sampleMin + i * (sampleMax - sampleMin) / (pointsCount - 1)
+                                val screenX = originX + (mathX * pixelsPerUnit).toFloat()
                                 val screenY = originY - (mathY * pixelsPerUnit).toFloat()
 
-                                if (isFirstPoint) {
+                                if (isFirstPoint || abs(screenY - prevYScreen) > height * 1.5f) {
                                     path.moveTo(screenX, screenY)
                                     isFirstPoint = false
                                 } else {
-                                    if (abs(screenY - prevYScreen) > height * 1.5f) {
-                                        path.moveTo(screenX, screenY)
-                                    } else {
-                                        path.lineTo(screenX, screenY)
-                                    }
+                                    path.lineTo(screenX, screenY)
                                 }
                                 prevYScreen = screenY
-
-                                // Roots & Extremums for Primary Graph
-                                if (index == 0 && i > 0 && i < pointsCount - 1) {
-                                    val prevY = yValues[i - 1]
-                                    val nextY = yValues[i + 1]
-
-                                    if (showExtremums) {
-                                        if (prevY.isFinite() && nextY.isFinite() && mathY > prevY && mathY > nextY) {
-                                            criticalPoints.add(CriticalPoint(mathX.toDouble(), mathY, isMax = true))
-                                        } else if (prevY.isFinite() && nextY.isFinite() && mathY < prevY && mathY < nextY) {
-                                            criticalPoints.add(CriticalPoint(mathX.toDouble(), mathY, isMin = true))
-                                        }
-                                    }
-                                }
                             } else {
                                 isFirstPoint = true
                             }
                         }
 
-                        if (index == 0 && showRoots) {
-                            if (rootCache.size > 8) rootCache.clear()
-                            rootCache.getOrPut(sampleKey) {
-                                evaluator.findRoots(xStartUnit.toDouble(), xEndUnit.toDouble(), 400, params)
-                            }.forEach { criticalPoints.add(CriticalPoint(it, 0.0, isRoot = true)) }
-                        }
-
-                        // A single readable curve, without a decorative glow.
                         drawPath(
                             path = path,
                             color = color,
@@ -464,76 +583,59 @@ fun GraphCanvas(
                         )
                     }
                 }
-
-                // Intersections between graphs
-                if (showIntersections && evaluators.size >= 2) {
-                    val ev1 = evaluators.getOrNull(0)
-                    val ev2 = evaluators.getOrNull(1)
-                    if (ev1 != null && ev2 != null) {
-                        val key = GraphSampleKey(-1, xStartUnit.toDouble(), xEndUnit.toDouble(), 300)
-                        if (intersectionCache.size > 8) intersectionCache.clear()
-                        val crossPoints = intersectionCache.getOrPut(key) {
-                            ev1.findIntersections(ev2, xStartUnit.toDouble(), xEndUnit.toDouble(), 300, params)
-                        }
-                        crossPoints.forEach { (cx, cy) ->
-                            criticalPoints.add(CriticalPoint(cx, cy, isIntersection = true))
-                        }
-                    }
-                }
             }
 
             GraphMode.POLAR -> {
-                evaluators.forEachIndexed { index, evaluator ->
-                    if (evaluator != null) {
-                        val color = graphColors[index % graphColors.size]
-                        val polarPoints = polarCache.getOrPut(index) {
-                            evaluator.evaluatePolarRange(0.0, 4.0 * Math.PI, 600, params)
-                        }
-
-                        val path = Path()
-                        var isFirstPoint = true
-
-                        for ((x, y) in polarPoints) {
-                            if (!x.isNaN() && !y.isNaN()) {
-                                val screenX = originX + (x * pixelsPerUnit).toFloat()
-                                val screenY = originY - (y * pixelsPerUnit).toFloat()
-                                if (isFirstPoint) {
-                                    path.moveTo(screenX, screenY)
-                                    isFirstPoint = false
-                                } else {
-                                    path.lineTo(screenX, screenY)
-                                }
-                            } else {
-                                isFirstPoint = true
-                            }
-                        }
-
-                        drawPath(path = path, color = color.copy(alpha = 0.22f), style = Stroke(width = 8.dp.toPx()))
-                        drawPath(path = path, color = color, style = Stroke(width = 3.dp.toPx()))
-                    }
-                }
-            }
-
-            GraphMode.PARAMETRIC -> {
-                if (evaluators.size >= 2 && evaluators[0] != null && evaluators[1] != null) {
-                    val evX = evaluators[0]!!
-                    val evY = evaluators[1]!!
-                    val color = graphColors[0]
-                    val paramPoints = parametricPoints
-
+                renderData.polarCurves.forEach { (index, polarPoints) ->
+                    val color = graphColors[index % graphColors.size]
                     val path = Path()
                     var isFirstPoint = true
+                    var prevXScreen = 0f
+                    var prevYScreen = 0f
 
-                    for ((x, y) in paramPoints) {
-                        if (!x.isNaN() && !y.isNaN()) {
+                    for ((x, y) in polarPoints) {
+                        if (x.isFinite() && y.isFinite()) {
                             val screenX = originX + (x * pixelsPerUnit).toFloat()
                             val screenY = originY - (y * pixelsPerUnit).toFloat()
-                            if (isFirstPoint) {
+                            if (isFirstPoint || hypot(screenX - prevXScreen, screenY - prevYScreen) > jumpThreshold) {
                                 path.moveTo(screenX, screenY)
                                 isFirstPoint = false
                             } else {
                                 path.lineTo(screenX, screenY)
                             }
+                            prevXScreen = screenX
+                            prevYScreen = screenY
+                        } else {
+                            isFirstPoint = true
+                        }
+                    }
+
+                    drawPath(path = path, color = color.copy(alpha = 0.22f), style = Stroke(width = 8.dp.toPx()))
+                    drawPath(path = path, color = color, style = Stroke(width = 3.dp.toPx()))
+                }
+            }
+
+            GraphMode.PARAMETRIC -> {
+                val paramPoints = renderData.parametricPoints
+                if (paramPoints.isNotEmpty()) {
+                    val color = graphColors[0]
+                    val path = Path()
+                    var isFirstPoint = true
+                    var prevXScreen = 0f
+                    var prevYScreen = 0f
+
+                    for ((x, y) in paramPoints) {
+                        if (x.isFinite() && y.isFinite()) {
+                            val screenX = originX + (x * pixelsPerUnit).toFloat()
+                            val screenY = originY - (y * pixelsPerUnit).toFloat()
+                            if (isFirstPoint || hypot(screenX - prevXScreen, screenY - prevYScreen) > jumpThreshold) {
+                                path.moveTo(screenX, screenY)
+                                isFirstPoint = false
+                            } else {
+                                path.lineTo(screenX, screenY)
+                            }
+                            prevXScreen = screenX
+                            prevYScreen = screenY
                         } else {
                             isFirstPoint = true
                         }
@@ -546,9 +648,10 @@ fun GraphCanvas(
         }
 
         // ─── 5. Render Critical Points & Intersections ─────────────────────────
-        criticalPoints.forEach { cp ->
+        renderData.criticalPoints.forEach { cp ->
             val screenX = originX + (cp.x * pixelsPerUnit).toFloat()
             val screenY = originY - (cp.y * pixelsPerUnit).toFloat()
+            if (!screenX.isFinite() || !screenY.isFinite()) return@forEach
 
             if (cp.isRoot) {
                 drawCircle(color = Color(0xFFB9C6D6).copy(alpha = 0.22f), radius = 10.dp.toPx(), center = Offset(screenX, screenY))
@@ -565,14 +668,13 @@ fun GraphCanvas(
                 drawCircle(color = extColor.copy(alpha = 0.35f), radius = 9.dp.toPx(), center = Offset(screenX, screenY))
                 drawCircle(color = extColor, radius = 4.dp.toPx(), center = Offset(screenX, screenY))
 
-                val extLabel = if (cp.isMax) "max"else "min"
+                val extLabel = if (cp.isMax) "max" else "min"
                 val textLayout = textMeasurer.measure(
                     text = AnnotatedString(extLabel),
                     style = TextStyle(color = extColor, fontSize = 9.sp, fontWeight = FontWeight.Bold)
                 )
                 drawText(textLayoutResult = textLayout, topLeft = Offset(screenX - textLayout.size.width / 2, if (cp.isMax) screenY - 20f else screenY + 10f))
             } else if (cp.isIntersection) {
-                // Purple/Gold Glowing Diamond Intersection
                 val intColor = Color(0xFFB9ADC8)
                 drawCircle(color = intColor.copy(alpha = 0.35f), radius = 11.dp.toPx(), center = Offset(screenX, screenY))
                 drawCircle(color = intColor, radius = 5.dp.toPx(), center = Offset(screenX, screenY))
@@ -592,61 +694,54 @@ fun GraphCanvas(
             val screenY = originY - (point.y * pixelsPerUnit).toFloat()
             if (!screenX.isFinite() || !screenY.isFinite()) return@let
 
-            // Tangent Line at Inspector Point
-            if (showTangent && mode == GraphMode.CARTESIAN && primaryEvaluator != null) {
-                val derivative = primaryEvaluator.evaluateDerivative(point.x, params)
-                if (!derivative.isNaN() && !derivative.isInfinite()) {
-                    val deltaX = 120.dp.toPx()
-                    val tanStartX = screenX - deltaX
-                    val tanEndX = screenX + deltaX
-                    val tanStartY = screenY + (deltaX * derivative).toFloat()
-                    val tanEndY = screenY - (deltaX * derivative).toFloat()
+            val derivative = activeDerivative
+            if (showTangent && mode == GraphMode.CARTESIAN && derivative != null && derivative.isFinite()) {
+                val deltaX = 120.dp.toPx()
+                val tanStartX = screenX - deltaX
+                val tanEndX = screenX + deltaX
+                val tanStartY = screenY + (deltaX * derivative).toFloat()
+                val tanEndY = screenY - (deltaX * derivative).toFloat()
 
-                    drawLine(
-                        color = Color(0xFFD0C3AD),
-                        start = Offset(tanStartX, tanStartY),
-                        end = Offset(tanEndX, tanEndY),
-                        strokeWidth = 2.dp.toPx(),
-                        pathEffect = PathEffect.dashPathEffect(floatArrayOf(8f, 6f), 0f)
-                    )
+                drawLine(
+                    color = Color(0xFFD0C3AD),
+                    start = Offset(tanStartX, tanStartY),
+                    end = Offset(tanEndX, tanEndY),
+                    strokeWidth = 2.dp.toPx(),
+                    pathEffect = dashTangentEffect
+                )
 
-                    // Derivative Badge
-                    val derivText = "dy/dx ≈ ${NumberFormatter.formatCompact(derivative)}"
-                    val derivLayout = textMeasurer.measure(
-                        text = AnnotatedString(derivText),
-                        style = TextStyle(color = Color(0xFFD0C3AD), fontSize = 10.sp, fontWeight = FontWeight.Bold)
-                    )
-                    drawRoundRect(
-                        color = Color(0xEE1E293B),
-                        topLeft = Offset(screenX - derivLayout.size.width / 2 - 4f, screenY + 18f),
-                        size = Size(derivLayout.size.width + 8f, derivLayout.size.height + 4f),
-                        cornerRadius = CornerRadius(4f, 4f)
-                    )
-                    drawText(textLayoutResult = derivLayout, topLeft = Offset(screenX - derivLayout.size.width / 2, screenY + 20f))
-                }
+                val derivText = "dy/dx ≈ ${NumberFormatter.formatCompact(derivative)}"
+                val derivLayout = textMeasurer.measure(
+                    text = AnnotatedString(derivText),
+                    style = TextStyle(color = Color(0xFFD0C3AD), fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                )
+                drawRoundRect(
+                    color = Color(0xEE1E293B),
+                    topLeft = Offset(screenX - derivLayout.size.width / 2 - 4f, screenY + 18f),
+                    size = Size(derivLayout.size.width + 8f, derivLayout.size.height + 4f),
+                    cornerRadius = CornerRadius(4f, 4f)
+                )
+                drawText(textLayoutResult = derivLayout, topLeft = Offset(screenX - derivLayout.size.width / 2, screenY + 20f))
             }
 
-            // Crosshair Guidelines
             drawLine(
                 color = Color.White.copy(alpha = 0.35f),
                 start = Offset(screenX, 0f),
                 end = Offset(screenX, height),
                 strokeWidth = 1f,
-                pathEffect = PathEffect.dashPathEffect(floatArrayOf(8f, 8f), 0f)
+                pathEffect = dashCrosshairEffect
             )
             drawLine(
                 color = Color.White.copy(alpha = 0.35f),
                 start = Offset(0f, screenY),
                 end = Offset(width, screenY),
                 strokeWidth = 1f,
-                pathEffect = PathEffect.dashPathEffect(floatArrayOf(8f, 8f), 0f)
+                pathEffect = dashCrosshairEffect
             )
 
-            // Inspector Cursor Dot
             drawCircle(color = Color.White.copy(alpha = 0.3f), radius = 12.dp.toPx(), center = Offset(screenX, screenY))
             drawCircle(color = Color.White, radius = 5.dp.toPx(), center = Offset(screenX, screenY))
 
-            // Floating Coordinate Badge
             val tooltipText = "x: ${NumberFormatter.formatCompact(point.x)}\ny: ${NumberFormatter.formatCompact(point.y)}"
             val textLayout = textMeasurer.measure(
                 text = AnnotatedString(tooltipText),
@@ -665,14 +760,6 @@ fun GraphCanvas(
                 cornerRadius = CornerRadius(8f, 8f)
             )
             drawText(textLayoutResult = textLayout, topLeft = Offset(rectLeft + 8f, rectTop + 6f))
-
-            // Haptic check near critical points
-            criticalPoints.firstOrNull { abs(it.x - point.x) < 0.06 }?.let { cp ->
-                if (lastHapticPoint == null || abs(lastHapticPoint!! - cp.x) > 0.1) {
-                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                    lastHapticPoint = cp.x
-                }
-            }
         }
     }
 }

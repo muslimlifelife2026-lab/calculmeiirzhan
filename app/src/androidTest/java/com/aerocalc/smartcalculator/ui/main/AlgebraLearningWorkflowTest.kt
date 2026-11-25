@@ -70,4 +70,18 @@ class AlgebraLearningWorkflowTest {
         rule.onNodeWithTag("system_first_equation").assertTextContains("x+y=4")
         rule.onNodeWithTag("system_second_equation").assertTextContains("x-y=0")
     }
+
+    @Test fun polynomialSolutionOpensCleanGraphExpressions() {
+        rule.setContent { MainScreen() }
+        rule.onNodeWithText("Инструменты").performClick()
+        rule.onNodeWithTag("tools_list").performScrollToNode(hasText("Алгебра"))
+        rule.onNodeWithText("Алгебра").performClick()
+        rule.onNodeWithText("Найти корни").performScrollTo().performClick()
+        rule.onNodeWithTag("algebra_calculate").performScrollTo().performClick()
+        rule.waitUntil(10000) { rule.onAllNodesWithTag("algebra_show_graph").fetchSemanticsNodes().isNotEmpty() }
+        rule.onNodeWithTag("algebra_show_graph").performScrollTo().performClick()
+        assertEquals(0.0, graphValue(0, 2.0), 1e-12)
+        assertEquals(0.0, graphValue(0, 3.0), 1e-12)
+        assertEquals(2.0, graphValue(0, 1.0), 1e-12)
+    }
 }

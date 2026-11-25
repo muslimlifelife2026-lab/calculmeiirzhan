@@ -16,7 +16,8 @@ data class AlgebraResult(
     val normalized: String,
     val answer: String,
     val steps: List<String>,
-    val roots: List<AlgebraRoot> = emptyList()
+    val roots: List<AlgebraRoot> = emptyList(),
+    val graphExpressions: List<String> = emptyList()
 )
 
 /** Bounded, offline polynomial algebra. Coefficients stay rational until displaying irrational roots. */
@@ -29,7 +30,7 @@ object PolynomialAlgebra {
     fun calculate(input: String, operation: AlgebraOperation): AlgebraResult {
         require(input.length <= MAX_INPUT_LENGTH) { "Не больше $MAX_INPUT_LENGTH символов" }
         require(input.isNotBlank()) { "Введите выражение или уравнение с x" }
-        val sides = input.replace('−', '-').replace('×', '*').replace('÷', '/')
+        val sides = input.replace('−', '-').replace('×', '*').replace('·', '*').replace('÷', '/')
             .replace('–', '-').replace(',', '.').replace("²", "^2").replace("³", "^3").split('=')
         require(sides.size <= 2 && sides.all { it.isNotBlank() }) { "Укажите обе части одного уравнения" }
         require(operation == AlgebraOperation.SOLVE || sides.size == 1) {
@@ -38,19 +39,33 @@ object PolynomialAlgebra {
         val left = parse(sides[0])
         val polynomial = if (sides.size == 2) left - parse(sides[1]) else left
         val normalized = polynomial.text()
+        val graphExpr = polynomial.graphExpression().takeIf { it.length <= MAX_INPUT_LENGTH }
         return when (operation) {
-            AlgebraOperation.SIMPLIFY -> AlgebraResult(normalized, normalized, listOf(
-                "Раскрываем скобки, выполняем умножение и собираем коэффициенты при одинаковых степенях x.",
-                "Коэффициенты вычисляются точно как рациональные числа; дроби сокращаются.",
-                "Результат: $normalized"
-            ))
+            AlgebraOperation.SIMPLIFY -> AlgebraResult(
+                normalized,
+                normalized,
+                listOf(
+                    "Раскрываем скобки, выполняем умножение и собираем коэффициенты при одинаковых степенях x.",
+                    "Коэффициенты вычисляются точно как рациональные числа; дроби сокращаются.",
+                    "Результат: $normalized"
+                ),
+                graphExpressions = listOfNotNull(graphExpr)
+            )
             AlgebraOperation.DERIVATIVE -> {
-                val derivative = polynomial.derivative().text()
-                AlgebraResult(normalized, derivative, listOf(
-                    "Приводим исходное выражение: f(x) = $normalized",
-                    "Применяем (c·x^n)′ = n·c·x^(n−1) к каждому члену. Производная константы равна 0.",
-                    "f′(x) = $derivative"
-                ))
+                val derivPoly = polynomial.derivative()
+                val derivative = derivPoly.text()
+                val derivGraph = derivPoly.graphExpression().takeIf { it.length <= MAX_INPUT_LENGTH }
+                val graphs = if (graphExpr != null && derivGraph != null) listOf(graphExpr, derivGraph) else emptyList()
+                AlgebraResult(
+                    normalized,
+                    derivative,
+                    listOf(
+                        "Приводим исходное выражение: f(x) = $normalized",
+                        "Применяем (c·x^n)′ = n·c·x^(n−1) к каждому члену. Производная константы равна 0.",
+                        "f′(x) = $derivative"
+                    ),
+                    graphExpressions = graphs
+                )
             }
             AlgebraOperation.SOLVE -> solve(polynomial, sides.size == 2)
         }
@@ -112,6 +127,7 @@ object PolynomialAlgebra {
 
     private fun solve(p: Polynomial, hasEquals: Boolean): AlgebraResult {
         val normalized = "${p.text()} = 0"
+        val graphs = p.graphExpression().takeIf { it.length <= MAX_INPUT_LENGTH }?.let(::listOf) ?: emptyList()
         val steps = mutableListOf(
             if (hasEquals) "Переносим правую часть влево и приводим подобные члены: $normalized"
             else "Знак = не указан: решаем введённый полином, приравняв его к нулю: $normalized"
@@ -120,13 +136,13 @@ object PolynomialAlgebra {
         if (p.degree == 0) {
             val answer = if (p.isZero) "Любое действительное x" else "Решений нет"
             steps += if (p.isZero) "Получено тождество 0 = 0." else "Получено неверное равенство ${p[0]} = 0."
-            return AlgebraResult(normalized, answer, steps)
+            return AlgebraResult(normalized, answer, steps, graphExpressions = graphs)
         }
         if (p.degree == 1) {
             val root = -p[0] / p[1]
             steps += "Для a·x + b = 0 имеем a = ${p[1]}, b = ${p[0]}."
             steps += "x = −b/a = $root"
-            return AlgebraResult(normalized, "x = $root", steps, listOf(rationalRoot(root)))
+            return AlgebraResult(normalized, "x = $root", steps, listOf(rationalRoot(root)), graphExpressions = graphs)
         }
         val a = p[2]
         val b = p[1]
@@ -136,13 +152,13 @@ object PolynomialAlgebra {
         steps += "D = b² − 4ac = $d"
         if (d.signum < 0) {
             steps += "D < 0: действительных корней нет. Этот раздел решает уравнения в действительных числах."
-            return AlgebraResult(normalized, "Действительных корней нет", steps)
+            return AlgebraResult(normalized, "Действительных корней нет", steps, graphExpressions = graphs)
         }
         val twiceA = Rational.of(2) * a
         if (d.signum == 0) {
             val root = -b / twiceA
             steps += "D = 0: x = −b/(2a) = $root. Это корень кратности 2."
-            return AlgebraResult(normalized, "x = $root · двойной корень", steps, listOf(rationalRoot(root).copy(multiplicity = 2)))
+            return AlgebraResult(normalized, "x = $root · двойной корень", steps, listOf(rationalRoot(root).copy(multiplicity = 2)), graphExpressions = graphs)
         }
         steps += "D > 0: x = (−b ± √D)/(2a)."
         val exactSqrt = d.sqrtExact()
@@ -165,7 +181,7 @@ object PolynomialAlgebra {
             )
         }
         roots.forEachIndexed { index, root -> steps += "x${index + 1} = ${root.exact}" }
-        return AlgebraResult(normalized, "Два действительных корня", steps, roots)
+        return AlgebraResult(normalized, "Два действительных корня", steps, roots, graphExpressions = graphs)
     }
 
     private fun rationalRoot(value: Rational): AlgebraRoot {
@@ -203,15 +219,21 @@ object PolynomialAlgebra {
             return result
         }
         fun derivative() = create(terms.filterKeys { it > 0 }.map { (power, value) -> power - 1 to value * Rational.of(power.toLong()) }.toMap())
-        fun text(): String {
+        fun text(): String = format(ascii = false)
+        fun graphExpression(): String = format(ascii = true)
+
+        private fun format(ascii: Boolean): String {
             if (isZero) return "0"
+            val binaryMinus = if (ascii) " - " else " − "
+            val unaryMinus = if (ascii) "-" else "−"
+            val mul = if (ascii) "*" else "·"
             return buildString {
                 terms.toSortedMap(reverseOrder()).forEach { (power, value) ->
-                    if (isNotEmpty()) append(if (value.signum < 0) " − " else " + ") else if (value.signum < 0) append("−")
+                    if (isNotEmpty()) append(if (value.signum < 0) binaryMinus else " + ") else if (value.signum < 0) append(unaryMinus)
                     val coefficient = value.abs()
                     if (power == 0 || coefficient != Rational.ONE) {
                         append(coefficient)
-                        if (power > 0) append("·")
+                        if (power > 0) append(mul)
                     }
                     if (power > 0) append("x")
                     if (power > 1) append("^$power")

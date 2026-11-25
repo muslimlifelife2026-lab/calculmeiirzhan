@@ -54,4 +54,22 @@ class GraphEvaluatorTest {
         assertEquals(1.0, GraphEvaluator("th").evaluate(1.0, varSymbol = "theta"), 0.0)
         assertEquals(220.0, GraphEvaluator("200+10%").evaluate(0.0), 1e-12)
     }
+
+    @Test fun scaledBoundaryRootsWideIntervalAbsRootsAndCaseInsensitiveParametersWork() {
+        val scaledBoundaryRoots = GraphEvaluator("1e6*sin(x)").findRoots(-Math.PI, Math.PI)
+        assertEquals(3, scaledBoundaryRoots.size)
+        assertEquals(-Math.PI, scaledBoundaryRoots[0], 1e-6)
+        assertEquals(0.0, scaledBoundaryRoots[1], 1e-6)
+        assertEquals(Math.PI, scaledBoundaryRoots[2], 1e-6)
+
+        val wideAbsRoots = GraphEvaluator("abs(x - 0.37)").findRoots(-1e6, 1e6)
+        assertEquals(1, wideAbsRoots.size)
+        assertEquals(0.37, wideAbsRoots.single(), 1e-6)
+
+        val evaluator = GraphEvaluator("A*x + a")
+        val params = evaluator.extractParameters()
+        assertEquals(1, params.size)
+        assertEquals(9.0, evaluator.evaluate(2.0, mapOf("A" to 3.0)), 1e-12)
+        assertEquals(9.0, evaluator.evaluate(2.0, mapOf("a" to 3.0)), 1e-12)
+    }
 }

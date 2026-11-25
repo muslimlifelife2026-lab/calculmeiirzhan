@@ -5,12 +5,18 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ShowChart
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -27,6 +33,7 @@ data class ScienceTool(val id: String, val title: String, val description: Strin
 val scienceTools = listOf(
     ScienceTool("converter", "Конвертер", "Длина, масса, температура и другие единицы", Icons.Rounded.SwapHoriz),
     ScienceTool("algebra", "Алгебра", "Уравнения, системы, многочлены и производные", Icons.Rounded.Functions),
+    ScienceTool("percentages", "Проценты", "Процент от числа, рост и спад в процентах", Icons.Rounded.Percent),
     ScienceTool("physics", "Физика", "Расчёты, эксперименты и датчики телефона", Icons.Rounded.Science),
     ScienceTool("geometry", "Геометрия", "Площади, объёмы и трёхмерные фигуры", Icons.Rounded.Architecture),
     ScienceTool("graphs", "Графики", "Функции, пересечения и таблица значений", Icons.AutoMirrored.Rounded.ShowChart),
@@ -41,6 +48,46 @@ fun ToolsScreen(
     onPrivacyOptions: () -> Unit = {},
     onChangeAgeGroup: () -> Unit = {}
 ) {
+    var showPrivacyInfo by rememberSaveable { mutableStateOf(false) }
+
+    if (showPrivacyInfo) {
+        AlertDialog(
+            onDismissRequest = { showPrivacyInfo = false },
+            title = { Text("О данных и рекламе") },
+            text = {
+                Column(
+                    Modifier.verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Text(
+                        "Локальное хранение: история расчётов, прогресс обучения и черновики структур сохраняются только на этом устройстве и не передаются разработчику.",
+                        color = TextSecondary,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    Text(
+                        "Камера: включается только по вашему нажатию в разделе сканирования для распознавания формул на устройстве (ML Kit). Снимки не отправляются на сервер.",
+                        color = TextSecondary,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    Text(
+                        "Возрастная группа и реклама: для пользователей младше 13 лет реклама полностью отключена и рекламный SDK не запускается; для 13–17 лет действует строгий режим без персонализации и с ограничением контента G; для 18+ запрашивается согласие UMP и применяется фильтр контента G.",
+                        color = TextSecondary,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    Text(
+                        "Вы можете изменить выбранную возрастную группу в любой момент ниже.",
+                        color = TextMuted,
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showPrivacyInfo = false }) { Text("Понятно") }
+            },
+            containerColor = SurfaceElevated
+        )
+    }
+
     LazyColumn(
         modifier.fillMaxSize().testTag("tools_list"),
         contentPadding = PaddingValues(horizontal = 20.dp, vertical = 16.dp),
@@ -54,7 +101,7 @@ fun ToolsScreen(
             }
         }
         for ((section, tools) in listOf(
-            "Вычисления" to scienceTools.filter { it.id in listOf("converter", "algebra", "graphs") },
+            "Вычисления" to scienceTools.filter { it.id in listOf("converter", "algebra", "percentages", "graphs") },
             "Исследования" to scienceTools.filter { it.id in listOf("physics", "chemistry", "geometry") }
         )) {
         item {
@@ -89,6 +136,11 @@ fun ToolsScreen(
         item {
             TextButton(onClick = onChangeAgeGroup, modifier = Modifier.fillMaxWidth()) {
                 Text("Изменить возрастную группу")
+            }
+        }
+        item {
+            TextButton(onClick = { showPrivacyInfo = true }, modifier = Modifier.fillMaxWidth()) {
+                Text("О данных и рекламе")
             }
         }
     }

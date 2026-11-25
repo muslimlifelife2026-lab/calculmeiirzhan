@@ -24,6 +24,10 @@ class HistoryViewModel(application: Application) : AndroidViewModel(application)
             initialValue = emptyList()
         )
 
+    suspend fun getItemById(id: Int): CalculationEntity? = withContext(Dispatchers.IO) {
+        dao.getCalculationById(id)
+    }
+
     fun deleteItem(id: Int) {
         viewModelScope.launch(Dispatchers.IO) {
             dao.deleteCalculation(id)

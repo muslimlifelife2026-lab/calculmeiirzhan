@@ -209,8 +209,8 @@ fun AlgebraScreen(
         }
         result?.let { solution ->
             val solutionOperation = resultOperation
-            val graphFunctions = if (solutionOperation == AlgebraOperation.DERIVATIVE) listOf(solution.normalized, solution.answer) else listOf(solution.normalized)
-            val fitsGraph = graphFunctions.all { it.length <= 256 }
+            val graphFunctions = solution.graphExpressions
+            val fitsGraph = graphFunctions.isNotEmpty() && graphFunctions.all { it.length <= 256 }
             GlassCard(Modifier.fillMaxWidth().testTag("algebra_result")) {
                 SelectionContainer {
                     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {

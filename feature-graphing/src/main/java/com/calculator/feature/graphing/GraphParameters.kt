@@ -13,7 +13,7 @@ object GraphParameters {
         }
         return expressions.flatMap { expression ->
             runCatching { GraphEvaluator(expression).extractParameters(coordinates) }.getOrDefault(emptyList())
-        }.distinct()
+        }.distinctBy { it.lowercase() }
     }
 
     /** Matches the slider's displayed 0.1 increments, instead of leaking Float noise into calculations. */

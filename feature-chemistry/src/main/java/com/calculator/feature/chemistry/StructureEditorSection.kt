@@ -38,6 +38,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.calculator.core.ui.components.GlassCard
 import com.calculator.core.ui.theme.ErrorRed
+import com.calculator.core.ui.theme.TextMuted
 import com.calculator.core.ui.theme.TextSecondary
 import com.calculator.domain.model.chemistry.SimpleMolecule
 import com.calculator.domain.model.chemistry.StructureDraft
@@ -70,7 +71,7 @@ fun StructureEditorSection(modifier: Modifier = Modifier) {
         if (uri != null && document != null) scope.launch {
             feedback = withContext(Dispatchers.IO) {
                 try {
-                    context.contentResolver.openOutputStream(uri)?.use { it.write(document.toByteArray(Charsets.UTF_8)) }
+                    context.contentResolver.openOutputStream(uri, "wt")?.use { it.write(document.toByteArray(Charsets.UTF_8)) }
                         ?: throw IOException("Output unavailable")
                     "Файл MOL сохранён."
                 } catch (_: IOException) {
@@ -126,7 +127,7 @@ fun StructureEditorSection(modifier: Modifier = Modifier) {
                         else -> SimpleMolecule().addAtom(StructureElement.N).addAtom(StructureElement.N, 1, 3)
                     }
                     update(draft.copy(molecule = example, selectedAtomId = example.atoms.first().id))
-                }, label = { Text(name) })
+                }, label = { Text(name) }, modifier = Modifier.heightIn(min = 48.dp))
             }
         }
 
@@ -143,7 +144,7 @@ fun StructureEditorSection(modifier: Modifier = Modifier) {
                                 selected = atom.id == draft.selectedAtomId,
                                 onClick = { selectAtom(atom.id) },
                                 label = { Text("${atom.element}${atom.id}") },
-                                modifier = Modifier.semantics { contentDescription = "Атом ${atom.element}, номер ${atom.id}" }
+                                modifier = Modifier.heightIn(min = 48.dp).semantics { contentDescription = "Атом ${atom.element}, номер ${atom.id}" }
                             )
                         }
                     }
@@ -157,7 +158,8 @@ fun StructureEditorSection(modifier: Modifier = Modifier) {
                 FilterChip(
                     selected = draft.nextElement == element,
                     onClick = { update(draft.copy(nextElement = element), undoable = false) },
-                    label = { Text(element.name) }
+                    label = { Text(element.name) },
+                    modifier = Modifier.heightIn(min = 48.dp)
                 )
             }
         }
@@ -166,7 +168,8 @@ fun StructureEditorSection(modifier: Modifier = Modifier) {
                 FilterChip(
                     selected = draft.bondOrder == order,
                     onClick = { update(draft.copy(bondOrder = order), undoable = false) },
-                    label = { Text("Связь $order") }
+                    label = { Text("Связь $order") },
+                    modifier = Modifier.heightIn(min = 48.dp)
                 )
             }
         }
@@ -205,7 +208,7 @@ fun StructureEditorSection(modifier: Modifier = Modifier) {
                     AssistChip(
                         onClick = { update(draft.copy(molecule = molecule.removeBond(bond.first, bond.second))) },
                         label = { Text("${bond.first} — ${bond.second} · ${bond.order}") },
-                        modifier = Modifier.semantics { contentDescription = "Удалить связь между атомами ${bond.first} и ${bond.second}, порядок ${bond.order}" }
+                        modifier = Modifier.heightIn(min = 48.dp).semantics { contentDescription = "Удалить связь между атомами ${bond.first} и ${bond.second}, порядок ${bond.order}" }
                     )
                 }
             }
@@ -235,7 +238,9 @@ fun StructureEditorSection(modifier: Modifier = Modifier) {
             }, enabled = molecule.isComplete, modifier = Modifier.weight(1f)) { Text("Копировать MOL") }
         }
         Text("MOL V2000: схема связей и состав, без расчёта реальной геометрии молекулы. Черновик сохраняется на этом устройстве.", color = TextSecondary, fontSize = 12.sp)
-        TextButton(onClick = { confirmReset = true }, enabled = molecule.atoms.isNotEmpty()) { Text("Очистить схему", color = ErrorRed) }
+        TextButton(onClick = { confirmReset = true }, enabled = molecule.atoms.isNotEmpty()) {
+            Text("Очистить схему", color = if (molecule.atoms.isNotEmpty()) ErrorRed else TextMuted)
+        }
     }
 
     if (confirmReset) AlertDialog(

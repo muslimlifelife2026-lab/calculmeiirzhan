@@ -10,7 +10,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.ArrowForward
+import androidx.compose.material.icons.automirrored.rounded.ArrowForward
 import androidx.compose.material.icons.rounded.AutoStories
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -206,7 +206,7 @@ fun LearningScreen(
                         Text("Тренажёр по физике", color = TextPrimary, fontWeight = FontWeight.SemiBold)
                         Text("Собирайте формулы и проверяйте ответ", color = TextSecondary, fontSize = 13.sp)
                     }
-                    Icon(Icons.Rounded.ArrowForward, null, tint = TextMuted)
+                    Icon(Icons.AutoMirrored.Rounded.ArrowForward, null, tint = TextMuted)
                 }
             }
         }

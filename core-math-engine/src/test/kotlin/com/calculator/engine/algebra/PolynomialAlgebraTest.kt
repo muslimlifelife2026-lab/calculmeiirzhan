@@ -57,7 +57,23 @@ class PolynomialAlgebraTest {
 
     @Test fun supportsKeyboardSymbolsDecimalCommaAndScientificNotation() {
         assertEquals("1/2·x^2 − 1/1000", calculate("0,5×X²−1e-3").answer)
+        assertEquals("2·x + 1", calculate("2·x + 1").answer)
         assertEquals("12·x^11", calculate("x^12", AlgebraOperation.DERIVATIVE).answer)
+    }
+
+    @Test fun exposesAsciiGraphExpressionsCompatibleWithGraphEvaluator() {
+        val simplified = calculate("(x+1)^2-x^2", AlgebraOperation.SIMPLIFY)
+        assertEquals(listOf("2*x + 1"), simplified.graphExpressions)
+        assertEquals(7.0, com.calculator.engine.solver.GraphEvaluator(simplified.graphExpressions.single()).evaluate(3.0), 1e-12)
+
+        val derivative = calculate("x^3-2x/3+9", AlgebraOperation.DERIVATIVE)
+        assertEquals(2, derivative.graphExpressions.size)
+        assertEquals(11.333333333333, com.calculator.engine.solver.GraphEvaluator(derivative.graphExpressions[1]).evaluate(2.0), 1e-11)
+
+        val solved = calculate("x^2 - 5x + 6 = 0", AlgebraOperation.SOLVE)
+        assertEquals(listOf("x^2 - 5*x + 6"), solved.graphExpressions)
+        assertEquals(0.0, com.calculator.engine.solver.GraphEvaluator(solved.graphExpressions.single()).evaluate(2.0), 1e-12)
+        assertEquals(0.0, com.calculator.engine.solver.GraphEvaluator(solved.graphExpressions.single()).evaluate(3.0), 1e-12)
     }
 
     private fun calculate(input: String, operation: AlgebraOperation = AlgebraOperation.SIMPLIFY) =

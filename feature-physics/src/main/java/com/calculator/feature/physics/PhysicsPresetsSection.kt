@@ -20,6 +20,7 @@ import androidx.compose.ui.unit.sp
 import com.calculator.domain.model.Formula
 import com.calculator.core.ui.theme.SurfaceCard
 import com.calculator.core.ui.theme.SurfaceBorder
+import com.calculator.core.ui.theme.TextPrimary
 import com.calculator.core.ui.theme.TextSecondary
 
 data class PhysicsPreset(
@@ -43,7 +44,7 @@ fun PhysicsPresetsSection(
             PhysicsPreset("Торможение", "force_newton", "F", mapOf("m" to "1500", "a" to "8"), "Сила для торможения авто 1.5т"),
             PhysicsPreset("Масса воды", "density", "m", mapOf("d" to "1000", "V" to "0.2"), "Масса 200 литров (0.2м³) воды"),
             PhysicsPreset("Закон Ома", "ohm_law", "I", mapOf("U" to "220", "R" to "44"), "Сила тока при R=44 Ом"),
-            PhysicsPreset("♂ Энергия бега", "kinetic_energy", "E_k", mapOf("m" to "70", "v" to "8"), "Кинетическая энергия человека 70кг при скорости 8м/с"),
+            PhysicsPreset("Энергия бега", "kinetic_energy", "E_k", mapOf("m" to "70", "v" to "8"), "Кинетическая энергия человека 70кг при скорости 8м/с"),
             PhysicsPreset("Работа силы", "work_force", "A", mapOf("F" to "500", "s" to "20"), "Работа при перемещении груза силой 500Н на 20м")
         )
     }
@@ -62,6 +63,7 @@ fun PhysicsPresetsSection(
             items(presets) { preset ->
                 Box(
                     modifier = Modifier
+                        .heightIn(min = 48.dp)
                         .clip(RoundedCornerShape(12.dp))
                         .background(SurfaceCard)
                         .border(1.dp, SurfaceBorder, RoundedCornerShape(12.dp))
@@ -72,12 +74,13 @@ fun PhysicsPresetsSection(
                                 onPresetApply(matched, preset.inputs, preset.target)
                             }
                         }
-                        .padding(horizontal = 10.dp, vertical = 6.dp)
+                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                    contentAlignment = Alignment.Center
                 ) {
                     Text(
                         text = preset.title,
-                        color = Color.White,
-                        fontSize = 11.sp,
+                        color = TextPrimary,
+                        fontSize = 12.sp,
                         fontWeight = FontWeight.Medium
                     )
                 }

@@ -41,18 +41,42 @@ class CalculatorViewModel(application: Application, private val savedState: Save
     private val _calculationSteps = MutableStateFlow<List<MathParser.MathStep>>(emptyList())
     val calculationSteps: StateFlow<List<MathParser.MathStep>> = _calculationSteps.asStateFlow()
 
+    private val _completedExpression = MutableStateFlow<String?>(savedState["completedExpression"])
+    val completedExpression: StateFlow<String?> = _completedExpression.asStateFlow()
+
+    private val _completedResult = MutableStateFlow<String?>(savedState["completedResult"])
+    val completedResult: StateFlow<String?> = _completedResult.asStateFlow()
+
     private val _errorMessage = MutableStateFlow("")
     val errorMessage: StateFlow<String> = _errorMessage.asStateFlow()
     private var previewJob: Job? = null
+    private var evalJob: Job? = null
 
     private fun setExpression(value: String) {
         _displayExpression.value = value
         savedState["expression"] = value
     }
 
-    init { if (_displayExpression.value.isNotBlank()) evaluateExpressionQuietly() }
+    private fun setCompleted(expr: String?, result: String?) {
+        _completedExpression.value = expr
+        _completedResult.value = result
+        savedState["completedExpression"] = expr
+        savedState["completedResult"] = result
+    }
+
+    init {
+        val restoredCompleted = _completedExpression.value
+        if (!restoredCompleted.isNullOrBlank()) {
+            restoreCompletedSteps(restoredCompleted)
+        } else if (_displayExpression.value.isNotBlank()) {
+            evaluateExpressionQuietly()
+        }
+    }
 
     fun toggleAngleMode() {
+        evalJob?.cancel()
+        _errorMessage.value = ""
+        setCompleted(null, null)
         _isDegrees.value = !_isDegrees.value
         savedState["degrees"] = _isDegrees.value
         evaluateExpressionQuietly()
@@ -60,6 +84,9 @@ class CalculatorViewModel(application: Application, private val savedState: Save
 
     fun clearDisplay() {
         previewJob?.cancel()
+        evalJob?.cancel()
+        _errorMessage.value = ""
+        setCompleted(null, null)
         setExpression("")
         _calculatedResult.value = ""
         _calculationSteps.value = emptyList()
@@ -67,6 +94,9 @@ class CalculatorViewModel(application: Application, private val savedState: Save
 
     fun pasteFromHistory(value: String) {
         if (value.isBlank()) return
+        evalJob?.cancel()
+        _errorMessage.value = ""
+        setCompleted(null, null)
         setExpression(value)
         evaluateExpressionQuietly()
     }
@@ -85,13 +115,17 @@ class CalculatorViewModel(application: Application, private val savedState: Save
 
     fun onKeyPressed(key: String) {
         _errorMessage.value = ""
-        when (key) {
-            "C" -> {
-                previewJob?.cancel()
-                setExpression("")
-                _calculatedResult.value = ""
-                _calculationSteps.value = emptyList()
+        if (key != "=") {
+            evalJob?.cancel()
+            if (_completedResult.value != null) {
+                if (key.firstOrNull()?.isDigit() == true || key in listOf(".", "(", "π", "e") || key.endsWith("(")) {
+                    setExpression("")
+                }
+                setCompleted(null, null)
             }
+        }
+        when (key) {
+            "C" -> clearDisplay()
             "⌫" -> {
                 val current = _displayExpression.value
                 if (current.isNotEmpty()) {
@@ -99,9 +133,7 @@ class CalculatorViewModel(application: Application, private val savedState: Save
                 }
                 evaluateExpressionQuietly()
             }
-            "=" -> {
-                evaluateExpression()
-            }
+            "=" -> evaluateExpression()
             else -> {
                 setExpression(_displayExpression.value + key)
                 evaluateExpressionQuietly()
@@ -109,116 +141,134 @@ class CalculatorViewModel(application: Application, private val savedState: Save
         }
     }
 
+    private fun normalizeExpression(expr: String): String {
+        var parserExpr = expr
+            .replace('×', '*')
+            .replace('÷', '/')
+            .replace('−', '-')
+            .replace('–', '-')
+            .replace(',', '.')
+            .replace("π", "pi")
+
+        var openCount = 0
+        var closeCount = 0
+        for (char in parserExpr) {
+            if (char == '(') openCount++
+            else if (char == ')') closeCount++
+        }
+        if (openCount > closeCount) {
+            parserExpr += ")".repeat(openCount - closeCount)
+        }
+        return parserExpr
+    }
+
+    private fun restoreCompletedSteps(completedExpr: String) {
+        previewJob?.cancel()
+        if (completedExpr.length > 256) return
+        val degrees = _isDegrees.value
+        previewJob = viewModelScope.launch {
+            try {
+                val parserExpr = normalizeExpression(completedExpr)
+                val (_, steps) = withContext(Dispatchers.Default) {
+                    val tokens = MathParser.tokenize(parserExpr)
+                    require(tokens.size <= 256) { "Слишком длинное выражение" }
+                    val rpn = MathParser.shuntingYard(tokens)
+                    MathParser.evaluateRPNWithSteps(rpn, isDegrees = degrees)
+                }
+                if (_completedExpression.value == completedExpr) {
+                    _calculationSteps.value = steps
+                }
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (_: Exception) {
+                // Keep saved display result even if step restoration fails.
+            }
+        }
+    }
+
     private fun evaluateExpressionQuietly() {
         previewJob?.cancel()
         val expr = _displayExpression.value.trim()
-        if (expr.isEmpty()) {
-            _calculatedResult.value = ""
-            _calculationSteps.value = emptyList()
-            return
-        }
-        if (expr.length > 256) {
+        if (expr.isEmpty() || expr.length > 256) {
             _calculatedResult.value = ""
             _calculationSteps.value = emptyList()
             return
         }
         _calculatedResult.value = ""
         previewJob = viewModelScope.launch {
-          delay(80)
-          try {
-            var parserExpr = expr
-                .replace("×", "*")
-                .replace("÷", "/")
-                .replace("π", "pi")
+            delay(80)
+            try {
+                val parserExpr = normalizeExpression(expr)
+                val degrees = _isDegrees.value
+                val (result, steps) = withContext(Dispatchers.Default) {
+                    val tokens = MathParser.tokenize(parserExpr)
+                    require(tokens.size <= 256) { "Слишком длинное выражение" }
+                    val rpn = MathParser.shuntingYard(tokens)
+                    MathParser.evaluateRPNWithSteps(rpn, isDegrees = degrees)
+                }
+                if (_displayExpression.value.trim() != expr) return@launch
 
-            var openCount = 0
-            var closeCount = 0
-            for (char in parserExpr) {
-                if (char == '(') openCount++
-                else if (char == ')') closeCount++
+                _calculatedResult.value = NumberFormatter.formatExact(result)
+                _calculationSteps.value = steps
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (_: Exception) {
+                _calculatedResult.value = ""
+                _calculationSteps.value = emptyList()
             }
-            if (openCount > closeCount) {
-                parserExpr += ")".repeat(openCount - closeCount)
-            }
-
-            val degrees = _isDegrees.value
-            val (result, steps) = withContext(Dispatchers.Default) {
-                val tokens = MathParser.tokenize(parserExpr)
-                require(tokens.size <= 256) { "Слишком длинное выражение" }
-                val rpn = MathParser.shuntingYard(tokens)
-                MathParser.evaluateRPNWithSteps(rpn, isDegrees = degrees)
-            }
-            if (_displayExpression.value.trim() != expr) return@launch
-            
-            _calculatedResult.value = NumberFormatter.formatExact(result)
-            _calculationSteps.value = steps
-          } catch (e: kotlinx.coroutines.CancellationException) {
-            throw e
-          } catch (e: Exception) {
-            _calculatedResult.value = ""
-            _calculationSteps.value = emptyList()
-          }
         }
     }
 
     private fun evaluateExpression() {
         previewJob?.cancel()
+        evalJob?.cancel()
         val expr = _displayExpression.value.trim()
         if (expr.isEmpty()) return
         if (expr.length > 256) {
             _errorMessage.value = "Слишком длинное выражение (максимум 256 символов)"
             return
         }
-        try {
-            var parserExpr = expr
-                .replace("×", "*")
-                .replace("÷", "/")
-                .replace("π", "pi")
+        val degrees = _isDegrees.value
+        evalJob = viewModelScope.launch {
+            try {
+                val parserExpr = normalizeExpression(expr)
+                val (result, steps, formattedResult) = withContext(Dispatchers.Default) {
+                    val tokens = MathParser.tokenize(parserExpr)
+                    require(tokens.size <= 256) { "Слишком длинное выражение" }
+                    val rpn = MathParser.shuntingYard(tokens)
+                    val (evaluated, stepList) = MathParser.evaluateRPNWithSteps(rpn, isDegrees = degrees)
+                    Triple(evaluated, stepList, NumberFormatter.formatExact(evaluated))
+                }
+                if (_displayExpression.value.trim() != expr) return@launch
 
-            var openCount = 0
-            var closeCount = 0
-            for (char in parserExpr) {
-                if (char == '(') openCount++
-                else if (char == ')') closeCount++
-            }
-            if (openCount > closeCount) {
-                parserExpr += ")".repeat(openCount - closeCount)
-            }
+                val stepsStr = steps.joinToString(";") { "${it.description}|${it.expression}" }
+                setExpression(formattedResult)
+                setCompleted(expr, formattedResult)
+                _calculatedResult.value = ""
+                _calculationSteps.value = steps
 
-            val tokens = MathParser.tokenize(parserExpr)
-            require(tokens.size <= 256) { "Слишком длинное выражение" }
-            val rpn = MathParser.shuntingYard(tokens)
-            val (result, steps) = MathParser.evaluateRPNWithSteps(rpn, isDegrees = _isDegrees.value)
-            
-            val formattedResult = NumberFormatter.formatExact(result)
-                
-            val stepsStr = steps.joinToString(";") { "${it.description}|${it.expression}" }
-
-            // Update UI State
-            setExpression(formattedResult)
-            _calculatedResult.value = ""
-            _calculationSteps.value = steps
-
-            // Save to Room DB with full expression, result and subject
-            viewModelScope.launch(Dispatchers.IO) {
-                dao.insertCalculation(
-                    CalculationEntity(
-                        formulaId = "calc",
-                        formulaName = "Математика",
-                        solvedVariable = "x",
-                        resultValue = result.toDouble(),
-                        resultUnit = "",
-                        serializedSteps = stepsStr,
-                        expression = expr,
-                        result = formattedResult,
-                        subject = "MATH"
+                viewModelScope.launch(Dispatchers.IO) {
+                    dao.insertCalculation(
+                        CalculationEntity(
+                            formulaId = "calc",
+                            formulaName = "Математика",
+                            solvedVariable = "x",
+                            resultValue = result.toDouble(),
+                            resultUnit = "",
+                            serializedSteps = stepsStr,
+                            expression = expr,
+                            result = formattedResult,
+                            subject = "MATH"
+                        )
                     )
-                )
+                }
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _errorMessage.value = e.localizedMessage ?: "Ошибка вычисления"
+                _calculatedResult.value = ""
+                _calculationSteps.value = emptyList()
             }
-        } catch (e: Exception) {
-            _errorMessage.value = e.localizedMessage ?: "Ошибка вычисления"
-            _calculatedResult.value = ""
-            _calculationSteps.value = emptyList()
         }
     }
 }

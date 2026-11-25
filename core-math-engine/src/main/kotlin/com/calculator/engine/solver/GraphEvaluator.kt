@@ -24,16 +24,20 @@ class GraphEvaluator(val expression: String) {
      */
     fun extractParameters(excludeSymbols: Set<String> = setOf("x", "t", "theta", "th", "pi", "e")): List<String> {
         val params = mutableListOf<String>()
+        val seen = mutableSetOf<String>()
         for (token in rpn) {
             if (token is MathToken.Variable) {
                 val sym = token.symbol.lowercase()
-                if (sym !in excludeSymbols && sym !in params) {
+                if (sym !in excludeSymbols && seen.add(sym)) {
                     params.add(token.symbol)
                 }
             }
         }
         return params
     }
+
+    private fun lookupParam(params: Map<String, Double>, sym: String): Double? =
+        params[sym] ?: if (params.isEmpty()) null else params.entries.firstOrNull { it.key.equals(sym, ignoreCase = true) }?.value
 
     /**
      * Evaluates the function for a given coordinate variable value and dynamic parameters.
@@ -67,8 +71,8 @@ class GraphEvaluator(val expression: String) {
                             (varSymbol == "theta" && sym.equals("th", ignoreCase = true)) -> {
                             stack[sp++] = x
                         }
-                        params.containsKey(sym) -> {
-                            stack[sp++] = params[sym] ?: 0.0
+                        lookupParam(params, sym) != null -> {
+                            stack[sp++] = lookupParam(params, sym) ?: 0.0
                         }
                         sym.equals("pi", ignoreCase = true) -> {
                             stack[sp++] = Math.PI
@@ -308,6 +312,9 @@ class GraphEvaluator(val expression: String) {
             if (y.isFinite() && abs(y) <= localScale * 1e-10 &&
                 roots.none { abs(it - x) < 1e-7 * max(1.0, abs(x)) }) roots += x
         }
+        if (values[0].isFinite() && values[1].isFinite()) {
+            addIfValid(xMin, abs(values[1]))
+        }
         for (i in 0 until pointsCount - 1) {
             val y0 = values[i]
             val y1 = values[i + 1]
@@ -333,16 +340,20 @@ class GraphEvaluator(val expression: String) {
             if (i > 0 && values[i - 1].isFinite() && abs(y0) < abs(values[i - 1]) && abs(y0) < abs(y1)) {
                 var left = x0 - step
                 var right = x0 + step
-                repeat(40) {
+                for (iter in 0 until 80) {
+                    if (right - left <= 1e-15 * max(1.0, abs(left))) break
                     val third = (right - left) / 3
                     val a = abs(f(left + third))
                     val b = abs(f(right - third))
+                    if (!a.isFinite() || !b.isFinite()) break
                     if (a < b) right -= third else left += third
                 }
                 addIfValid((left + right) / 2, max(abs(values[i - 1]), abs(y1)))
             }
         }
-        addIfValid(xMax)
+        if (values[pointsCount - 1].isFinite() && values[pointsCount - 2].isFinite()) {
+            addIfValid(xMax, abs(values[pointsCount - 2]))
+        }
         return roots.sorted()
     }
 

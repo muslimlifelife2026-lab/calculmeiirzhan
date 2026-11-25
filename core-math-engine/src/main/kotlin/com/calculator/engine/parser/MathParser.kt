@@ -24,8 +24,10 @@ object MathParser {
         "sinh", "cosh", "tanh", "sqrt", "ln", "log", "exp", "abs", "fact"
     )
 
+    private data class TokenEntry(val token: MathToken, val isConstant: Boolean = false)
+
     fun tokenize(expression: String): List<MathToken> {
-        val tokens = mutableListOf<MathToken>()
+        val tokens = mutableListOf<TokenEntry>()
         var i = 0
         val len = expression.length
 
@@ -40,7 +42,10 @@ object MathParser {
                 }
                 c.isDigit() || c == '.' -> {
                     val start = i
+                    var dotCount = 0
+                    var digitCount = 0
                     while (i < len && (expression[i].isDigit() || expression[i] == '.')) {
+                        if (expression[i] == '.') dotCount++ else digitCount++
                         i++
                     }
                     if (i < len && expression[i] in "eE") {
@@ -51,40 +56,53 @@ object MathParser {
                             while (i < len && expression[i].isDigit()) i++
                         }
                     }
-                    tokens.add(MathToken.Number(BigDecimal(expression.substring(start, i))))
+                    val numberText = expression.substring(start, i)
+                    if (digitCount == 0 || dotCount > 1) {
+                        throw IllegalArgumentException("Некорректное число: '$numberText'")
+                    }
+                    val parsedNumber = try {
+                        BigDecimal(numberText)
+                    } catch (_: NumberFormatException) {
+                        throw IllegalArgumentException("Некорректное число: '$numberText'")
+                    }
+                    tokens.add(TokenEntry(MathToken.Number(parsedNumber)))
+                }
+                c == 'π' -> {
+                    tokens.add(TokenEntry(MathToken.Number(BigDecimalMath.pi(MathContext.DECIMAL128)), isConstant = true))
+                    i++
                 }
                 c == '(' -> {
-                    tokens.add(MathToken.LeftParenthesis)
+                    tokens.add(TokenEntry(MathToken.LeftParenthesis))
                     i++
                 }
                 c == ')' -> {
-                    tokens.add(MathToken.RightParenthesis)
+                    tokens.add(TokenEntry(MathToken.RightParenthesis))
                     i++
                 }
                 c == ',' -> {
-                    tokens.add(MathToken.Comma)
+                    tokens.add(TokenEntry(MathToken.Comma))
                     i++
                 }
                 c == '%' -> {
-                    tokens.add(OPERATORS.getValue("%"))
+                    tokens.add(TokenEntry(OPERATORS.getValue("%")))
                     i++
                 }
                 isOperatorChar(c) -> {
                     val opStr = c.toString()
                     // Determine if unary minus
                     if (opStr == "-") {
-                        val prev = tokens.lastOrNull()
+                        val prev = tokens.lastOrNull()?.token
                         val isUnary = prev == null || 
                                       (prev is MathToken.Operator && prev.symbol != "%") ||
                                       prev == MathToken.LeftParenthesis || 
                                       prev == MathToken.Comma
                         if (isUnary) {
-                            tokens.add(OPERATORS["u-"]!!)
+                            tokens.add(TokenEntry(OPERATORS["u-"]!!))
                         } else {
-                            tokens.add(OPERATORS["-"]!!)
+                            tokens.add(TokenEntry(OPERATORS["-"]!!))
                         }
                     } else {
-                        tokens.add(OPERATORS[opStr] ?: throw IllegalArgumentException("Unknown operator: $opStr"))
+                        tokens.add(TokenEntry(OPERATORS[opStr] ?: throw IllegalArgumentException("Unknown operator: $opStr")))
                     }
                     i++
                 }
@@ -96,16 +114,16 @@ object MathParser {
                     val name = expression.substring(start, i)
                     when {
                         FUNCTIONS.contains(name.lowercase()) -> {
-                            tokens.add(MathToken.Func(name.lowercase()))
+                            tokens.add(TokenEntry(MathToken.Func(name.lowercase())))
                         }
                         name.lowercase() == "pi" -> {
-                            tokens.add(MathToken.Number(BigDecimalMath.pi(MathContext.DECIMAL128)))
+                            tokens.add(TokenEntry(MathToken.Number(BigDecimalMath.pi(MathContext.DECIMAL128)), isConstant = true))
                         }
                         name.lowercase() == "e" -> {
-                            tokens.add(MathToken.Number(BigDecimalMath.e(MathContext.DECIMAL128)))
+                            tokens.add(TokenEntry(MathToken.Number(BigDecimalMath.e(MathContext.DECIMAL128)), isConstant = true))
                         }
                         else -> {
-                            tokens.add(MathToken.Variable(name))
+                            tokens.add(TokenEntry(MathToken.Variable(name)))
                         }
                     }
                 }
@@ -115,11 +133,11 @@ object MathParser {
             }
         }
         val withProducts = mutableListOf<MathToken>()
-        for (token in tokens) {
+        for ((token, isConstant) in tokens) {
             val previous = withProducts.lastOrNull()
             if ((previous is MathToken.Number || previous is MathToken.Variable || previous == MathToken.RightParenthesis) &&
                 (token == MathToken.LeftParenthesis || token is MathToken.Func || token is MathToken.Variable ||
-                    (previous == MathToken.RightParenthesis && token is MathToken.Number))) {
+                    isConstant || (previous == MathToken.RightParenthesis && token is MathToken.Number))) {
                 withProducts.add(OPERATORS.getValue("*"))
             }
             withProducts.add(token)
@@ -347,7 +365,7 @@ object MathParser {
                     val a = stack.pop()
                     percentFlags.pop()
                     val trigAngle = if (isDegrees && (token.name in setOf("sin", "cos", "tan"))) {
-                        a.remainder(BigDecimal(360)).multiply(BigDecimalMath.pi(mc), mc).divide(BigDecimal(180), mc)
+                        reduceDegreesMod(a, 360, mc).multiply(BigDecimalMath.pi(mc), mc).divide(BigDecimal(180), mc)
                     } else a
 
                     val angleUnitStr = if (isDegrees && (token.name in setOf("sin", "cos", "tan"))) "°" else " рад"
@@ -364,7 +382,7 @@ object MathParser {
                             res
                         }
                         "tan" -> {
-                            val degreePole = isDegrees && a.remainder(BigDecimal(180)).abs().compareTo(BigDecimal(90)) == 0
+                            val degreePole = isDegrees && reduceDegreesMod(a, 180, mc).abs().compareTo(BigDecimal(90)) == 0
                             val cosine = BigDecimalMath.cos(trigAngle, mc)
                             if (degreePole || cosine.abs() <= BigDecimal.ONE.scaleByPowerOfTen(-mc.precision + 2)) {
                                 throw ArithmeticException("Тангенс не определён при 90° + 180°·k (π/2 + π·k)")
@@ -457,14 +475,35 @@ object MathParser {
         return Pair(stack.pop(), steps)
     }
 
+    private fun reduceDegreesMod(angle: BigDecimal, modulus: Int, mc: MathContext): BigDecimal {
+        val m = BigInteger.valueOf(modulus.toLong())
+        val mDec = BigDecimal(m)
+        if (angle.abs().compareTo(mDec) < 0) return angle
+        return when {
+            angle.scale() < 0 -> {
+                val exponent = -(angle.scale().toLong())
+                val pow10Mod = BigInteger.TEN.modPow(BigInteger.valueOf(exponent), m)
+                val rem = angle.unscaledValue().remainder(m).multiply(pow10Mod).remainder(m)
+                BigDecimal(rem)
+            }
+            angle.scale() <= 1000 -> angle.remainder(mDec)
+            else -> angle.round(MathContext(mc.precision + 16)).remainder(mDec)
+        }
+    }
+
     private fun factorial(n: BigDecimal, mc: MathContext): BigDecimal {
-        val integerPart = n.toBigInteger()
-        if (n.subtract(BigDecimal(integerPart)).compareTo(BigDecimal.ZERO) != 0 || n.signum() < 0) {
+        if (n.signum() < 0) {
             throw IllegalArgumentException("Факториал определен только для целых неотрицательных чисел")
         }
+        if (n.compareTo(BigDecimal.valueOf(5000)) > 0) {
+            throw IllegalArgumentException("Значение слишком велико для факториала")
+        }
+        val normalized = n.stripTrailingZeros()
+        if (normalized.scale() > 0) {
+            throw IllegalArgumentException("Факториал определен только для целых неотрицательных чисел")
+        }
+        val limit = normalized.toBigIntegerExact().toLong()
         var result = BigDecimal.ONE
-        if (integerPart > BigInteger.valueOf(5000)) throw IllegalArgumentException("Значение слишком велико для факториала")
-        val limit = integerPart.toLong()
         for (i in 2..limit) {
             result = result.multiply(BigDecimal(i), mc)
         }

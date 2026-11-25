@@ -31,8 +31,8 @@ fun CalculatorScreen(modifier: Modifier = Modifier, viewModel: CalculatorViewMod
     var scanner by rememberSaveable { mutableStateOf(false) }
     var scannedExpression by rememberSaveable { mutableStateOf<String?>(null) }
     var sheet by rememberSaveable { mutableStateOf<String?>(null) }
-    var completedExpression by rememberSaveable { mutableStateOf<String?>(null) }
-    var completedResult by rememberSaveable { mutableStateOf<String?>(null) }
+    val completedExpression by viewModel.completedExpression.collectAsState()
+    val completedResult by viewModel.completedResult.collectAsState()
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val shownExpression = completedExpression ?: expression
@@ -47,30 +47,13 @@ fun CalculatorScreen(modifier: Modifier = Modifier, viewModel: CalculatorViewMod
             android.widget.Toast.makeText(context, if (success) "PDF сохранён" else "Не удалось сохранить PDF", android.widget.Toast.LENGTH_SHORT).show()
         }
     }
-    val onKey: (String) -> Unit = { key ->
-        if (key == "=") {
-            val original = expression
-            viewModel.onKeyPressed(key)
-            if (original.isNotBlank() && viewModel.errorMessage.value.isEmpty()) {
-                completedExpression = original
-                completedResult = viewModel.displayExpression.value
-            }
-        } else {
-            if (completedResult != null && (key.firstOrNull()?.isDigit() == true || key in listOf(".", "(", "π", "e") || key.endsWith("("))) viewModel.clearDisplay()
-            completedExpression = null
-            completedResult = null
-            viewModel.onKeyPressed(key)
-        }
-    }
+    val onKey: (String) -> Unit = viewModel::onKeyPressed
     val display: @Composable (Modifier) -> Unit = { displayModifier ->
         CalculatorDisplay(
             expression = shownExpression, result = shownResult, error = error, degrees = degrees,
             isResultFinal = completedResult != null,
             hasSteps = steps.isNotEmpty(),
-            onAngle = {
-                completedExpression = null; completedResult = null
-                viewModel.toggleAngleMode()
-            },
+            onAngle = viewModel::toggleAngleMode,
             onScanner = { scanner = true }, onHistory = { sheet = "history" }, onSteps = { sheet = "steps" },
             modifier = displayModifier
         )
@@ -113,8 +96,6 @@ fun CalculatorScreen(modifier: Modifier = Modifier, viewModel: CalculatorViewMod
                     if (isAlgebra) {
                         onOpenAlgebra?.invoke(candidate)
                     } else {
-                        completedExpression = null
-                        completedResult = null
                         viewModel.clearDisplay()
                         viewModel.pasteFromHistory(candidate)
                     }
@@ -145,7 +126,7 @@ fun CalculatorScreen(modifier: Modifier = Modifier, viewModel: CalculatorViewMod
             onSelect = {
                 viewModel.clearDisplay()
                 viewModel.pasteFromHistory(it)
-                completedExpression = null; completedResult = null; sheet = null
+                sheet = null
             },
             onDelete = viewModel::deleteHistoryItem
         )

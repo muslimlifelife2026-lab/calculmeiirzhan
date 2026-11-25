@@ -11,7 +11,6 @@ import android.text.StaticLayout
 import android.text.TextPaint
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import java.io.IOException
 
 object PdfGenerator {
 
@@ -100,20 +99,20 @@ object PdfGenerator {
         currentY += lineSpacing / 2
 
         // Draw expression
-        drawWrappedText("Expression:", textPaint)
+        drawWrappedText("Выражение:", textPaint)
         currentY -= lineSpacing / 2
         drawWrappedText(expression, titlePaint)
         currentY += lineSpacing / 2
 
         // Draw result
-        drawWrappedText("Result:", textPaint)
+        drawWrappedText("Результат:", textPaint)
         currentY -= lineSpacing / 2
         drawWrappedText(result, resultPaint)
         currentY += lineSpacing
 
         // Draw Steps
         if (steps.isNotEmpty()) {
-            drawWrappedText("Step-by-Step Solution:", titlePaint)
+            drawWrappedText("Решение по шагам:", titlePaint)
             
             for ((index, step) in steps.withIndex()) {
                 val stepText = "${index + 1}. $step"
@@ -125,12 +124,14 @@ object PdfGenerator {
 
         var success = false
         try {
-            context.contentResolver.openOutputStream(uri)?.use { outStream ->
+            context.contentResolver.openOutputStream(uri, "wt")?.use { outStream ->
                 document.writeTo(outStream)
                 success = true
             }
-        } catch (e: IOException) {
-            e.printStackTrace()
+        } catch (cancelled: kotlinx.coroutines.CancellationException) {
+            throw cancelled
+        } catch (e: Exception) {
+            android.util.Log.w("AeroCalcPdf", "PDF export failed", e)
         } finally {
             document.close()
         }

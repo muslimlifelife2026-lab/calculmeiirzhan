@@ -14,6 +14,9 @@ interface CalculationDao {
     @Query("SELECT * FROM calculations WHERE subject = :subject ORDER BY timestamp DESC")
     fun getCalculationsBySubject(subject: String): Flow<List<CalculationEntity>>
 
+    @Query("SELECT * FROM calculations WHERE id = :id LIMIT 1")
+    fun getCalculationById(id: Int): CalculationEntity?
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     fun insertCalculation(calculation: CalculationEntity)
 

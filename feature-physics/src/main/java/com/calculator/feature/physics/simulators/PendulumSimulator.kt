@@ -3,9 +3,10 @@ package com.calculator.feature.physics.simulators
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -26,7 +27,7 @@ import com.calculator.domain.simulation.DampedSmallAnglePendulum
 
 data class PlanetGravity(val name: String, val g: Double)
 
-@OptIn(ExperimentalTextApi::class)
+@OptIn(ExperimentalTextApi::class, ExperimentalLayoutApi::class)
 @Composable
 fun PendulumSimulator(
     modifier: Modifier = Modifier
@@ -47,7 +48,7 @@ fun PendulumSimulator(
     var timeSeconds by rememberSaveable { mutableDoubleStateOf(0.0) }
     val effectiveAngleDeg = initialAngleDeg.coerceIn(5f, 15f)
     val motion = remember(lengthMeters, selectedPlanetName, effectiveAngleDeg) {
-        DampedSmallAnglePendulum(lengthMeters.toDouble(), selectedPlanet.g.toDouble(), Math.toRadians(effectiveAngleDeg.toDouble()))
+        DampedSmallAnglePendulum(lengthMeters.toDouble(), selectedPlanet.g, Math.toRadians(effectiveAngleDeg.toDouble()))
     }
 
     LaunchedEffect(isRunning, motion) {
@@ -55,7 +56,10 @@ fun PendulumSimulator(
             var lastFrameTime: Long? = null
             while (isRunning) {
                 withFrameNanos { frameTime ->
-                    lastFrameTime?.let { previous -> timeSeconds += (frameTime - previous) / 1_000_000_000.0 }
+                    lastFrameTime?.let { previous ->
+                        val dt = ((frameTime - previous) / 1_000_000_000.0).coerceIn(0.0, 0.05)
+                        timeSeconds += dt
+                    }
                     lastFrameTime = frameTime
                 }
             }
@@ -70,187 +74,182 @@ fun PendulumSimulator(
     val currentSpeed = state.speedMetersPerSecond
 
     val textMeasurer = rememberTextMeasurer()
+    val axisDashEffect = remember { PathEffect.dashPathEffect(floatArrayOf(8f, 8f), 0f) }
 
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(horizontal = 8.dp, vertical = 4.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        // Physics Telemetry Card
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(16.dp))
-                .background(SurfaceCard)
-                .border(1.dp, SurfaceBorder, RoundedCornerShape(16.dp))
-                .padding(horizontal = 12.dp, vertical = 8.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column {
-                Text("Период T", color = TextSecondary, fontSize = 11.sp)
-                Text(String.format("%.2f с", periodT), color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Bold, fontFamily = MonospaceFontFamily)
-            }
-            Column {
-                Text("Частота ν", color = TextSecondary, fontSize = 11.sp)
-                Text(String.format("%.2f Гц", frequencyHz), color = Color(0xFFB9C6D6), fontSize = 15.sp, fontWeight = FontWeight.Bold, fontFamily = MonospaceFontFamily)
-            }
-            Column {
-                Text("Скорость v", color = TextSecondary, fontSize = 11.sp)
-                Text(String.format("%.2f м/с", currentSpeed), color = Color(0xFFACC4B0), fontSize = 15.sp, fontWeight = FontWeight.Bold, fontFamily = MonospaceFontFamily)
-            }
-            Button(
-                onClick = {
-                    timeSeconds = 0.0
-                    isRunning = !isRunning
-                },
-                colors = ButtonDefaults.buttonColors(containerColor = if (isRunning) SurfaceElevated else AccentPrimary),
-                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
-                shape = RoundedCornerShape(10.dp),
-                modifier = Modifier.height(32.dp)
-            ) {
-                Text(if (isRunning) "Сброс"else "Старт", color = if (isRunning) Color.White else Background, fontSize = 11.sp, fontWeight = FontWeight.Bold)
-            }
-        }
-
-        // Live Pendulum Canvas
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .weight(1f)
-                .clip(RoundedCornerShape(18.dp))
-                .background(Color(0xFF161719))
-                .border(1.dp, SurfaceBorder, RoundedCornerShape(18.dp))
-        ) {
-            Canvas(modifier = Modifier.fillMaxSize()) {
-                val width = size.width
-                val height = size.height
-
-                val pivotX = width / 2
-                val pivotY = 35.dp.toPx()
-
-                val visualLength = (height - 90.dp.toPx()).coerceAtLeast(80f) * (lengthMeters / 3.0f).coerceIn(0.35f, 1.0f)
-
-                val bobX = pivotX + (visualLength * Math.sin(thetaRad.toDouble())).toFloat()
-                val bobY = pivotY + (visualLength * Math.cos(thetaRad.toDouble())).toFloat()
-
-                // Neutral center axis
-                drawLine(
-                    color = Color(0xFF1E222D),
-                    start = Offset(pivotX, pivotY),
-                    end = Offset(pivotX, height - 20f),
-                    strokeWidth = 1.5f,
-                    pathEffect = PathEffect.dashPathEffect(floatArrayOf(8f, 8f), 0f)
-                )
-
-                // Pivot mount
-                drawCircle(color = Color(0xFF94A3B8), radius = 6.dp.toPx(), center = Offset(pivotX, pivotY))
-                drawLine(color = Color(0xFF64748B), start = Offset(pivotX - 30f, pivotY), end = Offset(pivotX + 30f, pivotY), strokeWidth = 3f)
-
-                // String / Rod
-                drawLine(
-                    color = Color.White.copy(alpha = 0.85f),
-                    start = Offset(pivotX, pivotY),
-                    end = Offset(bobX, bobY),
-                    strokeWidth = 2.5f
-                )
-
-                // Bob Mass Glow & Body
-                drawCircle(color = Color(0xFFB9C6D6).copy(alpha = 0.35f), radius = 22.dp.toPx(), center = Offset(bobX, bobY))
-                drawCircle(
-                    brush = Brush.radialGradient(
-                        colors = listOf(Color.White, Color(0xFFB9C6D6), Color(0xFF788797)),
-                        center = Offset(bobX - 4f, bobY - 4f),
-                        radius = 16.dp.toPx()
-                    ),
-                    radius = 14.dp.toPx(),
-                    center = Offset(bobX, bobY)
-                )
-
-                // Angle label arc
-                val angleText = String.format("%.1f°", Math.toDegrees(thetaRad.toDouble()))
-                val textLayout = textMeasurer.measure(
-                    text = AnnotatedString(angleText),
-                    style = TextStyle(color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold, fontFamily = MonospaceFontFamily)
-                )
-                drawText(textLayoutResult = textLayout, topLeft = Offset(pivotX + 16f, pivotY + 20f))
-            }
-        }
-
-        // Interactive Parameter Sliders Card
+    BoxWithConstraints(modifier = modifier.fillMaxSize()) {
+        val compact = maxHeight < 520.dp
         Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(16.dp))
-                .background(SurfaceCard)
-                .border(1.dp, SurfaceBorder, RoundedCornerShape(16.dp))
-                .padding(horizontal = 12.dp, vertical = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp)
+                .fillMaxSize()
+                .then(if (compact) Modifier.verticalScroll(rememberScrollState()) else Modifier)
+                .padding(horizontal = 8.dp, vertical = 4.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            // Planet selector pills
+            // Physics Telemetry Card
             Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(SurfaceCard)
+                    .border(1.dp, SurfaceBorder, RoundedCornerShape(16.dp))
+                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("Гравитация:", color = TextSecondary, fontSize = 11.sp)
-                planets.forEach { planet ->
-                    val isSelected = selectedPlanet == planet
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(if (isSelected) Color.White else SurfaceElevated)
-                            .border(1.dp, if (isSelected) Color.White else SurfaceBorder, RoundedCornerShape(12.dp))
-                            .clickable {
-                                selectedPlanetName = planet.name
-                                timeSeconds = 0.0
-                            }
-                            .padding(horizontal = 8.dp, vertical = 3.dp)
-                    ) {
-                        Text(
-                            text = "${planet.name} (${planet.g})",
-                            color = if (isSelected) Background else TextSecondary,
-                            fontSize = 10.sp,
-                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
-                        )
-                    }
+                Column {
+                    Text("Период T", color = TextSecondary, fontSize = 11.sp)
+                    Text(String.format("%.2f с", periodT), color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.Bold, fontFamily = MonospaceFontFamily)
+                }
+                Column {
+                    Text("Частота ν", color = TextSecondary, fontSize = 11.sp)
+                    Text(String.format("%.2f Гц", frequencyHz), color = Color(0xFFB9C6D6), fontSize = 15.sp, fontWeight = FontWeight.Bold, fontFamily = MonospaceFontFamily)
+                }
+                Column {
+                    Text("Скорость v", color = TextSecondary, fontSize = 11.sp)
+                    Text(String.format("%.2f м/с", currentSpeed), color = Color(0xFFACC4B0), fontSize = 15.sp, fontWeight = FontWeight.Bold, fontFamily = MonospaceFontFamily)
+                }
+                Button(
+                    onClick = {
+                        timeSeconds = 0.0
+                        isRunning = !isRunning
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = if (isRunning) SurfaceElevated else AccentPrimary),
+                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                    shape = RoundedCornerShape(10.dp),
+                    modifier = Modifier.heightIn(min = 48.dp)
+                ) {
+                    Text(if (isRunning) "Сброс" else "Старт", color = if (isRunning) Color.White else Background, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                 }
             }
 
-            // Length Slider L
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
+            // Live Pendulum Canvas
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .then(if (compact) Modifier.height(220.dp) else Modifier.weight(1f))
+                    .clip(RoundedCornerShape(18.dp))
+                    .background(Color(0xFF161719))
+                    .border(1.dp, SurfaceBorder, RoundedCornerShape(18.dp))
             ) {
-                Text("Длина L: ${String.format("%.2f м", lengthMeters)}", color = Color.White, fontSize = 12.sp)
-                Slider(
-                    value = lengthMeters,
-                    onValueChange = { lengthMeters = it; timeSeconds = 0.0 },
-                    valueRange = 0.2f..3.0f,
-                    modifier = Modifier.weight(1f).padding(horizontal = 8.dp),
-                    colors = SliderDefaults.colors(thumbColor = Color.White, activeTrackColor = Color.White)
-                )
+                Canvas(modifier = Modifier.fillMaxSize()) {
+                    val width = size.width
+                    val height = size.height
+
+                    val pivotX = width / 2
+                    val pivotY = 35.dp.toPx()
+
+                    val visualLength = (height - 90.dp.toPx()).coerceAtLeast(80f) * (lengthMeters / 3.0f).coerceIn(0.35f, 1.0f)
+
+                    val bobX = pivotX + (visualLength * Math.sin(thetaRad)).toFloat()
+                    val bobY = pivotY + (visualLength * Math.cos(thetaRad)).toFloat()
+
+                    // Neutral center axis
+                    drawLine(
+                        color = Color(0xFF1E222D),
+                        start = Offset(pivotX, pivotY),
+                        end = Offset(pivotX, height - 20f),
+                        strokeWidth = 1.5f,
+                        pathEffect = axisDashEffect
+                    )
+
+                    // Pivot mount
+                    drawCircle(color = Color(0xFF94A3B8), radius = 6.dp.toPx(), center = Offset(pivotX, pivotY))
+                    drawLine(color = Color(0xFF64748B), start = Offset(pivotX - 30f, pivotY), end = Offset(pivotX + 30f, pivotY), strokeWidth = 3f)
+
+                    // String / Rod
+                    drawLine(
+                        color = Color.White.copy(alpha = 0.85f),
+                        start = Offset(pivotX, pivotY),
+                        end = Offset(bobX, bobY),
+                        strokeWidth = 2.5f
+                    )
+
+                    // Bob Mass Glow & Body
+                    drawCircle(color = Color(0xFFB9C6D6).copy(alpha = 0.35f), radius = 22.dp.toPx(), center = Offset(bobX, bobY))
+                    drawCircle(
+                        brush = Brush.radialGradient(
+                            colors = listOf(Color.White, Color(0xFFB9C6D6), Color(0xFF788797)),
+                            center = Offset(bobX - 4f, bobY - 4f),
+                            radius = 16.dp.toPx()
+                        ),
+                        radius = 14.dp.toPx(),
+                        center = Offset(bobX, bobY)
+                    )
+
+                    // Angle label arc
+                    val angleText = String.format("%.1f°", Math.toDegrees(thetaRad))
+                    val textLayout = textMeasurer.measure(
+                        text = AnnotatedString(angleText),
+                        style = TextStyle(color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold, fontFamily = MonospaceFontFamily)
+                    )
+                    drawText(textLayoutResult = textLayout, topLeft = Offset(pivotX + 16f, pivotY + 20f))
+                }
             }
 
-            // Initial Angle Slider θ₀
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
+            // Interactive Parameter Sliders Card
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(SurfaceCard)
+                    .border(1.dp, SurfaceBorder, RoundedCornerShape(16.dp))
+                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
-                Text("Угол θ₀: ${effectiveAngleDeg.toInt()}°", color = Color.White, fontSize = 12.sp)
-                Slider(
-                    value = effectiveAngleDeg,
-                    onValueChange = { initialAngleDeg = it; timeSeconds = 0.0 },
-                    valueRange = 5f..15f,
-                    modifier = Modifier.weight(1f).padding(horizontal = 8.dp),
-                    colors = SliderDefaults.colors(thumbColor = Color(0xFFB9C6D6), activeTrackColor = Color(0xFFB9C6D6))
-                )
+                Text("Гравитация:", color = TextSecondary, fontSize = 11.sp)
+                FlowRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    planets.forEach { planet ->
+                        val isSelected = selectedPlanet == planet
+                        FilterChip(
+                            selected = isSelected,
+                            onClick = {
+                                selectedPlanetName = planet.name
+                                timeSeconds = 0.0
+                            },
+                            label = { Text("${planet.name} (${planet.g})", fontSize = 11.sp) },
+                            modifier = Modifier.heightIn(min = 48.dp)
+                        )
+                    }
+                }
+
+                // Length Slider L
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text("Длина L: ${String.format("%.2f м", lengthMeters)}", color = Color.White, fontSize = 12.sp)
+                    Slider(
+                        value = lengthMeters,
+                        onValueChange = { lengthMeters = it; timeSeconds = 0.0 },
+                        valueRange = 0.2f..3.0f,
+                        modifier = Modifier.weight(1f).padding(horizontal = 8.dp),
+                        colors = SliderDefaults.colors(thumbColor = Color.White, activeTrackColor = Color.White)
+                    )
+                }
+
+                // Initial Angle Slider θ₀
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text("Угол θ₀: ${effectiveAngleDeg.toInt()}°", color = Color.White, fontSize = 12.sp)
+                    Slider(
+                        value = effectiveAngleDeg,
+                        onValueChange = { initialAngleDeg = it; timeSeconds = 0.0 },
+                        valueRange = 5f..15f,
+                        modifier = Modifier.weight(1f).padding(horizontal = 8.dp),
+                        colors = SliderDefaults.colors(thumbColor = Color(0xFFB9C6D6), activeTrackColor = Color(0xFFB9C6D6))
+                    )
+                }
+                Text("Модель малых углов (до 15°), θ₀ отпускается без толчка. Постоянное g, линейное затухание β = 0,02 с⁻¹; время 1×. Большие углы эта модель не описывает.",
+                    color = TextSecondary, fontSize = 11.sp)
             }
-            Text("Модель малых углов (до 15°), θ₀ отпускается без толчка. Постоянное g, линейное затухание β = 0,02 с⁻¹; время 1×. Большие углы эта модель не описывает.",
-                color = TextSecondary, fontSize = 11.sp)
         }
     }
 }

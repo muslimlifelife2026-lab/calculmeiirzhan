@@ -1,6 +1,5 @@
 package com.calculator.feature.chemistry.components
 
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -11,6 +10,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -61,6 +61,25 @@ fun AtomModelCanvas(
     }
 
     val textMeasurer = rememberTextMeasurer()
+    val nucLayout = remember(element.symbol, element.atomicNumber, textMeasurer) {
+        textMeasurer.measure(
+            text = AnnotatedString("${element.symbol}\n+${element.atomicNumber}"),
+            style = TextStyle(color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold, fontFamily = MonospaceFontFamily)
+        )
+    }
+    val shellNames = remember { listOf("K", "L", "M", "N", "O", "P", "Q") }
+    val shellLabelLayouts = remember(shells.size, textMeasurer) {
+        List(shells.size) { shellIndex ->
+            val shellName = shellNames.getOrElse(shellIndex) { "S${shellIndex + 1}" }
+            textMeasurer.measure(
+                text = AnnotatedString(shellName),
+                style = TextStyle(color = Color(0xFF64748B), fontSize = 9.sp, fontWeight = FontWeight.Bold)
+            )
+        }
+    }
+    val orbitStroke = remember {
+        Stroke(width = 1.2f, pathEffect = PathEffect.dashPathEffect(floatArrayOf(6f, 6f), 0f))
+    }
 
     Column(
         modifier = modifier
@@ -80,7 +99,7 @@ fun AtomModelCanvas(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column {
-                Text("${element.name} (${element.symbol})", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                Text("${element.nameRu.ifBlank { element.name }} (${element.symbol})", color = TextPrimary, fontSize = 16.sp, fontWeight = FontWeight.Bold)
                 Text(quantumNotation, color = Color(0xFFB9C6D6), fontSize = 12.sp, fontFamily = MonospaceFontFamily)
             }
             Column(horizontalAlignment = Alignment.End) {
@@ -98,85 +117,62 @@ fun AtomModelCanvas(
                 .clip(RoundedCornerShape(18.dp))
                 .background(Color(0xFF161719))
                 .border(1.dp, SurfaceBorder, RoundedCornerShape(18.dp))
-        ) {
-            Canvas(modifier = Modifier.fillMaxSize()) {
-                val width = size.width
-                val height = size.height
-                val center = Offset(width / 2, height / 2)
-
-                val maxRadius = Math.min(width, height) / 2 - 20.dp.toPx()
-                val shellCount = shells.size.coerceAtLeast(1)
-                val shellRadiusStep = (maxRadius - 30.dp.toPx()) / shellCount.toFloat()
-
-                // Draw Central Glowing Nucleus
-                val nucleusRadius = 24.dp.toPx()
-                drawCircle(
-                    color = Color(0xFFEF4444).copy(alpha = 0.3f),
-                    radius = nucleusRadius + 10.dp.toPx(),
-                    center = center
-                )
-                drawCircle(
-                    brush = Brush.radialGradient(
+                .drawWithCache {
+                    val width = size.width
+                    val height = size.height
+                    val center = Offset(width / 2f, height / 2f)
+                    val maxRadius = (minOf(width, height) / 2f - 20.dp.toPx()).coerceAtLeast(36.dp.toPx())
+                    val shellCount = shells.size.coerceAtLeast(1)
+                    val shellRadiusStep = (maxRadius - 30.dp.toPx()) / shellCount.toFloat()
+                    val nucleusRadius = 24.dp.toPx()
+                    val glowRadius = nucleusRadius + 10.dp.toPx()
+                    val electronGlowRadius = 6.dp.toPx()
+                    val electronRadius = 3.dp.toPx()
+                    val baseShellRadius = 30.dp.toPx()
+                    val nucleusBrush = Brush.radialGradient(
                         colors = listOf(Color(0xFFFCA5A5), Color(0xFFEF4444), Color(0xFF991B1B)),
                         center = Offset(center.x - 4f, center.y - 4f),
                         radius = nucleusRadius
-                    ),
-                    radius = nucleusRadius,
-                    center = center
-                )
-
-                // Nucleus text (Symbol & Z)
-                val nucleusText = "${element.symbol}\n+${element.atomicNumber}"
-                val nucLayout = textMeasurer.measure(
-                    text = AnnotatedString(nucleusText),
-                    style = TextStyle(color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold, fontFamily = MonospaceFontFamily)
-                )
-                drawText(textLayoutResult = nucLayout, topLeft = Offset(center.x - nucLayout.size.width / 2, center.y - nucLayout.size.height / 2))
-
-                // Draw Electron Shells and Orbiting Electrons
-                shells.forEachIndexed { shellIndex, electronCount ->
-                    val shellRadius = 30.dp.toPx() + (shellIndex + 1) * shellRadiusStep
-                    val orbitSpeed = 1.0f / (shellIndex + 1) // Inner electrons orbit faster
-
-                    // Orbital Ring
-                    drawCircle(
-                        color = Color(0xFFB9C6D6).copy(alpha = 0.25f),
-                        radius = shellRadius,
-                        center = center,
-                        style = Stroke(width = 1.2f, pathEffect = PathEffect.dashPathEffect(floatArrayOf(6f, 6f), 0f))
                     )
+                    val nucleusGlowColor = Color(0xFFEF4444).copy(alpha = 0.3f)
+                    val ringColor = Color(0xFFB9C6D6).copy(alpha = 0.25f)
+                    val electronGlowColor = Color(0xFFB9C6D6).copy(alpha = 0.45f)
+                    val electronCoreColor = Color(0xFFB9C6D6)
 
-                    // Shell Label (K, L, M, N, etc.)
-                    val shellNames = listOf("K", "L", "M", "N", "O", "P", "Q")
-                    val shellName = shellNames.getOrElse(shellIndex) { "S${shellIndex + 1}" }
-                    val shellLabelLayout = textMeasurer.measure(
-                        text = AnnotatedString(shellName),
-                        style = TextStyle(color = Color(0xFF64748B), fontSize = 9.sp, fontWeight = FontWeight.Bold)
-                    )
-                    drawText(textLayoutResult = shellLabelLayout, topLeft = Offset(center.x + shellRadius + 4f, center.y - 6f))
-
-                    // Draw Electrons on this Shell
-                    for (e in 0 until electronCount) {
-                        val baseAngle = (2 * Math.PI / electronCount) * e
-                        val currentAngle = baseAngle + (animTime * orbitSpeed * (if (shellIndex % 2 == 0) 1 else -1))
-
-                        val electronX = center.x + (shellRadius * Math.cos(currentAngle)).toFloat()
-                        val electronY = center.y + (shellRadius * Math.sin(currentAngle)).toFloat()
-
-                        // Glowing Electron Dot
-                        drawCircle(
-                            color = Color(0xFFB9C6D6).copy(alpha = 0.45f),
-                            radius = 6.dp.toPx(),
-                            center = Offset(electronX, electronY)
+                    onDrawBehind {
+                        drawCircle(color = nucleusGlowColor, radius = glowRadius, center = center)
+                        drawCircle(brush = nucleusBrush, radius = nucleusRadius, center = center)
+                        drawText(
+                            textLayoutResult = nucLayout,
+                            topLeft = Offset(center.x - nucLayout.size.width / 2f, center.y - nucLayout.size.height / 2f)
                         )
-                        drawCircle(
-                            color = Color(0xFFB9C6D6),
-                            radius = 3.dp.toPx(),
-                            center = Offset(electronX, electronY)
-                        )
+
+                        shells.forEachIndexed { shellIndex, electronCount ->
+                            val shellRadius = baseShellRadius + (shellIndex + 1) * shellRadiusStep
+                            val orbitSpeed = 1.0f / (shellIndex + 1)
+
+                            drawCircle(
+                                color = ringColor,
+                                radius = shellRadius,
+                                center = center,
+                                style = orbitStroke
+                            )
+                            drawText(
+                                textLayoutResult = shellLabelLayouts[shellIndex],
+                                topLeft = Offset(center.x + shellRadius + 4f, center.y - 6f)
+                            )
+
+                            for (e in 0 until electronCount) {
+                                val baseAngle = (2 * Math.PI / electronCount) * e
+                                val currentAngle = baseAngle + (animTime * orbitSpeed * (if (shellIndex % 2 == 0) 1 else -1))
+                                val electronX = center.x + (shellRadius * Math.cos(currentAngle)).toFloat()
+                                val electronY = center.y + (shellRadius * Math.sin(currentAngle)).toFloat()
+                                drawCircle(color = electronGlowColor, radius = electronGlowRadius, center = Offset(electronX, electronY))
+                                drawCircle(color = electronCoreColor, radius = electronRadius, center = Offset(electronX, electronY))
+                            }
+                        }
                     }
                 }
-            }
-        }
+        )
     }
 }

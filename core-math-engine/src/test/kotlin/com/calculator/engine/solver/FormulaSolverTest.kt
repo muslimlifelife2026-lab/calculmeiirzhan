@@ -107,6 +107,7 @@ class FormulaSolverTest {
         assertEquals(20.0, result.value, 1e-9)
         assertEquals("m/s", result.unitSymbol)
         assertEquals(4, result.steps.size)
+        org.junit.Assert.assertFalse(result.steps.last().equationLatex.contains("\\text{"))
     }
 
     @Test

@@ -35,6 +35,7 @@ class MainScreenTest {
         rule.onNodeWithText("+").performClick()
         rule.onNodeWithText("7").performClick()
         rule.onNodeWithContentDescription("Равно").performClick()
+        rule.waitUntil(5000) { rule.onAllNodesWithText("15").fetchSemanticsNodes().isNotEmpty() }
         rule.onNodeWithText("15").assertExists()
         rule.onNodeWithText("Как получен ответ").assertExists()
         rule.onNodeWithText("Инструменты").performClick()
@@ -52,6 +53,7 @@ class MainScreenTest {
         rule.onNodeWithText("1").performClick()
         repeat(11) { rule.onNodeWithText("0").performClick() }
         rule.onNodeWithContentDescription("Равно").performClick()
+        rule.waitUntil(5000) { rule.onAllNodesWithText("1E-11").fetchSemanticsNodes().isNotEmpty() }
         rule.onNodeWithText("1E-11").assertExists()
     }
 

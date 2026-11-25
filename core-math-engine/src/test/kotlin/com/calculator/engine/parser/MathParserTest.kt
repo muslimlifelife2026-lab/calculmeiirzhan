@@ -57,6 +57,25 @@ class MathParserTest {
         assertEquals(0, calculate("2(3+4)").compareTo(BigDecimal("14")))
     }
 
+    @Test fun implicitMultiplicationBeforePiAndEAndUnicodePi() {
+        assertEquals(2.0 * Math.PI, calculate("2pi").toDouble(), 1e-12)
+        assertEquals(2.0 * Math.E, calculate("2e").toDouble(), 1e-12)
+        assertEquals(2.0 * Math.PI, calculate("2π").toDouble(), 1e-12)
+        assertEquals(Math.PI * Math.E, calculate("pi e").toDouble(), 1e-12)
+
+        val xPi = MathParser.evaluateRPN(
+            MathParser.shuntingYard(MathParser.tokenize("x pi")),
+            mapOf("x" to BigDecimal("3"))
+        )
+        assertEquals(3.0 * Math.PI, xPi.toDouble(), 1e-12)
+
+        val sinWave = MathParser.evaluateRPN(
+            MathParser.shuntingYard(MathParser.tokenize("sin(2pi*x)")),
+            mapOf("x" to BigDecimal("0.25"))
+        )
+        assertEquals(1.0, sinWave.toDouble(), 1e-12)
+    }
+
     @Test fun contextSensitivePercent() {
         assertEquals(0, calculate("200+10%").compareTo(BigDecimal("220")))
         assertEquals(0, calculate("200-10%").compareTo(BigDecimal("180")))
@@ -107,5 +126,30 @@ class MathParserTest {
         val rpn = MathParser.shuntingYard(tokens)
         val result = MathParser.evaluateRPN(rpn)
         assertEquals(BigDecimal("1"), BigDecimal(result.toDouble()).setScale(0, java.math.RoundingMode.HALF_UP))
+    }
+
+    @Test
+    fun hugeFactorialAndTrigDoNotOomAndLoneDotIsRejectedCleanly() {
+        val factEx = assertThrows(IllegalArgumentException::class.java) {
+            MathParser.evaluateRPN(MathParser.shuntingYard(MathParser.tokenize("fact(1e100000000)")))
+        }
+        org.junit.Assert.assertTrue(factEx.message?.contains("слишком", ignoreCase = true) == true)
+
+        val cosDeg = MathParser.evaluateRPN(
+            MathParser.shuntingYard(MathParser.tokenize("cos(3.6e100000000)")),
+            isDegrees = true
+        )
+        assertEquals(0, cosDeg.compareTo(BigDecimal.ONE))
+
+        val sinDeg = MathParser.evaluateRPN(
+            MathParser.shuntingYard(MathParser.tokenize("sin(3.6e100000000)")),
+            isDegrees = true
+        )
+        org.junit.Assert.assertTrue(sinDeg.abs() < BigDecimal("1e-30"))
+
+        val dotEx = assertThrows(IllegalArgumentException::class.java) {
+            MathParser.tokenize(".")
+        }
+        org.junit.Assert.assertFalse(dotEx is NumberFormatException)
     }
 }

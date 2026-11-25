@@ -203,6 +203,7 @@ object LinearSystemSolver {
         if (isEmpty()) append("0")
     }
 
+    @ConsistentCopyVisibility
     private data class Rational private constructor(val numerator: BigInteger, val denominator: BigInteger) {
         val isZero get() = numerator.signum() == 0
         operator fun unaryMinus() = create(numerator.negate(), denominator)

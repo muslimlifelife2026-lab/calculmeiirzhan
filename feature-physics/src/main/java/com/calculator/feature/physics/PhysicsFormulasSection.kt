@@ -9,6 +9,7 @@ import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontFamily
@@ -20,6 +21,7 @@ import com.calculator.domain.model.CalculationResult
 import com.calculator.core.ui.components.GlassCard
 import com.calculator.core.ui.components.VariableInput
 import com.calculator.core.ui.theme.*
+import com.calculator.core.ui.utils.MathFormatter
 import com.calculator.core.ui.utils.NumberFormatter
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
@@ -61,7 +63,7 @@ fun PhysicsFormulasSection(
                             onSelectFormula(formula); showFormulaSelector = false; searchQuery = ""
                         }.padding(vertical = 16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                             Text(formula.name, style = MaterialTheme.typography.titleMedium)
-                            Text("${formula.subcategory} · ${formula.canonicalEquation}", color = TextSecondary)
+                            Text("${formula.subcategory} · ${MathFormatter.format(formula.latexTemplate.ifBlank { formula.canonicalEquation })}", color = TextSecondary)
                         }
                         HorizontalDivider(color = SurfaceBorder)
                     }
@@ -70,7 +72,13 @@ fun PhysicsFormulasSection(
         }
     }
 
-    val formula = selectedFormula ?: return
+    val formula = selectedFormula
+    if (formula == null) {
+        Box(modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            CircularProgressIndicator(color = AccentPrimary)
+        }
+        return
+    }
     LazyColumn(state = listState, modifier = modifier.fillMaxSize(),
         verticalArrangement = Arrangement.spacedBy(16.dp), contentPadding = PaddingValues(horizontal = 8.dp, vertical = 12.dp)) {
         item {
@@ -84,7 +92,13 @@ fun PhysicsFormulasSection(
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Text(formula.subcategory, color = TextSecondary, style = MaterialTheme.typography.labelLarge)
                     Text(formula.name, style = MaterialTheme.typography.titleLarge)
-                    SelectionContainer { Text(formula.canonicalEquation, style = MaterialTheme.typography.headlineMedium, fontFamily = FontFamily.Monospace) }
+                    SelectionContainer {
+                        Text(
+                            MathFormatter.format(formula.latexTemplate.ifBlank { formula.canonicalEquation }),
+                            style = MaterialTheme.typography.headlineMedium,
+                            fontFamily = FontFamily.Monospace
+                        )
+                    }
                     if (formula.description.isNotBlank()) Text(formula.description, color = TextSecondary)
                     OutlinedButton(onClick = { showFormulaSelector = true }, modifier = Modifier.fillMaxWidth()) { Text("Выбрать другую формулу") }
                 }

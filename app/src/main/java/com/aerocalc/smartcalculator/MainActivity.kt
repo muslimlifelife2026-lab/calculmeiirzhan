@@ -36,7 +36,7 @@ class MainActivity : ComponentActivity() {
         AgeGroupScreen(onSelect = { selected ->
           sharedPrefs.edit { putString("ad_age_group", selected.name) }
           ageGroup = selected
-          if (selected != AdAgeGroup.UNDER_13) ads.start(selected == AdAgeGroup.TEEN)
+          ads.applyAgeGroup(selected)
         })
       } else if (showOnboarding) {
         OnboardingScreen(
@@ -53,6 +53,7 @@ class MainActivity : ComponentActivity() {
           onPrivacyOptions = ads::showPrivacyOptions,
           onLearningActivityCompleted = ads::onLearningActivityCompleted,
           onChangeAgeGroup = {
+            ads.resetForAudienceChange()
             sharedPrefs.edit { remove("ad_age_group") }
             recreate()
           }
@@ -64,8 +65,6 @@ class MainActivity : ComponentActivity() {
       navigationBarStyle = SystemBarStyle.dark(android.graphics.Color.TRANSPARENT)
     )
     // Consent/ads may access the activity window. Install its content first.
-    if (savedAgeGroup != null && savedAgeGroup != AdAgeGroup.UNDER_13) {
-      ads.start(savedAgeGroup == AdAgeGroup.TEEN)
-    }
+    savedAgeGroup?.let { ads.applyAgeGroup(it) }
   }
 }
